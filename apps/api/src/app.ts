@@ -19,8 +19,8 @@ app.post("/api/v1/auth/register", AuthController.register);
 
 // SSE Client & Debug Live EventBus
 app.get("/sse/v1/job/:jobId", sseAuthMiddleware as any, MessageController.streamJobEvents);
-app.get("/sse/v1/admin/conversations/:id", authMiddleware as any, requireAdmin as any, AdminController.streamAdminConversation);
-app.get("/sse/v1/debug/eventbus", authMiddleware as any, requireAdmin as any, AdminController.streamEventBusDebug);
+app.get("/sse/v1/admin/conversations/:id", sseAuthMiddleware as any, requireAdmin as any, AdminController.streamAdminConversation);
+app.get("/sse/v1/debug/eventbus", sseAuthMiddleware as any, requireAdmin as any, AdminController.streamEventBusDebug);
 
 // Routes protégées Utilisateur
 app.get("/api/v1/auth/me", authMiddleware as any, AuthController.me);
