@@ -183,26 +183,46 @@ async function startInspectStream(id: string) {
   showLiveConversationDialog.value = true;
   isLiveStreaming.value = false;
 
+  let activeStreamingJobId: string | null = null;
+
   const cleanup = authStore.sdk.connectAdminConversationStream(id, {
-    onToken: (chunk: string) => {
+    onToken: async (chunk: string, jobId?: string) => {
       isLiveStreaming.value = true;
       if (!inspectConversation.value) return;
+
       const msgs = inspectConversation.value.messages;
       const lastMsg = msgs[msgs.length - 1];
 
-      if (lastMsg && lastMsg.role === "ASSISTANT") {
+      if (jobId && activeStreamingJobId !== jobId) {
+        activeStreamingJobId = jobId;
+        const refreshed = await backofficeStore.getAdminConversation(id);
+        if (refreshed && refreshed.messages) {
+          inspectConversation.value = refreshed;
+        }
+        inspectConversation.value.messages.push({
+          role: "ASSISTANT",
+          content: chunk,
+          _jobId: jobId,
+        });
+      } else if (lastMsg && lastMsg.role === "ASSISTANT" && (!jobId || lastMsg._jobId === jobId)) {
         lastMsg.content += chunk;
       } else {
-        msgs.push({ role: "ASSISTANT", content: chunk });
+        msgs.push({ role: "ASSISTANT", content: chunk, _jobId: jobId });
       }
     },
-    onStatus: (status: string) => {
+    onStatus: async (status: string) => {
       if (status === "COMPLETED" || status === "FAILED" || status === "CANCELLED") {
         isLiveStreaming.value = false;
+        activeStreamingJobId = null;
+        const updated = await backofficeStore.getAdminConversation(id);
+        if (updated && inspectConversation.value) {
+          inspectConversation.value = updated;
+        }
       }
     },
     onError: () => {
       isLiveStreaming.value = false;
+      activeStreamingJobId = null;
     },
   });
 

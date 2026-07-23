@@ -114,8 +114,8 @@ export class LogibotClientSDK {
   connectAdminConversationStream(
     conversationId: string,
     callbacks: {
-      onToken?: (chunk: string) => void;
-      onStatus?: (status: string) => void;
+      onToken?: (chunk: string, jobId?: string) => void;
+      onStatus?: (status: string, jobId?: string) => void;
       onError?: (err: any) => void;
     }
   ): () => void {
@@ -127,17 +127,27 @@ export class LogibotClientSDK {
         const data = JSON.parse(event.data);
         const eventType = data.type || data.kind || "unknown";
         const payload = data.payload || data;
+        const jobId = payload.jobId || data.jobId || payload.job_id;
 
         if (eventType === "token" || data.kind === "token" || payload.kind === "token") {
           if (callbacks.onToken) {
-            callbacks.onToken(payload.chunk || payload.data?.chunk || data.chunk || "");
+            const chunk = payload.chunk || payload.data?.chunk || data.chunk || "";
+            if (jobId !== undefined) {
+              callbacks.onToken(chunk, jobId);
+            } else {
+              callbacks.onToken(chunk);
+            }
           }
         }
 
         const status = data.status || payload.status;
         if (status) {
           if (callbacks.onStatus) {
-            callbacks.onStatus(status);
+            if (jobId !== undefined) {
+              callbacks.onStatus(status, jobId);
+            } else {
+              callbacks.onStatus(status);
+            }
           }
         }
       } catch {}
