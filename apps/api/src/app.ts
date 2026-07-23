@@ -36,4 +36,5 @@ app.delete("/api/v1/conversations/:id", authMiddleware as any, MessageController
 // Routes d'administration Backoffice
 app.get("/api/v1/admin/users", authMiddleware as any, requireAdmin as any, AdminController.getUsers);
 app.post("/api/v1/admin/users", authMiddleware as any, requireAdmin as any, AdminController.createUser);
+app.put("/api/v1/admin/users/:id", authMiddleware as any, requireAdmin as any, AdminController.updateUser);
 app.delete("/api/v1/admin/users/:id", authMiddleware as any, requireAdmin as any, AdminController.deleteUser);

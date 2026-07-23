@@ -33,6 +33,37 @@ export class AdminController {
     return res.status(200).json({ message: "Utilisateur supprimé" });
   }
 
+  static async updateUser(req: AuthRequest, res: Response) {
+    const id = req.params.id as string;
+    const { email, role, resetPassword } = req.body;
+
+    const updateData: { email?: string; role?: any; password_hash?: string } = {};
+    let generatedPassword: string | undefined;
+
+    if (email) updateData.email = email;
+    if (role) updateData.role = role;
+
+    if (resetPassword === true) {
+      // Génère un mot de passe aléatoire de 12 caractères hex
+      const { randomBytes } = await import("node:crypto");
+      generatedPassword = randomBytes(6).toString("hex");
+      updateData.password_hash = await bcrypt.hash(generatedPassword, 10);
+    }
+
+    const user = await UserRepository.update(id, updateData);
+    const response: any = {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      created_at: user.created_at.toISOString(),
+      updated_at: user.updated_at.toISOString(),
+    };
+    if (generatedPassword) response.generatedPassword = generatedPassword;
+
+    return res.status(200).json(response);
+  }
+
+
   static async streamAdminConversation(req: AuthRequest, res: Response) {
     const convId = req.params.id as string;
     const session = await SseService.setupSession(req, res);

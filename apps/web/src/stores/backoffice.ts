@@ -15,10 +15,16 @@ export const useBackofficeStore = defineStore("backoffice", () => {
     await loadUsers();
   }
 
+  async function updateUser(id: string, data: { email?: string; role?: string; resetPassword?: boolean }) {
+    const result = await authStore.sdk.updateUser(id, data);
+    await loadUsers();
+    return result; // contient éventuellement { generatedPassword }
+  }
+
   async function deleteUser(id: string) {
     await authStore.sdk.deleteUser(id);
     await loadUsers();
   }
 
-  return { users, loadUsers, createUser, deleteUser };
+  return { users, loadUsers, createUser, updateUser, deleteUser };
 });

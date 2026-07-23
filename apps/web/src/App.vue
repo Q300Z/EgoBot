@@ -1,5 +1,5 @@
 <template>
-  <v-app theme="dark">
+  <v-app>
     <!-- BARRE DE NAVIGATION SUPÉRIEURE (Si connecté) -->
     <v-app-bar v-if="authStore.token" color="surface" elevation="2">
       <v-app-bar-title class="font-weight-bold d-flex align-center">
@@ -275,6 +275,7 @@
                       </td>
                       <td class="text-caption">{{ new Date(u.created_at).toLocaleString() }}</td>
                       <td class="text-right">
+                        <v-btn icon="mdi-pencil" color="primary" variant="text" size="small" class="mr-1" @click="openEditUserDialog(u)"></v-btn>
                         <v-btn icon="mdi-delete" color="error" variant="text" size="small" @click="handleDeleteUser(u.id)"></v-btn>
                       </td>
                     </tr>
@@ -331,18 +332,88 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- DIALOG MODIFICATION UTILISATEUR (ADMIN) -->
+    <v-dialog v-model="showEditUserDialog" max-width="500">
+      <v-card class="pa-4 rounded-lg">
+        <v-card-title class="font-weight-bold d-flex align-center">
+          <v-icon icon="mdi-account-edit" color="primary" class="mr-2"></v-icon>
+          Modifier l'utilisateur
+        </v-card-title>
+        <v-card-text>
+          <v-text-field v-model="editUserEmail" label="Email" variant="outlined" density="comfortable" class="mb-2"></v-text-field>
+          <v-select v-model="editUserRole" :items="['USER', 'ADMIN']" label="Rôle" variant="outlined" density="comfortable" class="mb-2"></v-select>
+          <v-switch
+            v-model="editUserResetPassword"
+            label="Réinitialiser le mot de passe"
+            color="warning"
+            inset
+            hide-details
+          ></v-switch>
+          <v-alert v-if="editUserResetPassword" type="warning" variant="tonal" class="mt-3" density="compact">
+            Un nouveau mot de passe aléatoire sera généré et devra être transmis à l'utilisateur.
+          </v-alert>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn variant="text" @click="showEditUserDialog = false">Annuler</v-btn>
+          <v-btn color="primary" variant="flat" :loading="editUserLoading" @click="handleEditUser">Enregistrer</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- DIALOG MOT DE PASSE GÉNÉRÉ -->
+    <v-dialog v-model="showGeneratedPasswordDialog" max-width="480" persistent>
+      <v-card class="pa-4 rounded-lg">
+        <v-card-title class="font-weight-bold d-flex align-center">
+          <v-icon icon="mdi-key-variant" color="success" class="mr-2"></v-icon>
+          Mot de passe réinitialisé
+        </v-card-title>
+        <v-card-text>
+          <v-alert type="info" variant="tonal" class="mb-4" density="compact">
+            Transmettez ce mot de passe à l'utilisateur par un canal externe sécurisé. Il ne sera plus affiché après fermeture.
+          </v-alert>
+          <v-text-field
+            :model-value="generatedPassword"
+            label="Nouveau mot de passe"
+            variant="outlined"
+            readonly
+            append-inner-icon="mdi-content-copy"
+            @click:append-inner="() => navigator.clipboard.writeText(generatedPassword)"
+          ></v-text-field>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="primary" variant="flat" @click="showGeneratedPasswordDialog = false">Fermer</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-app>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from "vue";
+import { ref, onMounted, onUnmounted, nextTick } from "vue";
+import { useTheme } from "vuetify";
 import { useAuthStore } from "./stores/auth";
 import { useChatStore } from "./stores/chat";
 import { useBackofficeStore } from "./stores/backoffice";
 
+const theme = useTheme();
 const authStore = useAuthStore();
 const chatStore = useChatStore();
 const backofficeStore = useBackofficeStore();
+
+// Suivi dynamique du thème système
+const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+function onSystemThemeChange(e: MediaQueryListEvent) {
+  theme.global.name.value = e.matches ? "dark" : "light";
+}
+
+mediaQuery.addEventListener("change", onSystemThemeChange);
+
+onUnmounted(() => {
+  mediaQuery.removeEventListener("change", onSystemThemeChange);
+});
 
 const authTab = ref<"login" | "register">("login");
 const email = ref("");
@@ -359,6 +430,44 @@ const showCreateUserDialog = ref(false);
 const newUserEmail = ref("");
 const newUserPassword = ref("");
 const newUserRole = ref<"USER" | "ADMIN">("USER");
+
+// Edit user dialog state
+const showEditUserDialog = ref(false);
+const editUserId = ref("");
+const editUserEmail = ref("");
+const editUserRole = ref<"USER" | "ADMIN">("USER");
+const editUserResetPassword = ref(false);
+const editUserLoading = ref(false);
+
+// Generated password dialog state
+const showGeneratedPasswordDialog = ref(false);
+const generatedPassword = ref("");
+
+function openEditUserDialog(user: any) {
+  editUserId.value = user.id;
+  editUserEmail.value = user.email;
+  editUserRole.value = user.role;
+  editUserResetPassword.value = false;
+  showEditUserDialog.value = true;
+}
+
+async function handleEditUser() {
+  editUserLoading.value = true;
+  try {
+    const result = await backofficeStore.updateUser(editUserId.value, {
+      email: editUserEmail.value,
+      role: editUserRole.value,
+      resetPassword: editUserResetPassword.value,
+    });
+    showEditUserDialog.value = false;
+    if (result?.generatedPassword) {
+      generatedPassword.value = result.generatedPassword;
+      showGeneratedPasswordDialog.value = true;
+    }
+  } finally {
+    editUserLoading.value = false;
+  }
+}
 
 const debugLogs = ref<any[]>([]);
 let debugEventSource: EventSource | null = null;

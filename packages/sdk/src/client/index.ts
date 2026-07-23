@@ -89,6 +89,11 @@ export class LogibotClientSDK {
     return res.data;
   }
 
+  async updateUser(id: string, data: { email?: string; role?: string; resetPassword?: boolean }) {
+    const res = await this.api.put(`/api/v1/admin/users/${id}`, data);
+    return res.data; // { id, email, role, created_at, updated_at, generatedPassword? }
+  }
+
   /**
    * Écoute d'un flux SSE réactif avec tolérance absolue aux événements inconnus (Non-strict Event Parser).
    */
