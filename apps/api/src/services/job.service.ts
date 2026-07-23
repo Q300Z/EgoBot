@@ -8,9 +8,17 @@ import { v4 as uuidv4 } from "uuid";
 const logger = LoggerFactory.getLogger("JobService");
 
 export class JobService {
+  private static isRunning = false;
+
   static init() {
+    if (this.isRunning) return;
+    this.isRunning = true;
     this.pollSseStreams();
     logger.info("JobService initialisé (Polling Valkey Streams SSE).");
+  }
+
+  static stop() {
+    this.isRunning = false;
   }
 
   static async createJob(userId: string, prompt: string, conversationId?: string, model: string = "CHATBOT") {
@@ -52,7 +60,7 @@ export class JobService {
   }
 
   private static async pollSseStreams() {
-    while (true) {
+    while (this.isRunning) {
       try {
         const keys = await valkeyStream.keys("jobs:sse:dev:*");
         for (const key of keys) {

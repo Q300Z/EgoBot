@@ -1,0 +1,9 @@
+import "./unit/controllers/auth.controller.test.js";
+import "./unit/controllers/message.controller.test.js";
+import "./unit/controllers/admin.controller.test.js";
+import "./unit/middlewares/auth.middleware.test.js";
+import "./unit/middlewares/validate.middleware.test.js";
+import "./unit/middlewares/rateLimit.middleware.test.js";
+import "./unit/repositories/repositories.test.js";
+import "./unit/services/services.test.js";
+import "./unit/events/eventBus.test.js";

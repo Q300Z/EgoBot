@@ -41,7 +41,7 @@ describe("createEventStream", () => {
   });
 
   it("should trigger onOpen callback when connection opens", () => {
-    let instance: MockEventSource | null = null;
+    let instance: any = null;
     (globalThis as any).EventSource = class extends MockEventSource {
       constructor(url: string) {
         super(url);
