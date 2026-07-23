@@ -44,12 +44,20 @@ const themeModeIcon = computed(() => {
   return "mdi-monitor";
 });
 
+function applyThemeName(name: "dark" | "light") {
+  if (typeof (theme as any).change === "function") {
+    (theme as any).change(name);
+  } else {
+    theme.global.name.value = name;
+  }
+}
+
 function applyTheme() {
   if (themeMode.value === "system") {
     const isDark = typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-color-scheme: dark)").matches;
-    theme.global.name.value = isDark ? "dark" : "light";
+    applyThemeName(isDark ? "dark" : "light");
   } else {
-    theme.global.name.value = themeMode.value;
+    applyThemeName(themeMode.value);
   }
 }
 
@@ -65,7 +73,7 @@ if (typeof window !== "undefined" && typeof window.matchMedia === "function") {
   const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
   const onSystemThemeChange = (e: MediaQueryListEvent) => {
     if (themeMode.value === "system") {
-      theme.global.name.value = e.matches ? "dark" : "light";
+      applyThemeName(e.matches ? "dark" : "light");
     }
   };
   mediaQuery.addEventListener("change", onSystemThemeChange);

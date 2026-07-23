@@ -1,50 +1,55 @@
 <template>
-  <v-row class="fill-height ma-0 pa-4">
-    <v-col cols="12">
-      <v-card class="pa-4 rounded-lg border">
-        <v-card-title class="d-flex align-center justify-space-between mb-4">
-          <div class="d-flex align-center">
-            <v-icon icon="mdi-shield-account" color="warning" class="mr-2"></v-icon>
-            <span class="text-h5 font-weight-bold">Backoffice Administration</span>
-          </div>
-          <div class="d-flex align-center">
-            <v-btn
-              color="primary"
-              prepend-icon="mdi-account-plus"
-              class="mr-2 text-none"
-              @click="showCreateUserDialog = true"
-            >
-              Créer un Utilisateur
-            </v-btn>
-            <v-btn
-              color="primary"
-              variant="outlined"
-              prepend-icon="mdi-refresh"
-              class="text-none"
-              @click="backofficeStore.loadUsers()"
-            >
-              Rafraîchir
-            </v-btn>
-          </div>
-        </v-card-title>
+  <div class="fill-height w-100 pa-0">
+    <v-row class="fill-height ma-0 pa-4">
+      <v-col cols="12">
+        <v-card class="pa-4 rounded-lg border">
+          <v-card-title class="d-flex align-center justify-space-between mb-4">
+            <div class="d-flex align-center">
+              <v-icon icon="mdi-shield-account" color="warning" class="mr-2"></v-icon>
+              <span class="text-h5 font-weight-bold">Backoffice Administration</span>
+            </div>
+            <div class="d-flex align-center">
+              <v-btn
+                color="primary"
+                prepend-icon="mdi-account-plus"
+                class="mr-2 text-none"
+                @click="showCreateUserDialog = true"
+              >
+                Créer un Utilisateur
+              </v-btn>
+              <v-btn
+                color="primary"
+                variant="outlined"
+                prepend-icon="mdi-refresh"
+                class="text-none"
+                @click="backofficeStore.loadUsers()"
+              >
+                Rafraîchir
+              </v-btn>
+            </div>
+          </v-card-title>
 
-        <v-card-text>
+          <!-- Tableau des Utilisateurs -->
           <v-table hover class="rounded-lg border">
             <thead>
               <tr>
                 <th class="text-left">ID</th>
                 <th class="text-left">Email</th>
                 <th class="text-left">Rôle</th>
-                <th class="text-left">Date de création</th>
+                <th class="text-left">Créé le</th>
                 <th class="text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="u in backofficeStore.users" :key="u.id">
                 <td class="font-weight-mono text-caption">{{ u.id }}</td>
-                <td>{{ u.email }}</td>
+                <td class="font-weight-medium">{{ u.email }}</td>
                 <td>
-                  <v-chip :color="u.role === 'ADMIN' ? 'warning' : 'info'" size="x-small" variant="flat">
+                  <v-chip
+                    size="small"
+                    :color="u.role === 'ADMIN' ? 'warning' : 'info'"
+                    class="font-weight-bold text-white"
+                  >
                     {{ u.role }}
                   </v-chip>
                 </td>
@@ -72,54 +77,52 @@
               </tr>
             </tbody>
           </v-table>
+        </v-card>
+      </v-col>
+    </v-row>
+
+    <!-- Dialog Création Utilisateur -->
+    <v-dialog v-model="showCreateUserDialog" max-width="500">
+      <v-card class="pa-4 rounded-lg">
+        <v-card-title class="text-h6 font-weight-bold mb-2">Créer un nouvel utilisateur</v-card-title>
+        <v-card-text>
+          <v-text-field v-model="newUserEmail" label="Adresse Email" type="email" variant="outlined" density="comfortable"></v-text-field>
+          <v-text-field v-model="newUserPassword" label="Mot de passe" type="password" variant="outlined" density="comfortable"></v-text-field>
+          <v-select v-model="newUserRole" :items="['USER', 'ADMIN']" label="Rôle" variant="outlined" density="comfortable"></v-select>
         </v-card-text>
+        <v-card-actions class="justify-end">
+          <v-btn color="grey" variant="text" @click="showCreateUserDialog = false">Annuler</v-btn>
+          <v-btn color="primary" variant="flat" @click="handleCreateUser">Créer</v-btn>
+        </v-card-actions>
       </v-card>
-    </v-col>
-  </v-row>
+    </v-dialog>
 
-  <!-- Dialog de Création Utilisateur -->
-  <v-dialog v-model="showCreateUserDialog" max-width="500">
-    <v-card class="pa-4 rounded-lg">
-      <v-card-title class="font-weight-bold">Créer un Utilisateur</v-card-title>
-      <v-card-text>
-        <v-text-field v-model="newUserEmail" label="Email" variant="outlined" density="comfortable"></v-text-field>
-        <v-text-field v-model="newUserPassword" label="Mot de passe" type="password" variant="outlined" density="comfortable"></v-text-field>
-        <v-select v-model="newUserRole" :items="['USER', 'ADMIN']" label="Rôle" variant="outlined" density="comfortable"></v-select>
-      </v-card-text>
-      <v-card-actions>
-        <v-spacer></v-spacer>
-        <v-btn variant="text" @click="showCreateUserDialog = false">Annuler</v-btn>
-        <v-btn color="primary" variant="flat" @click="handleCreateUser">Créer</v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+    <EditUserDialog
+      v-model="showEditUserDialog"
+      :user="selectedEditUser"
+      :loading="editUserLoading"
+      @save="handleEditUser"
+    />
 
-  <!-- Modales composant réutilisables -->
-  <EditUserDialog
-    v-model="showEditUserDialog"
-    :user="selectedEditUser"
-    :loading="editUserLoading"
-    @save="handleEditUser"
-  />
+    <GeneratedPasswordDialog
+      v-model="showGeneratedPasswordDialog"
+      :password="generatedPassword"
+    />
 
-  <GeneratedPasswordDialog
-    v-model="showGeneratedPasswordDialog"
-    :password="generatedPassword"
-  />
+    <UserConversationsDialog
+      v-model="showUserConversationsDialog"
+      :user="selectedUserForConversations"
+      :conversations="backofficeStore.userConversations"
+      @inspect="openLiveConversationModal"
+    />
 
-  <UserConversationsDialog
-    v-model="showUserConversationsDialog"
-    :user="selectedUserForConversations"
-    :conversations="backofficeStore.userConversations"
-    @inspect="openLiveConversationModal"
-  />
-
-  <LiveInspectionModal
-    v-model="showLiveConversationDialog"
-    :conversation="inspectConversation"
-    :is-streaming="isLiveStreaming"
-    @close="closeLiveConversationModal"
-  />
+    <LiveInspectionModal
+      v-model="showLiveConversationDialog"
+      :conversation="inspectConversation"
+      :is-streaming="isLiveStreaming"
+      @close="closeLiveConversationModal"
+    />
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -156,6 +159,42 @@ const editUserLoading = ref(false);
 
 const showGeneratedPasswordDialog = ref(false);
 const generatedPassword = ref("");
+
+async function handleCreateUser() {
+  if (!newUserEmail.value || !newUserPassword.value) return;
+  await backofficeStore.createUser({
+    email: newUserEmail.value,
+    password: newUserPassword.value,
+    role: newUserRole.value,
+  });
+  newUserEmail.value = "";
+  newUserPassword.value = "";
+  showCreateUserDialog.value = false;
+}
+
+function openEditUserDialog(user: any) {
+  selectedEditUser.value = user;
+  showEditUserDialog.value = true;
+}
+
+async function handleEditUser(data: { email?: string; role?: string; resetPassword?: boolean }) {
+  if (!selectedEditUser.value) return;
+  editUserLoading.value = true;
+  try {
+    const res = await backofficeStore.updateUser(selectedEditUser.value.id, data);
+    showEditUserDialog.value = false;
+    if (res?.generatedPassword) {
+      generatedPassword.value = res.generatedPassword;
+      showGeneratedPasswordDialog.value = true;
+    }
+  } finally {
+    editUserLoading.value = false;
+  }
+}
+
+async function handleDeleteUser(id: string) {
+  await backofficeStore.deleteUser(id);
+}
 
 async function openUserConversationsModal(user: any) {
   selectedUserForConversations.value = user;
@@ -237,57 +276,31 @@ function closeLiveConversationModal() {
   showLiveConversationDialog.value = false;
   inspectConversation.value = null;
   isLiveStreaming.value = false;
-}
-
-function openEditUserDialog(user: any) {
-  selectedEditUser.value = user;
-  showEditUserDialog.value = true;
-}
-
-async function handleEditUser(data: { id: string; email: string; role: string; resetPassword: boolean }) {
-  editUserLoading.value = true;
-  try {
-    const result = await backofficeStore.updateUser(data.id, {
-      email: data.email,
-      role: data.role,
-      resetPassword: data.resetPassword,
-    });
-    showEditUserDialog.value = false;
-    if (result?.generatedPassword) {
-      generatedPassword.value = result.generatedPassword;
-      showGeneratedPasswordDialog.value = true;
-    }
-  } finally {
-    editUserLoading.value = false;
+  if (selectedUserForConversations.value) {
+    router.push(`/admin/users/${selectedUserForConversations.value.id}/conversations`);
+  } else {
+    router.push("/admin");
   }
 }
 
-async function handleCreateUser() {
-  if (!newUserEmail.value || !newUserPassword.value) return;
-  await backofficeStore.createUser({
-    email: newUserEmail.value,
-    password: newUserPassword.value,
-    role: newUserRole.value,
-  });
-  showCreateUserDialog.value = false;
-  newUserEmail.value = "";
-  newUserPassword.value = "";
-}
-
-async function handleDeleteUser(id: string) {
-  await backofficeStore.deleteUser(id);
-}
+watch(
+  () => route?.params?.userId,
+  async (newUserId) => {
+    if (newUserId && typeof newUserId === "string") {
+      const u = backofficeStore.users.find((user) => user.id === newUserId);
+      selectedUserForConversations.value = u || { id: newUserId, email: "Utilisateur" };
+      await backofficeStore.loadUserConversations(newUserId);
+      showUserConversationsDialog.value = true;
+    }
+  },
+  { immediate: true }
+);
 
 watch(
-  () => route?.name,
-  async (routeName) => {
-    if (routeName === "admin-user-conversations" && route.params?.userId) {
-      const userId = route.params.userId as string;
-      selectedUserForConversations.value = backofficeStore.users.find((u) => u.id === userId) || { id: userId };
-      await backofficeStore.loadUserConversations(userId);
-      showUserConversationsDialog.value = true;
-    } else if (routeName === "admin-conversation-inspect" && route.params?.id) {
-      await startInspectStream(route.params.id as string);
+  () => route?.params?.id,
+  async (convId) => {
+    if (convId && typeof convId === "string" && route?.path?.startsWith("/admin/conversations")) {
+      await startInspectStream(convId);
     }
   },
   { immediate: true }

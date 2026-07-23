@@ -20,7 +20,18 @@
         ></v-btn>
       </div>
 
-      <v-list density="compact" nav class="pa-2 overflow-y-auto">
+      <!-- Squelettes de Chargement Sidebar -->
+      <div v-if="chatStore.isLoadingConversations" class="pa-3">
+        <v-skeleton-loader
+          v-for="n in 5"
+          :key="n"
+          type="list-item-avatar"
+          class="mb-2 rounded-lg"
+        ></v-skeleton-loader>
+      </div>
+
+      <!-- Liste des conversations -->
+      <v-list v-else density="compact" nav class="pa-2 overflow-y-auto">
         <v-list-item
           v-for="c in chatStore.conversations"
           :key="c.id"
@@ -78,25 +89,44 @@
         </v-chip>
       </div>
 
-      <!-- Flux de Messages (Auto-scrollable / Responsive iFrame) -->
+      <!-- Flux de Messages (Animation Fondu & Squelettes de Chargement) -->
       <div
         ref="chatBoxRef"
-        class="flex-grow-1 overflow-y-auto pa-4"
+        class="flex-grow-1 overflow-y-auto pa-4 position-relative"
         role="log"
         aria-live="polite"
         aria-label="Historique des messages de la conversation avec EgoBot"
       >
-        <div v-if="!chatStore.currentConversation?.messages?.length" class="d-flex flex-column align-center justify-center fill-height text-disabled text-center pa-4">
-          <v-icon icon="mdi-truck-fast-outline" size="56" class="mb-2" color="secondary" aria-hidden="true"></v-icon>
-          <div class="text-h6 font-weight-bold">EgoBot — Assistant virtuel EgoNet</div>
-          <div class="text-caption">Duhamel Logistique — Posez vos questions sur vos réceptions, expéditions et stocks</div>
-        </div>
+        <v-fade-transition mode="out-in">
+          <!-- Squelettes de chargement pendant le changement de conversation -->
+          <div v-if="chatStore.isLoadingConversation" key="loading-skeleton" class="pa-4">
+            <div class="d-flex justify-end mb-4">
+              <v-skeleton-loader type="paragraph" class="w-50 rounded-lg"></v-skeleton-loader>
+            </div>
+            <div class="d-flex justify-start mb-4">
+              <v-skeleton-loader type="article" class="w-75 rounded-lg"></v-skeleton-loader>
+            </div>
+            <div class="d-flex justify-end mb-4">
+              <v-skeleton-loader type="paragraph" class="w-50 rounded-lg"></v-skeleton-loader>
+            </div>
+          </div>
 
-        <ChatMessage
-          v-for="(msg, idx) in chatStore.currentConversation?.messages || []"
-          :key="idx"
-          :message="msg"
-        />
+          <!-- Message de bienvenue si pas de conversation sélectionnée -->
+          <div v-else-if="!chatStore.currentConversation?.messages?.length" key="empty-welcome" class="d-flex flex-column align-center justify-center fill-height text-disabled text-center pa-4">
+            <v-icon icon="mdi-truck-fast-outline" size="56" class="mb-2" color="secondary" aria-hidden="true"></v-icon>
+            <div class="text-h6 font-weight-bold">EgoBot — Assistant virtuel EgoNet</div>
+            <div class="text-caption">Duhamel Logistique — Posez vos questions sur vos réceptions, expéditions et stocks</div>
+          </div>
+
+          <!-- Affichage fluide des messages de la conversation -->
+          <div v-else key="messages-list">
+            <ChatMessage
+              v-for="(msg, idx) in chatStore.currentConversation?.messages || []"
+              :key="idx"
+              :message="msg"
+            />
+          </div>
+        </v-fade-transition>
       </div>
 
       <!-- Zone de Saisie avec v-textarea multi-lignes auto-extensible -->
@@ -114,7 +144,7 @@
             max-rows="5"
             hide-details
             class="flex-grow-1 mr-2"
-            :disabled="chatStore.isStreaming"
+            :disabled="chatStore.isStreaming || chatStore.isLoadingConversation"
             @keydown.enter.exact.prevent="handleSend"
           ></v-textarea>
 
@@ -126,7 +156,7 @@
             aria-label="Envoyer le message"
             title="Envoyer le message"
             :loading="chatStore.isStreaming"
-            :disabled="!promptInput.trim()"
+            :disabled="!promptInput.trim() || chatStore.isLoadingConversation"
             @click="handleSend"
           ></v-btn>
         </div>
@@ -213,5 +243,11 @@ onMounted(async () => {
 <style scoped>
 .h-100 {
   height: 100%;
+}
+.w-50 {
+  width: 50%;
+}
+.w-75 {
+  width: 75%;
 }
 </style>

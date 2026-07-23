@@ -4,7 +4,11 @@
     <v-main>
       <v-container fluid class="fill-height pa-0">
         <AuthView v-if="!authStore.token" />
-        <router-view v-else />
+        <router-view v-else v-slot="{ Component }">
+          <v-fade-transition mode="out-in">
+            <component :is="Component" />
+          </v-fade-transition>
+        </router-view>
       </v-container>
     </v-main>
   </v-app>
