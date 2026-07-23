@@ -19,6 +19,7 @@ export class WorkerApplication {
   private redisWriter: Redis;
   private handlers: Map<string, TaskHandler> = new Map();
   private isRunning: boolean = false;
+  private timerRefs: Set<NodeJS.Timeout> = new Set();
 
   constructor(options: WorkerAppOptions) {
     this.workerId = options.workerId;
@@ -38,9 +39,19 @@ export class WorkerApplication {
     this.isRunning = true;
     console.info(`[Worker SDK] Worker ${this.workerId} démarré sur les modèles : ${this.models.join(", ")}`);
 
-    // Démarrage de la boucle de consommation Redis Streams
     this.pollQueues();
     this.startHeartbeat();
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => {
+      if (!this.isRunning) return resolve();
+      const timer = setTimeout(() => {
+        this.timerRefs.delete(timer);
+        resolve();
+      }, ms);
+      this.timerRefs.add(timer);
+    });
   }
 
   private async startHeartbeat() {
@@ -49,14 +60,13 @@ export class WorkerApplication {
         const presenceKey = `workers:presence:${this.workerId}:${model}`;
         await this.redisWriter.set(presenceKey, JSON.stringify({ status: "online", worker_id: this.workerId, model }), "EX", 15);
       }
-      await new Promise((r) => setTimeout(r, 5000));
+      await this.sleep(5000);
     }
   }
 
   private async pollQueues() {
     const commonGroupName = `group:llm-workers:${this.env}`;
 
-    // Assurer l'existence d'un unique Consumer Group partagé par tous les workers
     for (const model of this.models) {
       const streamQueueKey = `jobs:queue:${this.env}:${model}`;
       try {
@@ -66,11 +76,11 @@ export class WorkerApplication {
       }
     }
 
-    // Lancer la tâche d'auto-claim périodique (PEL Recovery)
     this.startPelRecoveryLoop(commonGroupName);
 
     while (this.isRunning) {
       try {
+        let hasProcessedAny = false;
         for (const model of this.models) {
           const streamQueueKey = `jobs:queue:${this.env}:${model}`;
 
@@ -88,6 +98,7 @@ export class WorkerApplication {
           )) as Array<[string, Array<[string, string[]]>]> | null;
 
           if (response && response.length > 0) {
+            hasProcessedAny = true;
             const [stream, messages] = response[0];
             for (const message of messages) {
               const [id, fields] = message;
@@ -95,15 +106,18 @@ export class WorkerApplication {
             }
           }
         }
+        if (!hasProcessedAny) {
+          await this.sleep(10);
+        }
       } catch (err) {
         console.error("[Worker SDK] Erreur lors du polling Redis Streams", err);
-        await new Promise((r) => setTimeout(r, 1000));
+        await this.sleep(1000);
       }
     }
   }
 
   private async startPelRecoveryLoop(groupName: string) {
-    const MIN_IDLE_TIME_MS = 60000; // 60 secondes d'inactivité = job bloqué
+    const MIN_IDLE_TIME_MS = 60000;
 
     while (this.isRunning) {
       try {
@@ -131,7 +145,7 @@ export class WorkerApplication {
       } catch (err) {
         console.error("[Worker SDK] Erreur dans la boucle PEL Recovery", err);
       }
-      await new Promise((r) => setTimeout(r, 30000));
+      await this.sleep(30000);
     }
   }
 
@@ -238,6 +252,10 @@ export class WorkerApplication {
 
   stop() {
     this.isRunning = false;
+    for (const timer of this.timerRefs) {
+      clearTimeout(timer);
+    }
+    this.timerRefs.clear();
     this.redisReader.disconnect();
     this.redisWriter.disconnect();
   }
