@@ -1,125 +1,138 @@
 <template>
-  <v-row class="fill-height ma-0" no-gutters>
-    <!-- Sidebar Historique Conversations -->
-    <v-col cols="12" md="3" lg="2" class="pr-md-2 mb-4 mb-md-0">
-      <v-card height="100%" class="d-flex flex-column rounded-lg border">
-        <v-card-title class="d-flex align-center justify-space-between pa-3">
-          <span class="text-subtitle-1 font-weight-bold">Conversations</span>
-          <v-btn
-            icon="mdi-plus"
-            color="primary"
-            size="small"
-            variant="flat"
-            title="Nouvelle Conversation"
-            aria-label="Nouvelle Conversation"
-            @click="handleNewConversation"
-          ></v-btn>
-        </v-card-title>
-        <v-divider></v-divider>
-        <v-list density="compact" nav class="flex-grow-1 overflow-y-auto pa-2">
-          <v-list-item
-            v-for="c in chatStore.conversations"
-            :key="c.id"
-            :active="chatStore.currentConversation?.id === c.id"
-            color="primary"
-            rounded="lg"
-            class="mb-1"
-            @click="selectConversation(c.id)"
-          >
-            <template #prepend>
-              <v-icon icon="mdi-message-text-outline" size="small"></v-icon>
-            </template>
-            <v-list-item-title class="text-caption font-weight-medium">
-              {{ c.title || 'Sans titre' }}
-            </v-list-item-title>
-            <template #append>
-              <v-btn
-                icon="mdi-delete-outline"
-                size="x-small"
-                variant="text"
-                color="error"
-                title="Supprimer la conversation"
-                aria-label="Supprimer la conversation"
-                @click.stop="handleDeleteConversation(c.id)"
-              ></v-btn>
-            </template>
-          </v-list-item>
-          <div v-if="chatStore.conversations.length === 0" class="text-center text-caption text-disabled pa-4">
-            Aucune conversation
-          </div>
-        </v-list>
-      </v-card>
-    </v-col>
+  <div class="d-flex fill-height w-100 overflow-hidden position-relative">
+    <!-- Sidebar Historique Conversations (v-navigation-drawer Responsive pour iFrame EgoNet) -->
+    <v-navigation-drawer
+      v-model="uiStore.drawer"
+      location="left"
+      width="280"
+      class="border-r bg-surface"
+    >
+      <div class="d-flex align-center justify-space-between pa-3 border-b">
+        <span class="text-subtitle-1 font-weight-bold">Conversations</span>
+        <v-btn
+          icon="mdi-plus"
+          color="primary"
+          size="small"
+          variant="flat"
+          title="Nouvelle Conversation"
+          aria-label="Nouvelle Conversation"
+          @click="handleNewConversation"
+        ></v-btn>
+      </div>
+
+      <v-list density="compact" nav class="pa-2 overflow-y-auto">
+        <v-list-item
+          v-for="c in chatStore.conversations"
+          :key="c.id"
+          :active="chatStore.currentConversation?.id === c.id"
+          color="primary"
+          rounded="lg"
+          class="mb-1"
+          @click="selectConversation(c.id)"
+        >
+          <template #prepend>
+            <v-icon icon="mdi-message-text-outline" size="small"></v-icon>
+          </template>
+          <v-list-item-title class="text-caption font-weight-medium text-truncate">
+            {{ c.title || 'Sans titre' }}
+          </v-list-item-title>
+          <template #append>
+            <v-btn
+              icon="mdi-delete-outline"
+              size="x-small"
+              variant="text"
+              color="error"
+              title="Supprimer la conversation"
+              aria-label="Supprimer la conversation"
+              @click.stop="handleDeleteConversation(c.id)"
+            ></v-btn>
+          </template>
+        </v-list-item>
+        <div v-if="chatStore.conversations.length === 0" class="text-center text-caption text-disabled pa-4">
+          Aucune conversation
+        </div>
+      </v-list>
+    </v-navigation-drawer>
 
     <!-- Zone de Chat Principale -->
-    <v-col cols="12" md="9" lg="10" class="pl-md-2">
-      <v-card height="100%" class="d-flex flex-column rounded-lg border">
-        <!-- En-tête Chat -->
-        <v-card-title class="d-flex align-center justify-space-between border-b pa-3">
-          <div class="d-flex align-center">
-            <v-icon icon="mdi-chat-processing" color="primary" class="mr-2"></v-icon>
-            <span class="text-h6 font-weight-bold">
-              {{ chatStore.currentConversation?.title || 'Nouvelle Discussion' }}
-            </span>
-          </div>
-          <v-chip v-if="chatStore.isStreaming" color="warning" size="small" prepend-icon="mdi-loading mdi-spin">
-            Génération en cours...
-          </v-chip>
-        </v-card-title>
+    <div class="d-flex flex-column flex-grow-1 h-100 overflow-hidden">
+      <!-- En-tête Chat (v-app-bar / toolbar compact) -->
+      <div class="d-flex align-center justify-space-between border-b pa-3 bg-surface">
+        <div class="d-flex align-center text-truncate">
+          <v-btn
+            icon="mdi-menu"
+            variant="text"
+            size="small"
+            class="mr-2 d-md-none"
+            aria-label="Ouvrir le menu des conversations"
+            title="Historique des conversations"
+            @click="uiStore.toggleDrawer"
+          ></v-btn>
+          <v-icon icon="mdi-chat-processing" color="primary" class="mr-2" aria-hidden="true"></v-icon>
+          <span class="text-subtitle-1 font-weight-bold text-truncate">
+            {{ chatStore.currentConversation?.title || 'Nouvelle Discussion' }}
+          </span>
+        </div>
+        <v-chip v-if="chatStore.isStreaming" color="warning" size="small" prepend-icon="mdi-loading mdi-spin">
+          Génération...
+        </v-chip>
+      </div>
 
-        <!-- Flux de Messages Accessibilité WCAG AA -->
-        <v-card-text
-          ref="chatBoxRef"
-          class="flex-grow-1 overflow-y-auto pa-4"
-          role="log"
-          aria-live="polite"
-          aria-label="Historique des messages de la conversation avec EgoBot"
-        >
-          <div v-if="!chatStore.currentConversation?.messages?.length" class="d-flex flex-column align-center justify-center fill-height text-disabled">
-            <v-icon icon="mdi-truck-fast-outline" size="64" class="mb-2" color="secondary" aria-hidden="true"></v-icon>
-            <div class="text-h6 font-weight-bold">EgoBot — Assistant virtuel EgoNet</div>
-            <div class="text-caption">Duhamel Logistique — Posez vos questions sur vos réceptions, expéditions et stocks</div>
-          </div>
+      <!-- Flux de Messages (Auto-scrollable / Responsive iFrame) -->
+      <div
+        ref="chatBoxRef"
+        class="flex-grow-1 overflow-y-auto pa-4"
+        role="log"
+        aria-live="polite"
+        aria-label="Historique des messages de la conversation avec EgoBot"
+      >
+        <div v-if="!chatStore.currentConversation?.messages?.length" class="d-flex flex-column align-center justify-center fill-height text-disabled text-center pa-4">
+          <v-icon icon="mdi-truck-fast-outline" size="56" class="mb-2" color="secondary" aria-hidden="true"></v-icon>
+          <div class="text-h6 font-weight-bold">EgoBot — Assistant virtuel EgoNet</div>
+          <div class="text-caption">Duhamel Logistique — Posez vos questions sur vos réceptions, expéditions et stocks</div>
+        </div>
 
-          <ChatMessage
-            v-for="(msg, idx) in chatStore.currentConversation?.messages || []"
-            :key="idx"
-            :message="msg"
-          />
-        </v-card-text>
+        <ChatMessage
+          v-for="(msg, idx) in chatStore.currentConversation?.messages || []"
+          :key="idx"
+          :message="msg"
+        />
+      </div>
 
-        <!-- Zone de Saisie Accessibilité ARIA -->
-        <v-divider></v-divider>
-        <v-card-actions class="pa-3">
-          <v-text-field
+      <!-- Zone de Saisie avec v-textarea multi-lignes auto-extensible -->
+      <div class="border-t pa-3 bg-surface">
+        <div class="d-flex align-center">
+          <v-textarea
             v-model="promptInput"
             placeholder="Posez votre question sur vos stocks, livraisons..."
-            label="Votre message pour EgoBot"
+            label="Message pour EgoBot"
             aria-label="Saisir votre message pour l'assistant EgoBot"
             variant="outlined"
-            density="comfortable"
+            density="compact"
+            auto-grow
+            rows="1"
+            max-rows="5"
             hide-details
+            class="flex-grow-1 mr-2"
             :disabled="chatStore.isStreaming"
-            @keyup.enter="handleSend"
-          >
-            <template #append-inner>
-              <v-btn
-                icon="mdi-send"
-                color="secondary"
-                variant="flat"
-                size="small"
-                aria-label="Envoyer le message"
-                title="Envoyer le message"
-                :loading="chatStore.isStreaming"
-                :disabled="!promptInput.trim()"
-                @click="handleSend"
-              ></v-btn>
-            </template>
-          </v-text-field>
-        </v-card-actions>
-      </v-card>
-    </v-col>
-  </v-row>
+            @keydown.enter.exact.prevent="handleSend"
+          ></v-textarea>
+
+          <v-btn
+            icon="mdi-send"
+            color="secondary"
+            variant="flat"
+            size="default"
+            aria-label="Envoyer le message"
+            title="Envoyer le message"
+            :loading="chatStore.isStreaming"
+            :disabled="!promptInput.trim()"
+            @click="handleSend"
+          ></v-btn>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -127,15 +140,17 @@ import { ref, watch, onMounted, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useChatStore } from "../stores/chat";
 import { useAuthStore } from "../stores/auth";
+import { useUiStore } from "../stores/ui";
 import ChatMessage from "../components/ChatMessage.vue";
 
 const route = useRoute();
 const router = useRouter();
 const chatStore = useChatStore();
 const authStore = useAuthStore();
+const uiStore = useUiStore();
 
 const promptInput = ref("");
-const chatBoxRef = ref<any>(null);
+const chatBoxRef = ref<HTMLElement | null>(null);
 
 async function selectConversation(id: string) {
   if (router && route.path !== `/chat/${id}`) {
@@ -170,8 +185,8 @@ async function handleDeleteConversation(id: string) {
 
 async function scrollToBottom() {
   await nextTick();
-  if (chatBoxRef.value?.$el) {
-    chatBoxRef.value.$el.scrollTop = chatBoxRef.value.$el.scrollHeight;
+  if (chatBoxRef.value) {
+    chatBoxRef.value.scrollTop = chatBoxRef.value.scrollHeight;
   }
 }
 
@@ -181,6 +196,8 @@ watch(
     if (newId && typeof newId === "string" && chatStore.currentConversation?.id !== newId) {
       await chatStore.loadConversation(newId);
       await scrollToBottom();
+    } else if (!newId) {
+      chatStore.currentConversation = null;
     }
   },
   { immediate: true }
@@ -192,3 +209,9 @@ onMounted(async () => {
   }
 });
 </script>
+
+<style scoped>
+.h-100 {
+  height: 100%;
+}
+</style>
