@@ -49,3 +49,4 @@ Thumbs.db
 *.db-wal
 prisma/*.db
 
+packages/logistics-agent/src/generated/
