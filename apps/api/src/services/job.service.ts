@@ -21,7 +21,13 @@ export class JobService {
     this.isRunning = false;
   }
 
-  static async createJob(userId: string, prompt: string, conversationId?: string, model: string = "CHATBOT") {
+  static async createJob(
+    userId: string,
+    prompt: string,
+    conversationId?: string,
+    model: string = "CHATBOT",
+    requester?: { email: string },
+  ) {
     let convId: string = conversationId || "";
     if (!convId) {
       const title = prompt.length > 30 ? prompt.substring(0, 30) + "..." : prompt;
@@ -47,6 +53,7 @@ export class JobService {
       conversationId: convId,
       prompt,
       model,
+      customer: requester ? { email: requester.email } : undefined,
     };
 
     await valkeyWriter.xadd(queueKey, "*", "data", JSON.stringify(payload));

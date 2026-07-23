@@ -8,27 +8,33 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./agent": {
       "types": "./dist/agent/index.d.ts",
-      "import": "./dist/agent/index.js"
+      "import": "./dist/agent/index.js",
+      "default": "./dist/agent/index.js"
     },
     "./database": {
       "types": "./dist/database/index.d.ts",
-      "import": "./dist/database/index.js"
+      "import": "./dist/database/index.js",
+      "default": "./dist/database/index.js"
     },
     "./dtos": {
       "types": "./dist/dtos/index.d.ts",
-      "import": "./dist/dtos/index.js"
+      "import": "./dist/dtos/index.js",
+      "default": "./dist/dtos/index.js"
     },
     "./services": {
       "types": "./dist/services/index.d.ts",
-      "import": "./dist/services/index.js"
+      "import": "./dist/services/index.js",
+      "default": "./dist/services/index.js"
     },
     "./tools": {
       "types": "./dist/tools/index.d.ts",
-      "import": "./dist/tools/index.js"
+      "import": "./dist/tools/index.js",
+      "default": "./dist/tools/index.js"
     }
   },
   "files": [
@@ -41,11 +47,17 @@
     "test": "vitest run",
     "prisma:format": "prisma format",
     "prisma:generate": "prisma generate",
-    "prisma:validate": "prisma validate"
+    "prisma:validate": "prisma validate",
+    "prisma:seed": "tsx prisma/seed.ts"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
-    "@langchain/openai": "^1.2.9",
+    "@langchain/core": "^1.2.3",
+    "@langchain/openai": "^1.5.5",
     "@prisma/adapter-pg": "^7.9.0",
+    "@prisma/client": "^7.9.0",
     "langchain": "^1.1.5",
     "pg": "^8.16.3",
     "zod": "^4.4.3"
@@ -54,6 +66,7 @@
     "@types/node": "^26.1.1",
     "@types/pg": "^8.15.6",
     "prisma": "^7.9.0",
+    "tsx": "^4.19.2",
     "typescript": "^7.0.2",
     "vitest": "^3.2.4"
   }

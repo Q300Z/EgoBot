@@ -11,7 +11,9 @@ export class MessageController {
       return res.status(400).json({ error: "Prompt requis" });
     }
 
-    const jobResult = await JobService.createJob(req.user!.id, prompt, conversation_id, model);
+    const jobResult = await JobService.createJob(req.user!.id, prompt, conversation_id, model, {
+      email: req.user!.email,
+    });
     return res.status(201).json(jobResult);
   }
 

@@ -204,7 +204,11 @@
                       <div class="text-caption text-medium-emphasis mb-1 font-weight-bold">
                         {{ msg.role === 'USER' ? 'Vous' : 'Assistant IA' }}
                       </div>
-                      <div class="text-body-2 white-space-pre-wrap">{{ msg.content || '...' }}</div>
+                      <MessageContent
+                        v-if="msg.role === 'ASSISTANT' && msg.content"
+                        :content="msg.content"
+                      />
+                      <div v-else class="text-body-2 white-space-pre-wrap">{{ msg.content || '...' }}</div>
                     </v-card>
                   </div>
                 </div>
@@ -212,7 +216,18 @@
 
               <!-- Zone de Saisie -->
               <v-divider></v-divider>
-              <v-card-actions class="pa-3">
+              <v-card-actions class="pa-3 flex-column align-stretch">
+                <v-btn-toggle
+                  v-if="!chatStore.currentConversation"
+                  v-model="selectedModel"
+                  color="primary"
+                  density="compact"
+                  mandatory
+                  class="mb-2 align-self-start"
+                >
+                  <v-btn value="CHATBOT" size="small">Assistant général</v-btn>
+                  <v-btn value="LOGISTICS" size="small">Suivi commandes</v-btn>
+                </v-btn-toggle>
                 <v-text-field
                   v-model="promptInput"
                   placeholder="Écrivez un message..."
@@ -397,6 +412,7 @@ import { useTheme } from "vuetify";
 import { useAuthStore } from "./stores/auth";
 import { useChatStore } from "./stores/chat";
 import { useBackofficeStore } from "./stores/backoffice";
+import MessageContent from "./components/MessageContent.vue";
 
 const theme = useTheme();
 const authStore = useAuthStore();
@@ -424,6 +440,7 @@ const authLoading = ref(false);
 
 const currentView = ref<"chat" | "admin" | "debug">("chat");
 const promptInput = ref("");
+const selectedModel = ref<"CHATBOT" | "LOGISTICS">("CHATBOT");
 const chatBoxRef = ref<any>(null);
 
 const showCreateUserDialog = ref(false);
@@ -498,7 +515,7 @@ async function handleSend() {
   if (!promptInput.value.trim() || chatStore.isStreaming) return;
   const text = promptInput.value;
   promptInput.value = "";
-  await chatStore.sendMessage(text);
+  await chatStore.sendMessage(text, chatStore.currentConversation?.model || selectedModel.value);
   await scrollToBottom();
 }
 

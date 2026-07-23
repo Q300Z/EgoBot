@@ -11,11 +11,10 @@ export class SseService {
 
   static init() {
     eventBus.subscribe("job.token_emitted", (event) => {
-      const { jobId, envelope } = event.payload as any;
+      const { jobId, envelope, eventId } = event.payload as any;
       if (!envelope) return;
 
       const payload = envelope.payload || envelope.data || envelope;
-      const eventName = envelope.type || envelope.event || "token";
       const conversationId = payload?.conversation_id || payload?.conversationId;
 
       const jobSessions = this.activeSessions.get(jobId) || new Set<Session>();
@@ -23,8 +22,13 @@ export class SseService {
 
       const targetSessions = new Set([...jobSessions, ...convSessions]);
 
+      // Événement SSE poussé sans nom personnalisé (défaut "message") : un nom
+      // personnalisé (ex. "job.progress") ne serait jamais reçu par
+      // EventSource.onmessage côté navigateur, qui ne réagit qu'à l'event
+      // par défaut. Le type sémantique reste disponible dans le payload
+      // (kind/status), déjà lu comme tel côté SDK client.
       for (const session of targetSessions) {
-        session.push(payload, eventName);
+        session.push(payload, undefined, eventId);
       }
     });
 
@@ -46,17 +50,14 @@ export class SseService {
         logger.info(`[SSE Recovery] Replay de ${missedEvents.length} événement(s) manqué(s) pour le job ${jobId}`);
 
         for (const [eventId, fields] of missedEvents) {
-          let eventName = "token";
           let eventData = "";
           for (let i = 0; i < fields.length; i += 2) {
-            if (fields[i] === "event") eventName = fields[i + 1];
             if (fields[i] === "data") eventData = fields[i + 1];
           }
           if (eventData) {
             const parsed = JSON.parse(eventData);
             const payload = parsed.payload || parsed.data || parsed;
-            const typeName = parsed.type || eventName;
-            session.push(payload, typeName, eventId);
+            session.push(payload, undefined, eventId);
           }
         }
       } catch (err) {

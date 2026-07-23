@@ -116,6 +116,14 @@ export class LogibotClientSDK {
         const eventType = data.type || data.kind || "unknown";
         const payload = data.payload || data;
 
+        // L'enveloppe de complétion du worker utilise `kind: "stats"`, qui ne
+        // correspond à aucun des cas du switch ci-dessous : ce déclenchement
+        // est indépendant du type d'événement pour ne jamais manquer un
+        // changement de statut (notamment COMPLETED/FAILED/CANCELLED).
+        if (typeof payload?.status === "string" && callbacks.onStatus) {
+          callbacks.onStatus(payload.status, payload.error);
+        }
+
         switch (eventType) {
           case "token":
             if (callbacks.onToken) {

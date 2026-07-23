@@ -277,5 +277,39 @@ describe("LogibotClientSDK", () => {
       // 8. Call unsubscribe
       unsubscribe();
     });
+
+    it("should dispatch onStatus for a worker completion envelope (kind: stats) even though it matches no switch case", () => {
+      const sdk = new LogibotClientSDK({ baseUrl: "http://localhost:3000" });
+      const onStatus = vi.fn();
+      const onUnknownEvent = vi.fn();
+
+      let createdEsInstance: MockEventSource | null = null;
+      (globalThis as any).EventSource = class extends MockEventSource {
+        constructor(url: string) {
+          super(url);
+          createdEsInstance = this;
+        }
+      };
+
+      const unsubscribe = sdk.connectJobStream("job-stats", { onStatus, onUnknownEvent });
+      const es = createdEsInstance!;
+
+      es.onmessage!({
+        data: JSON.stringify({
+          kind: "stats",
+          status: "COMPLETED",
+          job_id: "job-stats",
+          statistics: { generated_tokens: 10 },
+        }),
+      });
+
+      expect(onStatus).toHaveBeenCalledWith("COMPLETED", undefined);
+      // eventType résolu à "stats" (data.kind), qui ne matche aucun case du
+      // switch ("token"/"status"/"statistics") : sans le dispatch
+      // indépendant, onStatus ne serait jamais appelé ici.
+      expect(onUnknownEvent).toHaveBeenCalledWith("stats", expect.objectContaining({ status: "COMPLETED" }));
+
+      unsubscribe();
+    });
   });
 });

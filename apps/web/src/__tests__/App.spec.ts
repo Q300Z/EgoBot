@@ -257,7 +257,7 @@ describe("App.vue Component", () => {
       await textInput.trigger("keyup.enter");
       await flushPromises();
 
-      expect(sendSpy).toHaveBeenCalledWith("Comment vas-tu ?");
+      expect(sendSpy).toHaveBeenCalledWith("Comment vas-tu ?", "CHATBOT");
     });
   });
 
