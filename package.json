@@ -5,13 +5,20 @@
   "scripts": {
     "dev": "turbo run dev --parallel",
     "build": "turbo run build",
-    "test": "turbo run test",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "lint": "turbo run lint",
     "db:migrate": "pnpm --filter api exec prisma migrate dev",
     "db:seed": "pnpm --filter api exec prisma db seed"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^3.2.4",
     "turbo": "^2.10.5",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "@types/eventsource": "^3.0.0",
+    "eventsource": "^4.1.0"
   }
 }
