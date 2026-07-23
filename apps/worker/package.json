@@ -1,5 +1,5 @@
 {
-  "name": "@my-llm/worker",
+  "name": "@egobot/worker",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -8,8 +8,8 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "@my-llm/sdk": "workspace:*",
-    "@my-llm/shared-types": "workspace:*",
+    "@egobot/sdk": "workspace:*",
+    "@egobot/shared-types": "workspace:*",
     "dotenv": "^17.4.2"
   },
   "devDependencies": {

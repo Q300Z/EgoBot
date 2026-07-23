@@ -17,7 +17,7 @@ importers:
 
   apps/api:
     dependencies:
-      '@my-llm/shared-types':
+      '@egobot/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
       '@prisma/adapter-better-sqlite3':
@@ -102,12 +102,12 @@ importers:
 
   apps/web:
     dependencies:
+      '@egobot/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
       '@mdi/font':
         specifier: ^7.4.47
         version: 7.4.47
-      '@my-llm/sdk':
-        specifier: workspace:*
-        version: link:../../packages/sdk
       axios:
         specifier: ^1.7.9
         version: 1.18.1
@@ -133,10 +133,10 @@ importers:
 
   apps/worker:
     dependencies:
-      '@my-llm/sdk':
+      '@egobot/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
-      '@my-llm/shared-types':
+      '@egobot/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
       dotenv:
@@ -155,7 +155,7 @@ importers:
 
   packages/sdk:
     dependencies:
-      '@my-llm/shared-types':
+      '@egobot/shared-types':
         specifier: workspace:*
         version: link:../shared-types
       axios:

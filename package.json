@@ -1,5 +1,5 @@
 {
-  "name": "scaffold-monorepo",
+  "name": "egobot",
   "private": true,
   "packageManager": "pnpm@11.9.0",
   "scripts": {

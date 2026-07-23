@@ -1,5 +1,5 @@
 {
-  "name": "@my-llm/sdk",
+  "name": "@egobot/sdk",
   "version": "1.0.0",
   "private": true,
   "exports": {
@@ -19,7 +19,7 @@
     "dev": "tsc --watch"
   },
   "dependencies": {
-    "@my-llm/shared-types": "workspace:*",
+    "@egobot/shared-types": "workspace:*",
     "axios": "^1.18.1",
     "ioredis": "^5.11.1"
   },

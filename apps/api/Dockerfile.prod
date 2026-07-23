@@ -3,7 +3,7 @@ FROM node:22-alpine AS pruner
 WORKDIR /app
 RUN npm install -g turbo@2.10.5
 COPY . .
-RUN turbo prune @my-llm/api --docker
+RUN turbo prune @egobot/api --docker
 
 # Stage 2: Install dependencies & compile
 FROM node:22-alpine AS installer
@@ -17,9 +17,9 @@ RUN pnpm install
 
 # Copy full source & build
 COPY --from=pruner /app/out/full/ .
-RUN pnpm --filter @my-llm/api exec prisma generate
+RUN pnpm --filter @egobot/api exec prisma generate
 RUN pnpm build
-RUN pnpm --filter @my-llm/api deploy /prod/api --prod --legacy
+RUN pnpm --filter @egobot/api deploy /prod/api --prod --legacy
 
 # Stage 3: Production Runner (Dive Minimal Layer Image)
 FROM node:22-alpine AS runner

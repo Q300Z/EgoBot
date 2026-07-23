@@ -1,5 +1,5 @@
 {
-  "name": "@my-llm/api",
+  "name": "@egobot/api",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -10,7 +10,7 @@
     "prisma:migrate": "prisma migrate dev"
   },
   "dependencies": {
-    "@my-llm/shared-types": "workspace:*",
+    "@egobot/shared-types": "workspace:*",
     "@prisma/adapter-better-sqlite3": "^7.9.0",
     "@prisma/client": "^7.9.0",
     "bcryptjs": "^3.0.3",

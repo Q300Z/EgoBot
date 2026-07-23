@@ -1,4 +1,4 @@
-# 🚀 Scaffold Monorepo 100% TypeScript (`my-llm-scaffold`)
+# 🚀 EgoBot Monorepo 100% TypeScript (`egobot`)
 
 Scaffold d'architecture monorepo hautement modulaire et réutilisable **100% TypeScript**, articulé autour de `pnpm workspaces`, `Turborepo` et `Valkey 8` (conçu pour l'orchestration d'agents réactifs, d'inférence LLM et de plateformes SaaS).
 
@@ -9,8 +9,8 @@ Scaffold d'architecture monorepo hautement modulaire et réutilisable **100% Typ
 ```mermaid
 graph TD
     subgraph Packages ["📦 Packages Partagés"]
-        ST["@my-llm/shared-types<br/>(Schémas Zod & DTOs)"]
-        SDK["@my-llm/sdk<br/>(Subpaths: /client & /worker)"]
+        ST["@egobot/shared-types<br/>(Schémas Zod & DTOs)"]
+        SDK["@egobot/sdk<br/>(Subpaths: /client & /worker)"]
     end
 
     subgraph Apps ["🚀 Applications & Services"]

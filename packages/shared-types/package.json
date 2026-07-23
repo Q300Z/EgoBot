@@ -1,5 +1,5 @@
 {
-  "name": "@my-llm/shared-types",
+  "name": "@egobot/shared-types",
   "version": "1.0.0",
   "private": true,
   "main": "./dist/index.js",

@@ -1,5 +1,5 @@
 {
-  "name": "@my-llm/web",
+  "name": "@egobot/web",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@mdi/font": "^7.4.47",
-    "@my-llm/sdk": "workspace:*",
+    "@egobot/sdk": "workspace:*",
     "axios": "^1.7.9",
     "pinia": "^2.3.0",
     "vite": "^5.4.11",
