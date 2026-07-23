@@ -74,13 +74,13 @@ jobs:
           IMAGE="ghcr.io/${REPO_LOWER}/${{ matrix.app }}"
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           VERSION=$(node -p "require('./apps/${{ matrix.app }}/package.json').version || '1.0.0'")
-          
+
           if [ "${{ github.ref_name }}" = "main" ]; then
-            TAGS="${IMAGE}:latest,${IMAGE}:v${VERSION},${IMAGE}:${VERSION},${IMAGE}:${SHORT_SHA}"
+            TAGS="${IMAGE}:latest,${IMAGE}:${VERSION}"
           elif [ "${{ github.ref_name }}" = "dev" ]; then
             TAGS="${IMAGE}:dev,${IMAGE}:${SHORT_SHA}"
           fi
-          
+
           echo "tags=${TAGS}" >> $GITHUB_OUTPUT
 
       - name: Build and Push Docker image
