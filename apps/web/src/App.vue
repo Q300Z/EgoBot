@@ -21,12 +21,12 @@
         {{ authStore.user?.role }}
       </v-chip>
 
-      <!-- Actions de Navigation -->
+      <!-- Actions de Navigation Vue Router -->
       <v-btn
         variant="text"
         :color="currentView === 'chat' ? 'primary' : undefined"
         prepend-icon="mdi-chat"
-        @click="currentView = 'chat'"
+        @click="navigateTo('/chat')"
       >
         Chat
       </v-btn>
@@ -36,7 +36,7 @@
         variant="text"
         :color="currentView === 'admin' ? 'warning' : undefined"
         prepend-icon="mdi-shield-account"
-        @click="currentView = 'admin'; backofficeStore.loadUsers(); backofficeStore.loadAdminConversations()"
+        @click="navigateTo('/admin')"
       >
         Backoffice
       </v-btn>
@@ -46,7 +46,7 @@
         variant="text"
         :color="currentView === 'debug' ? 'accent' : undefined"
         prepend-icon="mdi-bug-outline"
-        @click="currentView = 'debug'; startEventBusDebugStream()"
+        @click="navigateTo('/debug')"
       >
         EventBus Live
       </v-btn>
@@ -580,12 +580,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { useTheme } from "vuetify";
 import { marked } from "marked";
 import { useAuthStore } from "./stores/auth";
 import { useChatStore } from "./stores/chat";
 import { useBackofficeStore } from "./stores/backoffice";
+
+const route = useRoute();
+const router = useRouter();
+
+function navigateTo(path: string) {
+  if (router && route && route.path !== path) {
+    router.push(path);
+  }
+}
 
 const theme = useTheme();
 const authStore = useAuthStore();
@@ -665,7 +675,23 @@ const editUserLoading = ref(false);
 const showGeneratedPasswordDialog = ref(false);
 const generatedPassword = ref("");
 
+async function openUserConversationsModal(user: any) {
+  selectedUserForConversations.value = user;
+  await backofficeStore.loadUserConversations(user.id);
+  showUserConversationsDialog.value = true;
+  if (router && route?.path !== `/admin/users/${user.id}/conversations`) {
+    router.push(`/admin/users/${user.id}/conversations`);
+  }
+}
+
 async function openLiveConversationModal(id: string) {
+  if (router && route?.path !== `/admin/conversations/${id}`) {
+    router.push(`/admin/conversations/${id}`);
+  }
+  await startInspectStream(id);
+}
+
+async function startInspectStream(id: string) {
   if (inspectStreamCleanup.value) {
     inspectStreamCleanup.value();
     inspectStreamCleanup.value = null;
@@ -702,6 +728,37 @@ async function openLiveConversationModal(id: string) {
   inspectStreamCleanup.value = cleanup;
   await scrollInspectToBottom();
 }
+
+watch(
+  () => route?.path,
+  async (newPath) => {
+    if (!newPath) return;
+    if (newPath.startsWith("/chat")) {
+      currentView.value = "chat";
+      const convId = route.params?.id as string;
+      if (convId && chatStore.currentConversation?.id !== convId) {
+        await chatStore.loadConversation(convId);
+      }
+    } else if (newPath.startsWith("/admin")) {
+      currentView.value = "admin";
+      if (backofficeStore.users.length === 0) {
+        await backofficeStore.loadUsers();
+      }
+      if (route.name === "admin-user-conversations" && route.params?.userId) {
+        const userId = route.params.userId as string;
+        selectedUserForConversations.value = backofficeStore.users.find((u) => u.id === userId) || { id: userId };
+        await backofficeStore.loadUserConversations(userId);
+        showUserConversationsDialog.value = true;
+      } else if (route.name === "admin-conversation-inspect" && route.params?.id) {
+        await startInspectStream(route.params.id as string);
+      }
+    } else if (newPath.startsWith("/debug")) {
+      currentView.value = "debug";
+      startEventBusDebugStream();
+    }
+  },
+  { immediate: true }
+);
 
 function closeLiveConversationModal() {
   if (inspectStreamCleanup.value) {
