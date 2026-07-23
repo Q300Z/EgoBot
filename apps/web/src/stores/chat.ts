@@ -30,6 +30,8 @@ export const useChatStore = defineStore("chat", () => {
 
     if (!currentConversation.value) {
       await loadConversation(jobResult.conversation_id);
+      // Mise à jour de la sidebar : la nouvelle conversation doit apparaître dans la liste
+      await loadConversations();
     } else {
       currentConversation.value.messages.push({ role: "USER", content: prompt });
       currentConversation.value.messages.push({ role: "ASSISTANT", content: "" });
