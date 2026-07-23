@@ -1,26 +1,37 @@
-# Stage 1: Build & Deploy Extraction
-FROM node:20-alpine AS builder
-
-RUN corepack enable && corepack prepare pnpm@11.9.0 --activate
-
+# Stage 1: Prune monorepo workspace for api
+FROM node:22-alpine AS pruner
 WORKDIR /app
-
+RUN npm install -g turbo@2.10.5
 COPY . .
+RUN turbo prune @my-llm/api --docker
 
-RUN pnpm install
-RUN pnpm build
-RUN pnpm --filter @my-llm/api deploy /prod/api --prod
-
-# Stage 2: Production Runner
-FROM node:20-alpine AS runner
-
+# Stage 2: Install dependencies & compile
+FROM node:22-alpine AS installer
 WORKDIR /app
+RUN apk add --no-cache python3 make g++
+RUN npm install -g pnpm@11.9.0
 
+# Copy manifests first for optimal layer caching
+COPY --from=pruner /app/out/json/ .
+RUN pnpm install
+
+# Copy full source & build
+COPY --from=pruner /app/out/full/ .
+RUN pnpm --filter @my-llm/api exec prisma generate
+RUN pnpm build
+RUN pnpm --filter @my-llm/api deploy /prod/api --prod --legacy
+
+# Stage 3: Production Runner (Dive Minimal Layer Image)
+FROM node:22-alpine AS runner
+WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=8000
 
-COPY --from=builder /prod/api .
+USER node
+
+COPY --from=installer --chown=node:node /prod/api .
 
 EXPOSE 8000
-
 CMD ["node", "dist/index.js"]
+
+

@@ -1,0 +1,31 @@
+# Dependencies and build outputs
+node_modules
+.pnpm-store
+**/node_modules
+**/dist
+**/build
+.turbo
+**/.turbo
+
+# Git & IDE
+.git
+.gitignore
+.vscode
+.idea
+
+# Logs & temp
+*.log
+.DS_Store
+Thumbs.db
+.cache
+coverage
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# GitHub workflows & docs
+.github
+README.md
+CHANGELOG.md
