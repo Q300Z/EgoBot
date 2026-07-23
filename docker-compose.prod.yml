@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  valkey:
+    image: valkey/valkey:8-alpine
+    container_name: scaffold_valkey_prod
+    ports:
+      - "6379:6379"
+    command: valkey-server --appendonly yes
+    restart: always
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile.prod
+    container_name: scaffold_api_prod
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - NODE_ENV=production
+      - VALKEY_URL=redis://valkey:6379
+      - JWT_SECRET=change_me_in_production_jwt_secret_98765
+    depends_on:
+      - valkey
+    restart: always
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile.prod
+    container_name: scaffold_worker_prod
+    environment:
+      - NODE_ENV=production
+      - VALKEY_URL=redis://valkey:6379
+      - REDIS_URL=redis://valkey:6379
+    depends_on:
+      - valkey
+    restart: always
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile.prod
+    container_name: scaffold_web_prod
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    restart: always

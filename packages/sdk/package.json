@@ -1,0 +1,29 @@
+{
+  "name": "@my-llm/sdk",
+  "version": "1.0.0",
+  "private": true,
+  "exports": {
+    "./client": {
+      "types": "./dist/client/index.d.ts",
+      "import": "./dist/client/index.js",
+      "default": "./dist/client/index.js"
+    },
+    "./worker": {
+      "types": "./dist/worker/index.d.ts",
+      "import": "./dist/worker/index.js",
+      "default": "./dist/worker/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@my-llm/shared-types": "workspace:*",
+    "axios": "^1.18.1",
+    "ioredis": "^5.11.1"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}

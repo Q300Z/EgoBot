@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  valkey:
+    image: valkey/valkey:8-alpine
+    container_name: scaffold_valkey_test
+
+  api-test:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile.test
+    container_name: scaffold_api_test
+    environment:
+      - NODE_ENV=test
+      - VALKEY_URL=redis://valkey:6379
+    depends_on:
+      - valkey
+
+  web-test:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile.test
+    container_name: scaffold_web_test
+    environment:
+      - NODE_ENV=test

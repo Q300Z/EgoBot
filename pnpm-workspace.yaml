@@ -1,0 +1,9 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+allowBuilds:
+  '@prisma/engines': set this to true or false
+  better-sqlite3: true
+  esbuild: true
+  prisma: true
+  vue-demi: true

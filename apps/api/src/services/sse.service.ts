@@ -1,0 +1,82 @@
+import type { Request, Response } from "express";
+import { createSession, Session } from "better-sse";
+import { eventBus } from "../events/eventBus.js";
+import { LoggerFactory } from "../config/logger.js";
+import { valkeyStream } from "../config/valkey.js";
+
+const logger = LoggerFactory.getLogger("SseService");
+
+export class SseService {
+  private static activeSessions = new Map<string, Set<Session>>();
+
+  static init() {
+    eventBus.subscribe("job.token_emitted", (event) => {
+      const { jobId, envelope } = event.payload as any;
+      const conversationId = envelope.data?.conversation_id;
+
+      const jobSessions = this.activeSessions.get(jobId) || new Set();
+      const convSessions = conversationId ? this.activeSessions.get(`conv:${conversationId}`) || new Set() : new Set();
+
+      const targetSessions = new Set([...jobSessions, ...convSessions]);
+
+      for (const session of targetSessions) {
+        (session as any).push(envelope.data, envelope.event);
+      }
+    });
+
+    logger.info("SseService initialisé.");
+  }
+
+  static async setupSession(req: Request, res: Response, jobId?: string): Promise<Session> {
+    const session = await createSession(req, res);
+
+    const lastEventId = (req.headers["last-event-id"] as string) || (req.query.lastEventId as string);
+
+    if (lastEventId && jobId) {
+      const env = process.env.NODE_ENV || "dev";
+      const sseStreamKey = `jobs:sse:${env}:${jobId}`;
+      try {
+        const startId = this.incrementStreamId(lastEventId);
+        const missedEvents = await valkeyStream.xrange(sseStreamKey, startId, "+");
+
+        logger.info(`[SSE Recovery] Replay de ${missedEvents.length} événement(s) manqué(s) pour le job ${jobId}`);
+
+        for (const [eventId, fields] of missedEvents) {
+          let eventName = "job.progress";
+          let eventData = "";
+          for (let i = 0; i < fields.length; i += 2) {
+            if (fields[i] === "event") eventName = fields[i + 1];
+            if (fields[i] === "data") eventData = fields[i + 1];
+          }
+          if (eventData) {
+            const parsed = JSON.parse(eventData);
+            (session as any).push(parsed.data, eventName, eventId);
+          }
+        }
+      } catch (err) {
+        logger.error(`[SSE Recovery] Erreur lors du replay des événements pour ${jobId}`, err);
+      }
+    }
+
+    return session;
+  }
+
+  private static incrementStreamId(id: string): string {
+    const parts = id.split("-");
+    if (parts.length === 2) {
+      return `${parts[0]}-${parseInt(parts[1], 10) + 1}`;
+    }
+    return id;
+  }
+
+  static registerSession(key: string, session: Session) {
+    if (!this.activeSessions.has(key)) {
+      this.activeSessions.set(key, new Set());
+    }
+    this.activeSessions.get(key)!.add(session);
+
+    session.on("disconnected", () => {
+      this.activeSessions.get(key)?.delete(session);
+    });
+  }
+}

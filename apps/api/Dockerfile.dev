@@ -1,0 +1,14 @@
+FROM node:20-alpine
+
+RUN corepack enable && corepack prepare pnpm@11.9.0 --activate
+
+WORKDIR /app
+
+# Copier l'ensemble du monorepo pour le linking workspace
+COPY . .
+
+RUN pnpm install
+
+EXPOSE 8000
+
+CMD ["pnpm", "--filter", "@my-llm/api", "dev"]

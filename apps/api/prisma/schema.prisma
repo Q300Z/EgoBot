@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum Role {
+  USER  @map("user")
+  ADMIN @map("admin")
+
+  @@map("role_enum")
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  password_hash String
+  role          Role           @default(USER)
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @updatedAt
+  conversations Conversation[]
+}
+
+enum Status {
+  COMPLETED   @map("completed")
+  PENDING     @map("pending")
+  IN_PROGRESS @map("in_progress")
+  FAILED      @map("failed")
+  CANCELLED   @map("cancelled")
+  DEFERRED    @map("deferred")
+
+  @@map("status_job")
+}
+
+model Conversation {
+  id         String    @id @default(uuid())
+  user_id    String
+  user       User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  title      String
+  model      String    @default("CHATBOT")
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+  messages   Message[]
+  jobs       Job[]
+}
+
+enum MessageRole {
+  USER      @map("user")
+  ASSISTANT @map("assistant")
+
+  @@map("message_role")
+}
+
+model Message {
+  id              String      @id @default(uuid())
+  conversation_id String
+  conversation    Conversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+  role            MessageRole
+  content         String
+  created_at      DateTime    @default(now())
+  updated_at      DateTime    @updatedAt
+  user_jobs       Job[]       @relation("UserPrompt")
+  assistant_jobs  Job[]       @relation("AssistantMessage")
+}
+
+model Job {
+  id                   String       @id @default(uuid())
+  conversation_id      String
+  conversation         Conversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+  user_prompt_id       String
+  user_prompt          Message      @relation("UserPrompt", fields: [user_prompt_id], references: [id], onDelete: Cascade)
+  assistant_message_id String
+  assistant_message    Message      @relation("AssistantMessage", fields: [assistant_message_id], references: [id], onDelete: Cascade)
+  model                String
+  status               Status       @default(PENDING)
+  time_to_first_token  Float?
+  tokens_per_second    Float?
+  generated_tokens     Int?
+  error                String?
+  created_at           DateTime     @default(now())
+  updated_at           DateTime     @updatedAt
+  started_at           DateTime?
+  ended_at             DateTime?
+}
