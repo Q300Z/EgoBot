@@ -33,7 +33,7 @@
         variant="text"
         :color="currentView === 'admin' ? 'warning' : undefined"
         prepend-icon="mdi-shield-account"
-        @click="currentView = 'admin'; backofficeStore.loadUsers()"
+        @click="currentView = 'admin'; backofficeStore.loadUsers(); backofficeStore.loadAdminConversations()"
       >
         Backoffice
       </v-btn>
@@ -248,39 +248,117 @@
                   <v-icon icon="mdi-shield-account" color="warning" class="mr-2"></v-icon>
                   <span class="text-h5 font-weight-bold">Backoffice Administration</span>
                 </div>
-                <v-btn color="primary" prepend-icon="mdi-account-plus" @click="showCreateUserDialog = true">
-                  Créer un Utilisateur
-                </v-btn>
+                <div class="d-flex align-center">
+                  <v-btn
+                    v-if="adminTab === 'users'"
+                    color="primary"
+                    prepend-icon="mdi-account-plus"
+                    @click="showCreateUserDialog = true"
+                  >
+                    Créer un Utilisateur
+                  </v-btn>
+                  <v-btn
+                    v-if="adminTab === 'conversations'"
+                    color="primary"
+                    variant="outlined"
+                    prepend-icon="mdi-refresh"
+                    @click="backofficeStore.loadAdminConversations()"
+                  >
+                    Rafraîchir
+                  </v-btn>
+                </div>
               </v-card-title>
 
+              <v-tabs v-model="adminTab" color="primary" class="mb-4">
+                <v-tab value="users" prepend-icon="mdi-account-group">Utilisateurs ({{ backofficeStore.users.length }})</v-tab>
+                <v-tab value="conversations" prepend-icon="mdi-chat-bullet-points">Conversations & Live SSE ({{ backofficeStore.adminConversations.length }})</v-tab>
+              </v-tabs>
+
               <v-card-text>
-                <v-table hover class="rounded-lg border">
-                  <thead>
-                    <tr>
-                      <th class="text-left">ID</th>
-                      <th class="text-left">Email</th>
-                      <th class="text-left">Rôle</th>
-                      <th class="text-left">Date de création</th>
-                      <th class="text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="u in backofficeStore.users" :key="u.id">
-                      <td class="font-weight-mono text-caption">{{ u.id }}</td>
-                      <td>{{ u.email }}</td>
-                      <td>
-                        <v-chip :color="u.role === 'ADMIN' ? 'warning' : 'info'" size="x-small" variant="flat">
-                          {{ u.role }}
-                        </v-chip>
-                      </td>
-                      <td class="text-caption">{{ new Date(u.created_at).toLocaleString() }}</td>
-                      <td class="text-right">
-                        <v-btn icon="mdi-pencil" color="primary" variant="text" size="small" class="mr-1" @click="openEditUserDialog(u)"></v-btn>
-                        <v-btn icon="mdi-delete" color="error" variant="text" size="small" @click="handleDeleteUser(u.id)"></v-btn>
-                      </td>
-                    </tr>
-                  </tbody>
-                </v-table>
+                <v-window v-model="adminTab">
+                  <!-- TAB UTILISATEURS -->
+                  <v-window-item value="users">
+                    <v-table hover class="rounded-lg border">
+                      <thead>
+                        <tr>
+                          <th class="text-left">ID</th>
+                          <th class="text-left">Email</th>
+                          <th class="text-left">Rôle</th>
+                          <th class="text-left">Date de création</th>
+                          <th class="text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="u in backofficeStore.users" :key="u.id">
+                          <td class="font-weight-mono text-caption">{{ u.id }}</td>
+                          <td>{{ u.email }}</td>
+                          <td>
+                            <v-chip :color="u.role === 'ADMIN' ? 'warning' : 'info'" size="x-small" variant="flat">
+                              {{ u.role }}
+                            </v-chip>
+                          </td>
+                          <td class="text-caption">{{ new Date(u.created_at).toLocaleString() }}</td>
+                          <td class="text-right">
+                            <v-btn icon="mdi-pencil" color="primary" variant="text" size="small" class="mr-1" @click="openEditUserDialog(u)"></v-btn>
+                            <v-btn icon="mdi-delete" color="error" variant="text" size="small" @click="handleDeleteUser(u.id)"></v-btn>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </v-table>
+                  </v-window-item>
+
+                  <!-- TAB CONVERSATIONS -->
+                  <v-window-item value="conversations">
+                    <v-table hover class="rounded-lg border">
+                      <thead>
+                        <tr>
+                          <th class="text-left">Titre / ID</th>
+                          <th class="text-left">Utilisateur</th>
+                          <th class="text-left">Modèle</th>
+                          <th class="text-left">Messages</th>
+                          <th class="text-left">Dernière mise à jour</th>
+                          <th class="text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="c in backofficeStore.adminConversations" :key="c.id">
+                          <td>
+                            <div class="font-weight-bold text-body-2">{{ c.title || 'Sans titre' }}</div>
+                            <div class="font-weight-mono text-caption text-disabled">{{ c.id }}</div>
+                          </td>
+                          <td>
+                            <v-chip size="small" color="primary" variant="tonal" prepend-icon="mdi-account">
+                              {{ c.user?.email || 'Inconnu' }}
+                            </v-chip>
+                          </td>
+                          <td>
+                            <v-chip size="x-small" variant="outlined">{{ c.model || 'CHATBOT' }}</v-chip>
+                          </td>
+                          <td>
+                            <v-chip size="x-small" color="secondary">{{ c._count?.messages || 0 }} msgs</v-chip>
+                          </td>
+                          <td class="text-caption">{{ new Date(c.updated_at).toLocaleString() }}</td>
+                          <td class="text-right">
+                            <v-btn
+                              color="primary"
+                              size="small"
+                              variant="tonal"
+                              prepend-icon="mdi-eye"
+                              @click="openLiveConversationModal(c.id)"
+                            >
+                              Inspecter / Live
+                            </v-btn>
+                          </td>
+                        </tr>
+                        <tr v-if="backofficeStore.adminConversations.length === 0">
+                          <td colspan="6" class="text-center text-disabled pa-4">
+                            Aucune conversation utilisateur enregistrée
+                          </td>
+                        </tr>
+                      </tbody>
+                    </v-table>
+                  </v-window-item>
+                </v-window>
               </v-card-text>
             </v-card>
           </v-col>
@@ -388,6 +466,68 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- DIALOG INSPECTION CONVERSATION & EN DIRECT SSE -->
+    <v-dialog v-model="showLiveConversationDialog" max-width="850" persistent>
+      <v-card class="d-flex flex-column rounded-lg">
+        <v-card-title class="d-flex align-center justify-space-between border-b pa-3">
+          <div class="d-flex align-center">
+            <v-icon icon="mdi-chat-processing-outline" color="primary" class="mr-2"></v-icon>
+            <div>
+              <div class="text-h6 font-weight-bold">
+                {{ inspectConversation?.title || 'Inspection Conversation' }}
+              </div>
+              <div class="text-caption text-disabled" v-if="inspectConversation?.user">
+                Utilisateur : {{ inspectConversation.user.email }} ({{ inspectConversation.id }})
+              </div>
+            </div>
+          </div>
+          <div class="d-flex align-center">
+            <v-chip v-if="isLiveStreaming" color="warning" size="small" class="mr-2" prepend-icon="mdi-radiobox-marked mdi-spin">
+              Réponse en direct (SSE Stream)...
+            </v-chip>
+            <v-chip v-else color="success" size="small" class="mr-2" prepend-icon="mdi-check-circle-outline">
+              Écoute SSE Active
+            </v-chip>
+            <v-btn icon="mdi-close" variant="text" size="small" @click="closeLiveConversationModal"></v-btn>
+          </div>
+        </v-card-title>
+
+        <v-card-text ref="inspectChatBoxRef" class="flex-grow-1 overflow-y-auto pa-4" style="max-height: 60vh;">
+          <div v-if="!inspectConversation?.messages?.length" class="text-center text-disabled pa-8">
+            Aucun message dans cette conversation.
+          </div>
+
+          <div
+            v-for="(msg, idx) in inspectConversation?.messages || []"
+            :key="idx"
+            :class="['d-flex mb-4', msg.role === 'USER' ? 'justify-end' : 'justify-start']"
+          >
+            <div :class="['d-flex align-start max-w-75', msg.role === 'USER' ? 'flex-row-reverse' : 'flex-row']">
+              <v-avatar size="32" :color="msg.role === 'USER' ? 'primary' : 'secondary'" class="mx-2">
+                <v-icon :icon="msg.role === 'USER' ? 'mdi-account' : 'mdi-robot'" size="18"></v-icon>
+              </v-avatar>
+              <v-card
+                :color="msg.role === 'USER' ? 'primary' : 'surface-variant'"
+                variant="flat"
+                class="pa-3 rounded-lg"
+                elevation="1"
+              >
+                <div class="text-caption text-medium-emphasis mb-1 font-weight-bold">
+                  {{ msg.role === 'USER' ? (inspectConversation?.user?.email || 'Utilisateur') : 'Assistant IA' }}
+                </div>
+                <div class="text-body-2 white-space-pre-wrap">{{ msg.content || '...' }}</div>
+              </v-card>
+            </div>
+          </div>
+        </v-card-text>
+
+        <v-divider></v-divider>
+        <v-card-actions class="pa-3 justify-end">
+          <v-btn color="primary" variant="flat" @click="closeLiveConversationModal">Fermer</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-app>
 </template>
 
@@ -431,6 +571,13 @@ const newUserEmail = ref("");
 const newUserPassword = ref("");
 const newUserRole = ref<"USER" | "ADMIN">("USER");
 
+const adminTab = ref<"users" | "conversations">("users");
+const showLiveConversationDialog = ref(false);
+const inspectConversation = ref<any>(null);
+const isLiveStreaming = ref(false);
+const inspectStreamCleanup = ref<(() => void) | null>(null);
+const inspectChatBoxRef = ref<any>(null);
+
 // Edit user dialog state
 const showEditUserDialog = ref(false);
 const editUserId = ref("");
@@ -442,6 +589,61 @@ const editUserLoading = ref(false);
 // Generated password dialog state
 const showGeneratedPasswordDialog = ref(false);
 const generatedPassword = ref("");
+
+async function openLiveConversationModal(id: string) {
+  if (inspectStreamCleanup.value) {
+    inspectStreamCleanup.value();
+    inspectStreamCleanup.value = null;
+  }
+
+  inspectConversation.value = await backofficeStore.getAdminConversation(id);
+  showLiveConversationDialog.value = true;
+  isLiveStreaming.value = false;
+
+  const cleanup = authStore.sdk.connectAdminConversationStream(id, {
+    onToken: async (chunk: string) => {
+      isLiveStreaming.value = true;
+      if (!inspectConversation.value) return;
+      const msgs = inspectConversation.value.messages;
+      const lastMsg = msgs[msgs.length - 1];
+
+      if (lastMsg && lastMsg.role === "ASSISTANT") {
+        lastMsg.content += chunk;
+      } else {
+        msgs.push({ role: "ASSISTANT", content: chunk });
+      }
+      await scrollInspectToBottom();
+    },
+    onStatus: (status: string) => {
+      if (status === "COMPLETED" || status === "FAILED" || status === "CANCELLED") {
+        isLiveStreaming.value = false;
+      }
+    },
+    onError: () => {
+      isLiveStreaming.value = false;
+    },
+  });
+
+  inspectStreamCleanup.value = cleanup;
+  await scrollInspectToBottom();
+}
+
+function closeLiveConversationModal() {
+  if (inspectStreamCleanup.value) {
+    inspectStreamCleanup.value();
+    inspectStreamCleanup.value = null;
+  }
+  showLiveConversationDialog.value = false;
+  inspectConversation.value = null;
+  isLiveStreaming.value = false;
+}
+
+async function scrollInspectToBottom() {
+  await nextTick();
+  if (inspectChatBoxRef.value?.$el) {
+    inspectChatBoxRef.value.$el.scrollTop = inspectChatBoxRef.value.$el.scrollHeight;
+  }
+}
 
 function openEditUserDialog(user: any) {
   editUserId.value = user.id;

@@ -94,6 +94,59 @@ export class LogibotClientSDK {
     return res.data; // { id, email, role, created_at, updated_at, generatedPassword? }
   }
 
+  async getAdminConversations(userId?: string) {
+    const res = await this.api.get("/api/v1/admin/conversations", {
+      params: userId ? { userId } : undefined,
+    });
+    return res.data;
+  }
+
+  async getAdminConversation(id: string) {
+    const res = await this.api.get(`/api/v1/admin/conversations/${id}`);
+    return res.data;
+  }
+
+  connectAdminConversationStream(
+    conversationId: string,
+    callbacks: {
+      onToken?: (chunk: string) => void;
+      onStatus?: (status: string) => void;
+      onError?: (err: any) => void;
+    }
+  ): () => void {
+    const streamUrl = `${this.api.defaults.baseURL}/sse/v1/admin/conversations/${conversationId}${this.token ? `?token=${this.token}` : ""}`;
+    const eventSource = new EventSource(streamUrl);
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        const eventType = data.type || data.kind || "unknown";
+        const payload = data.payload || data;
+
+        if (eventType === "token") {
+          if (callbacks.onToken) {
+            callbacks.onToken(payload.chunk || payload.data?.chunk || "");
+          }
+        } else if (eventType === "status") {
+          if (callbacks.onStatus) {
+            callbacks.onStatus(payload.status);
+          }
+        }
+      } catch {}
+    };
+
+    eventSource.onerror = (err) => {
+      if (callbacks.onError) {
+        callbacks.onError(err);
+      }
+      eventSource.close();
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }
+
   /**
    * Écoute d'un flux SSE réactif avec tolérance absolue aux événements inconnus (Non-strict Event Parser).
    */

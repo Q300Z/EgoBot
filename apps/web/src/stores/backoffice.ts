@@ -5,6 +5,7 @@ import { useAuthStore } from "./auth.js";
 export const useBackofficeStore = defineStore("backoffice", () => {
   const authStore = useAuthStore();
   const users = ref<any[]>([]);
+  const adminConversations = ref<any[]>([]);
 
   async function loadUsers() {
     users.value = await authStore.sdk.getUsers();
@@ -26,5 +27,22 @@ export const useBackofficeStore = defineStore("backoffice", () => {
     await loadUsers();
   }
 
-  return { users, loadUsers, createUser, updateUser, deleteUser };
+  async function loadAdminConversations(userId?: string) {
+    adminConversations.value = await authStore.sdk.getAdminConversations(userId);
+  }
+
+  async function getAdminConversation(id: string) {
+    return await authStore.sdk.getAdminConversation(id);
+  }
+
+  return {
+    users,
+    adminConversations,
+    loadUsers,
+    createUser,
+    updateUser,
+    deleteUser,
+    loadAdminConversations,
+    getAdminConversation,
+  };
 });

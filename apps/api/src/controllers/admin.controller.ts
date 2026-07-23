@@ -1,6 +1,7 @@
 import type { Response } from "express";
 import bcrypt from "bcryptjs";
 import { UserRepository } from "../repositories/user.repository.js";
+import { ConversationRepository } from "../repositories/conversation.repository.js";
 import { SseService } from "../services/sse.service.js";
 import { eventBus } from "../events/eventBus.js";
 import type { AuthRequest } from "../middlewares/auth.middleware.js";
@@ -9,6 +10,21 @@ export class AdminController {
   static async getUsers(req: AuthRequest, res: Response) {
     const users = await UserRepository.findAll();
     return res.status(200).json(users);
+  }
+
+  static async getConversations(req: AuthRequest, res: Response) {
+    const userId = req.query.userId as string | undefined;
+    const conversations = await ConversationRepository.findAllAdmin(userId);
+    return res.status(200).json(conversations);
+  }
+
+  static async getConversation(req: AuthRequest, res: Response) {
+    const id = req.params.id as string;
+    const conversation = await ConversationRepository.findByIdAdmin(id);
+    if (!conversation) {
+      return res.status(404).json({ error: "Conversation introuvable" });
+    }
+    return res.status(200).json(conversation);
   }
 
   static async createUser(req: AuthRequest, res: Response) {
