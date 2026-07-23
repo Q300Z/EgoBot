@@ -20,7 +20,11 @@ app.post("/api/v1/auth/register", AuthController.register);
 // SSE Client & Debug Live EventBus
 app.get("/sse/v1/job/:jobId", sseAuthMiddleware as any, MessageController.streamJobEvents);
 app.get("/sse/v1/admin/conversations/:id", sseAuthMiddleware as any, requireAdmin as any, AdminController.streamAdminConversation);
-app.get("/sse/v1/debug/eventbus", sseAuthMiddleware as any, requireAdmin as any, AdminController.streamEventBusDebug);
+
+// Route de debug — uniquement disponible en environnement de développement
+if (["dev", "development"].includes(process.env.NODE_ENV ?? "dev")) {
+  app.get("/sse/v1/debug/eventbus", sseAuthMiddleware as any, requireAdmin as any, AdminController.streamEventBusDebug);
+}
 
 // Routes protégées Utilisateur
 app.get("/api/v1/auth/me", authMiddleware as any, AuthController.me);
