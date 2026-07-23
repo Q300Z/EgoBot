@@ -10,11 +10,13 @@ export default defineConfig({
       reporter: ["text", "json", "html"],
       include: [
         "packages/shared-types/src/**/*.ts",
-        "packages/sdk/src/**/*.ts"
+        "packages/sdk/src/**/*.ts",
+        "packages/logistics-agent/src/**/*.ts"
       ],
       exclude: [
         "**/node_modules/**",
         "**/dist/**",
+        "packages/logistics-agent/src/generated/**",
         "**/*.test.ts",
         "**/*.spec.ts"
       ],
