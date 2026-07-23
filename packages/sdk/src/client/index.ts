@@ -117,23 +117,32 @@ export class LogibotClientSDK {
     const streamUrl = `${this.api.defaults.baseURL}/sse/v1/admin/conversations/${conversationId}${this.token ? `?token=${this.token}` : ""}`;
     const eventSource = new EventSource(streamUrl);
 
-    eventSource.onmessage = (event) => {
+    const handleEvent = (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data);
         const eventType = data.type || data.kind || "unknown";
         const payload = data.payload || data;
 
-        if (eventType === "token") {
+        if (eventType === "token" || data.kind === "token" || payload.kind === "token") {
           if (callbacks.onToken) {
-            callbacks.onToken(payload.chunk || payload.data?.chunk || "");
+            callbacks.onToken(payload.chunk || payload.data?.chunk || data.chunk || "");
           }
-        } else if (eventType === "status") {
+        }
+
+        const status = data.status || payload.status;
+        if (status) {
           if (callbacks.onStatus) {
-            callbacks.onStatus(payload.status);
+            callbacks.onStatus(status);
           }
         }
       } catch {}
     };
+
+    eventSource.onmessage = handleEvent;
+    eventSource.addEventListener("job.progress", handleEvent);
+    eventSource.addEventListener("job.completed", handleEvent);
+    eventSource.addEventListener("token", handleEvent);
+    eventSource.addEventListener("status", handleEvent);
 
     eventSource.onerror = (err) => {
       if (callbacks.onError) {
@@ -163,42 +172,41 @@ export class LogibotClientSDK {
     const streamUrl = `${this.api.defaults.baseURL}/sse/v1/job/${jobId}${this.token ? `?token=${this.token}` : ""}`;
     const eventSource = new EventSource(streamUrl);
 
-    eventSource.onmessage = (event) => {
+    const handleEvent = (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data);
         const eventType = data.type || data.kind || "unknown";
         const payload = data.payload || data;
 
-        switch (eventType) {
-          case "token":
-            if (callbacks.onToken) {
-              callbacks.onToken(payload.chunk || payload.data?.chunk || "");
-            }
-            break;
+        const isToken = eventType === "token" || data.kind === "token" || payload.kind === "token";
+        const isStatus = Boolean(data.status || payload.status);
+        const isStats = eventType === "statistics" || Boolean(payload.statistics || data.statistics);
 
-          case "status":
-            if (callbacks.onStatus) {
-              callbacks.onStatus(payload.status, payload.error);
-            }
-            break;
-
-          case "statistics":
-            if (callbacks.onStatistics) {
-              callbacks.onStatistics(payload);
-            }
-            break;
-
-          default:
-            // Tolérance aux événements futurs ou inconnus : ignoré silencieusement sans faire planter le SDK !
-            if (callbacks.onUnknownEvent) {
-              callbacks.onUnknownEvent(eventType, payload);
-            }
-            break;
+        if (isToken) {
+          if (callbacks.onToken) {
+            callbacks.onToken(payload.chunk || payload.data?.chunk || data.chunk || "");
+          }
+        } else if (isStatus) {
+          if (callbacks.onStatus) {
+            callbacks.onStatus(data.status || payload.status, payload.error || data.error);
+          }
+        } else if (isStats) {
+          if (callbacks.onStatistics) {
+            callbacks.onStatistics(payload.statistics || data.statistics || payload);
+          }
+        } else {
+          if (callbacks.onUnknownEvent) {
+            callbacks.onUnknownEvent(eventType, payload);
+          }
         }
-      } catch (err) {
-        // Ignorer les données malformées sans planter le SDK
-      }
+      } catch (err) {}
     };
+
+    eventSource.onmessage = handleEvent;
+    eventSource.addEventListener("job.progress", handleEvent);
+    eventSource.addEventListener("job.completed", handleEvent);
+    eventSource.addEventListener("token", handleEvent);
+    eventSource.addEventListener("status", handleEvent);
 
     eventSource.onerror = (err) => {
       if (callbacks.onError) {

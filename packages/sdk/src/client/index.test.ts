@@ -191,9 +191,28 @@ describe("LogibotClientSDK", () => {
       onmessage: ((event: any) => void) | null = null;
       onerror: ((err: any) => void) | null = null;
       closed = false;
+      listeners: Map<string, Array<(event: any) => void>> = new Map();
 
       constructor(url: string) {
         this.url = url;
+      }
+
+      addEventListener(type: string, listener: (event: any) => void) {
+        if (!this.listeners.has(type)) {
+          this.listeners.set(type, []);
+        }
+        this.listeners.get(type)!.push(listener);
+      }
+
+      emit(type: string, data: any) {
+        const event = { data: typeof data === "string" ? data : JSON.stringify(data) };
+        if (this.onmessage) {
+          this.onmessage(event);
+        }
+        const callbacks = this.listeners.get(type) || [];
+        for (const cb of callbacks) {
+          cb(event);
+        }
       }
 
       close() {
