@@ -3,8 +3,11 @@
     <!-- BARRE DE NAVIGATION SUPÉRIEURE (Si connecté) -->
     <v-app-bar v-if="authStore.token" color="surface" elevation="2">
       <v-app-bar-title class="font-weight-bold d-flex align-center">
-        <v-icon icon="mdi-robot" color="primary" class="mr-2"></v-icon>
-        Scaffold LLM Monorepo
+        <v-icon icon="mdi-truck-delivery-outline" color="secondary" class="mr-2" aria-hidden="true"></v-icon>
+        <span>EgoBot</span>
+        <v-chip size="x-small" color="secondary" variant="flat" class="ml-2 font-weight-bold">
+          EgoNet — Duhamel Logistique
+        </v-chip>
       </v-app-bar-title>
 
       <v-spacer></v-spacer>
@@ -210,22 +213,29 @@
                 </v-chip>
               </v-card-title>
 
-              <!-- Flux de Messages -->
-              <v-card-text ref="chatBoxRef" class="flex-grow-1 overflow-y-auto pa-4">
+              <!-- Flux de Messages Accessibilité WCAG AA -->
+              <v-card-text
+                ref="chatBoxRef"
+                class="flex-grow-1 overflow-y-auto pa-4"
+                role="log"
+                aria-live="polite"
+                aria-label="Historique des messages de la conversation avec EgoBot"
+              >
                 <div v-if="!chatStore.currentConversation?.messages?.length" class="d-flex flex-column align-center justify-center fill-height text-disabled">
-                  <v-icon icon="mdi-robot-excited-outline" size="64" class="mb-2" color="primary"></v-icon>
-                  <div class="text-h6">Posez votre question à l'IA</div>
-                  <div class="text-caption">Scaffold Monorepo 100% TypeScript + Valkey 8</div>
+                  <v-icon icon="mdi-truck-fast-outline" size="64" class="mb-2" color="secondary" aria-hidden="true"></v-icon>
+                  <div class="text-h6 font-weight-bold">EgoBot — Assistant virtuel EgoNet</div>
+                  <div class="text-caption">Duhamel Logistique — Posez vos questions sur vos réceptions, expéditions et stocks</div>
                 </div>
 
                 <div
                   v-for="(msg, idx) in chatStore.currentConversation?.messages || []"
                   :key="idx"
                   :class="['d-flex mb-4', msg.role === 'USER' ? 'justify-end' : 'justify-start']"
+                  :aria-label="msg.role === 'USER' ? 'Votre message' : 'Message de l\'assistant EgoBot'"
                 >
                   <div :class="['d-flex align-start max-w-75', msg.role === 'USER' ? 'flex-row-reverse' : 'flex-row']">
-                    <v-avatar size="32" :color="msg.role === 'USER' ? 'primary' : 'secondary'" class="mx-2">
-                      <v-icon :icon="msg.role === 'USER' ? 'mdi-account' : 'mdi-robot'" size="18"></v-icon>
+                    <v-avatar size="32" :color="msg.role === 'USER' ? 'primary' : 'secondary'" class="mx-2" aria-hidden="true">
+                      <v-icon :icon="msg.role === 'USER' ? 'mdi-account' : 'mdi-robot-outline'" size="18"></v-icon>
                     </v-avatar>
                     <v-card
                       :color="msg.role === 'USER' ? 'primary' : 'surface-variant'"
@@ -234,7 +244,7 @@
                       elevation="1"
                     >
                       <div class="text-caption text-medium-emphasis mb-1 font-weight-bold">
-                        {{ msg.role === 'USER' ? 'Vous' : 'Assistant IA' }}
+                        {{ msg.role === 'USER' ? 'Vous' : 'EgoBot (Duhamel Logistique)' }}
                       </div>
                       <div v-if="msg.role === 'USER'" class="text-body-2 white-space-pre-wrap">{{ msg.content }}</div>
                       <div v-else class="text-body-2 markdown-body" v-html="renderMarkdown(msg.content || '...')"></div>
@@ -243,12 +253,14 @@
                 </div>
               </v-card-text>
 
-              <!-- Zone de Saisie -->
+              <!-- Zone de Saisie Accessibilité ARIA -->
               <v-divider></v-divider>
               <v-card-actions class="pa-3">
                 <v-text-field
                   v-model="promptInput"
-                  placeholder="Écrivez un message..."
+                  placeholder="Posez votre question sur vos stocks, livraisons..."
+                  label="Votre message pour EgoBot"
+                  aria-label="Saisir votre message pour l'assistant EgoBot"
                   variant="outlined"
                   density="comfortable"
                   hide-details
@@ -258,9 +270,11 @@
                   <template #append-inner>
                     <v-btn
                       icon="mdi-send"
-                      color="primary"
+                      color="secondary"
                       variant="flat"
                       size="small"
+                      aria-label="Envoyer le message"
+                      title="Envoyer le message"
                       :loading="chatStore.isStreaming"
                       :disabled="!promptInput.trim()"
                       @click="handleSend"

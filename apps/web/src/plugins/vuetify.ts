@@ -19,31 +19,35 @@ export default createVuetify({
       dark: {
         dark: true,
         colors: {
-          primary: "#6366F1",
-          secondary: "#8B5CF6",
-          accent: "#06B6D4",
-          background: "#0F172A",
-          surface: "#1E293B",
-          "surface-variant": "#334155",
+          primary: "#EA670C", // Duhamel Orange Accent
+          secondary: "#385266", // Duhamel Slate Navy Light
+          accent: "#FDF0E8",
+          background: "#101920", // Deep Duhamel Navy Dark
+          surface: "#182630", // Duhamel Dark Navy
+          "surface-variant": "#243644", // Duhamel Surface Variant
           error: "#EF4444",
-          info: "#3B82F6",
+          info: "#38BDF8",
           success: "#10B981",
           warning: "#F59E0B",
+          "on-primary": "#FFFFFF",
+          "on-surface": "#F8FAFC",
         },
       },
       light: {
         dark: false,
         colors: {
-          primary: "#4F46E5",
-          secondary: "#7C3AED",
-          accent: "#0891B2",
-          background: "#F8FAFC",
+          primary: "#182630", // Duhamel Dark Navy Slate
+          secondary: "#EA670C", // Duhamel Orange Accent
+          accent: "#D05400",
+          background: "#F4F6F8",
           surface: "#FFFFFF",
-          "surface-variant": "#F1F5F9",
+          "surface-variant": "#EBF0F3",
           error: "#DC2626",
-          info: "#2563EB",
+          info: "#0284C7",
           success: "#059669",
           warning: "#D97706",
+          "on-primary": "#FFFFFF",
+          "on-surface": "#182630",
         },
       },
     },
