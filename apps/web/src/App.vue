@@ -204,7 +204,8 @@
                       <div class="text-caption text-medium-emphasis mb-1 font-weight-bold">
                         {{ msg.role === 'USER' ? 'Vous' : 'Assistant IA' }}
                       </div>
-                      <div class="text-body-2 white-space-pre-wrap">{{ msg.content || '...' }}</div>
+                      <div v-if="msg.role === 'USER'" class="text-body-2 white-space-pre-wrap">{{ msg.content }}</div>
+                      <div v-else class="text-body-2 markdown-body" v-html="renderMarkdown(msg.content || '...')"></div>
                     </v-card>
                   </div>
                 </div>
@@ -516,7 +517,8 @@
                 <div class="text-caption text-medium-emphasis mb-1 font-weight-bold">
                   {{ msg.role === 'USER' ? (inspectConversation?.user?.email || 'Utilisateur') : 'Assistant IA' }}
                 </div>
-                <div class="text-body-2 white-space-pre-wrap">{{ msg.content || '...' }}</div>
+                <div v-if="msg.role === 'USER'" class="text-body-2 white-space-pre-wrap">{{ msg.content }}</div>
+                <div v-else class="text-body-2 markdown-body" v-html="renderMarkdown(msg.content || '...')"></div>
               </v-card>
             </div>
           </div>
@@ -534,6 +536,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick } from "vue";
 import { useTheme } from "vuetify";
+import { marked } from "marked";
 import { useAuthStore } from "./stores/auth";
 import { useChatStore } from "./stores/chat";
 import { useBackofficeStore } from "./stores/backoffice";
@@ -728,17 +731,30 @@ async function handleDeleteUser(id: string) {
   await backofficeStore.deleteUser(id);
 }
 
+function renderMarkdown(content: string): string {
+  if (!content) return "";
+  try {
+    return marked.parse(content, { gfm: true, breaks: true }) as string;
+  } catch {
+    return content;
+  }
+}
+
 function startEventBusDebugStream() {
   if (debugEventSource) debugEventSource.close();
   const streamUrl = `http://localhost:8000/sse/v1/debug/eventbus?token=${authStore.token}`;
   debugEventSource = new EventSource(streamUrl);
-  debugEventSource.onmessage = (e) => {
+
+  const handleEvent = (e: MessageEvent) => {
     try {
       const data = JSON.parse(e.data);
       debugLogs.value.unshift(data);
       if (debugLogs.value.length > 100) debugLogs.value.pop();
     } catch {}
   };
+
+  debugEventSource.onmessage = handleEvent;
+  debugEventSource.addEventListener("eventbus.debug", handleEvent);
 }
 
 async function scrollToBottom() {
@@ -769,5 +785,42 @@ onMounted(async () => {
 }
 .font-weight-mono {
   font-family: monospace;
+}
+.markdown-body :deep(table) {
+  border-collapse: collapse;
+  margin: 0.5rem 0;
+  width: 100%;
+}
+.markdown-body :deep(th),
+.markdown-body :deep(td) {
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  padding: 6px 12px;
+  text-align: left;
+}
+.markdown-body :deep(th) {
+  background-color: rgba(128, 128, 128, 0.15);
+  font-weight: bold;
+}
+.markdown-body :deep(img) {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 0.5rem 0;
+}
+.markdown-body :deep(pre) {
+  background-color: rgba(0, 0, 0, 0.2);
+  padding: 8px 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+.markdown-body :deep(code) {
+  font-family: monospace;
+  font-size: 0.9em;
+}
+.markdown-body :deep(p) {
+  margin-bottom: 0.5rem;
+}
+.markdown-body :deep(p:last-child) {
+  margin-bottom: 0;
 }
 </style>

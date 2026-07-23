@@ -41,15 +41,15 @@ export const useChatStore = defineStore("chat", () => {
     let receivedAnyToken = false;
     let fallbackTimer: any = null;
 
-    // Timer de Fallback SSE (6s d'inactivité)
+    // Timer de Fallback SSE (20s d'attente max avant fallback HTTP polling)
     fallbackTimer = setTimeout(async () => {
       if (!receivedAnyToken) {
-        console.warn("[ChatStore] Fallback SSE activé -> Passage en Batch HTTP Polling");
+        console.warn("[ChatStore] Fallback SSE activé -> Passage en Batch HTTP Polling (aucun token reçu après 20s)");
         if (activeStreamCleanup.value) activeStreamCleanup.value();
         isStreaming.value = false;
         await loadConversation(jobResult.conversation_id);
       }
-    }, 6000);
+    }, 20000);
 
     const cleanup = authStore.sdk.connectJobStream(jobResult.job_id, {
       onToken: (chunk) => {
