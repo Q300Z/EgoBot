@@ -1,15 +1,18 @@
 import { tool } from "langchain";
+import { z } from "zod";
 import type { AuthenticatedCustomer } from "../dtos/index.js";
-import type { OrderQueryService } from "../services/index.js";
+import type { OrderService } from "../services/index.js";
 import { orderNumberInputSchema } from "./schemas.js";
+
+const emptyOrderInputSchema = z.object({});
 
 export function createOrderTools(
   customer: AuthenticatedCustomer,
-  orderQueryService: OrderQueryService,
+  orderService: OrderService,
 ) {
   const getOrderStatus = tool(
     ({ orderNumber }) =>
-      orderQueryService.getStatus(customer.customerId, orderNumber),
+      orderService.getStatus(customer.customerId, orderNumber),
     {
       name: "get_order_status",
       description:
@@ -20,7 +23,7 @@ export function createOrderTools(
 
   const getOrderDetails = tool(
     ({ orderNumber }) =>
-      orderQueryService.getDetails(customer.customerId, orderNumber),
+      orderService.getDetails(customer.customerId, orderNumber),
     {
       name: "get_order_details",
       description:
@@ -29,5 +32,15 @@ export function createOrderTools(
     },
   );
 
-  return [getOrderStatus, getOrderDetails] as const;
+  const getLastOrder = tool(
+    () => orderService.findLastForCustomer(customer.customerId),
+    {
+      name: "get_last_order",
+      description:
+        "Récupère la dernière commande créée par le client authentifié.",
+      schema: emptyOrderInputSchema,
+    },
+  );
+
+  return [getOrderStatus, getOrderDetails, getLastOrder] as const;
 }

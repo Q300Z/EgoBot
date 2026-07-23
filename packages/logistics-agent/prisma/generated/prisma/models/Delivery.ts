@@ -9,8 +9,8 @@
  * 🟢 You can import this file directly.
  */
 import type * as runtime from "@prisma/client/runtime/client"
-import type * as $Enums from "../enums"
-import type * as Prisma from "../internal/prismaNamespace"
+import type * as $Enums from "../enums.js"
+import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model Delivery
@@ -282,11 +282,11 @@ export type DeliveryOrderByWithRelationInput = {
 export type DeliveryWhereUniqueInput = Prisma.AtLeast<{
   id?: string
   deliveryNumber?: string
+  addressId?: string
   AND?: Prisma.DeliveryWhereInput | Prisma.DeliveryWhereInput[]
   OR?: Prisma.DeliveryWhereInput[]
   NOT?: Prisma.DeliveryWhereInput | Prisma.DeliveryWhereInput[]
   orderId?: Prisma.UuidFilter<"Delivery"> | string
-  addressId?: Prisma.UuidFilter<"Delivery"> | string
   status?: Prisma.EnumDeliveryStatusFilter<"Delivery"> | $Enums.DeliveryStatus
   carrierName?: Prisma.StringNullableFilter<"Delivery"> | string | null
   trackingNumber?: Prisma.StringNullableFilter<"Delivery"> | string | null
@@ -300,7 +300,7 @@ export type DeliveryWhereUniqueInput = Prisma.AtLeast<{
   order?: Prisma.XOR<Prisma.OrderScalarRelationFilter, Prisma.OrderWhereInput>
   address?: Prisma.XOR<Prisma.AddressScalarRelationFilter, Prisma.AddressWhereInput>
   lines?: Prisma.DeliveryLineListRelationFilter
-}, "id" | "deliveryNumber">
+}, "id" | "deliveryNumber" | "addressId">
 
 export type DeliveryOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -356,7 +356,7 @@ export type DeliveryCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   order: Prisma.OrderCreateNestedOneWithoutDeliveriesInput
-  address: Prisma.AddressCreateNestedOneWithoutDeliveriesInput
+  address: Prisma.AddressCreateNestedOneWithoutDeliveryInput
   lines?: Prisma.DeliveryLineCreateNestedManyWithoutDeliveryInput
 }
 
@@ -392,7 +392,7 @@ export type DeliveryUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   order?: Prisma.OrderUpdateOneRequiredWithoutDeliveriesNestedInput
-  address?: Prisma.AddressUpdateOneRequiredWithoutDeliveriesNestedInput
+  address?: Prisma.AddressUpdateOneRequiredWithoutDeliveryNestedInput
   lines?: Prisma.DeliveryLineUpdateManyWithoutDeliveryNestedInput
 }
 
@@ -463,6 +463,11 @@ export type DeliveryUncheckedUpdateManyInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
+export type DeliveryNullableScalarRelationFilter = {
+  is?: Prisma.DeliveryWhereInput | null
+  isNot?: Prisma.DeliveryWhereInput | null
+}
+
 export type DeliveryListRelationFilter = {
   every?: Prisma.DeliveryWhereInput
   some?: Prisma.DeliveryWhereInput
@@ -529,46 +534,36 @@ export type DeliveryScalarRelationFilter = {
   isNot?: Prisma.DeliveryWhereInput
 }
 
-export type DeliveryCreateNestedManyWithoutAddressInput = {
-  create?: Prisma.XOR<Prisma.DeliveryCreateWithoutAddressInput, Prisma.DeliveryUncheckedCreateWithoutAddressInput> | Prisma.DeliveryCreateWithoutAddressInput[] | Prisma.DeliveryUncheckedCreateWithoutAddressInput[]
-  connectOrCreate?: Prisma.DeliveryCreateOrConnectWithoutAddressInput | Prisma.DeliveryCreateOrConnectWithoutAddressInput[]
-  createMany?: Prisma.DeliveryCreateManyAddressInputEnvelope
-  connect?: Prisma.DeliveryWhereUniqueInput | Prisma.DeliveryWhereUniqueInput[]
+export type DeliveryCreateNestedOneWithoutAddressInput = {
+  create?: Prisma.XOR<Prisma.DeliveryCreateWithoutAddressInput, Prisma.DeliveryUncheckedCreateWithoutAddressInput>
+  connectOrCreate?: Prisma.DeliveryCreateOrConnectWithoutAddressInput
+  connect?: Prisma.DeliveryWhereUniqueInput
 }
 
-export type DeliveryUncheckedCreateNestedManyWithoutAddressInput = {
-  create?: Prisma.XOR<Prisma.DeliveryCreateWithoutAddressInput, Prisma.DeliveryUncheckedCreateWithoutAddressInput> | Prisma.DeliveryCreateWithoutAddressInput[] | Prisma.DeliveryUncheckedCreateWithoutAddressInput[]
-  connectOrCreate?: Prisma.DeliveryCreateOrConnectWithoutAddressInput | Prisma.DeliveryCreateOrConnectWithoutAddressInput[]
-  createMany?: Prisma.DeliveryCreateManyAddressInputEnvelope
-  connect?: Prisma.DeliveryWhereUniqueInput | Prisma.DeliveryWhereUniqueInput[]
+export type DeliveryUncheckedCreateNestedOneWithoutAddressInput = {
+  create?: Prisma.XOR<Prisma.DeliveryCreateWithoutAddressInput, Prisma.DeliveryUncheckedCreateWithoutAddressInput>
+  connectOrCreate?: Prisma.DeliveryCreateOrConnectWithoutAddressInput
+  connect?: Prisma.DeliveryWhereUniqueInput
 }
 
-export type DeliveryUpdateManyWithoutAddressNestedInput = {
-  create?: Prisma.XOR<Prisma.DeliveryCreateWithoutAddressInput, Prisma.DeliveryUncheckedCreateWithoutAddressInput> | Prisma.DeliveryCreateWithoutAddressInput[] | Prisma.DeliveryUncheckedCreateWithoutAddressInput[]
-  connectOrCreate?: Prisma.DeliveryCreateOrConnectWithoutAddressInput | Prisma.DeliveryCreateOrConnectWithoutAddressInput[]
-  upsert?: Prisma.DeliveryUpsertWithWhereUniqueWithoutAddressInput | Prisma.DeliveryUpsertWithWhereUniqueWithoutAddressInput[]
-  createMany?: Prisma.DeliveryCreateManyAddressInputEnvelope
-  set?: Prisma.DeliveryWhereUniqueInput | Prisma.DeliveryWhereUniqueInput[]
-  disconnect?: Prisma.DeliveryWhereUniqueInput | Prisma.DeliveryWhereUniqueInput[]
-  delete?: Prisma.DeliveryWhereUniqueInput | Prisma.DeliveryWhereUniqueInput[]
-  connect?: Prisma.DeliveryWhereUniqueInput | Prisma.DeliveryWhereUniqueInput[]
-  update?: Prisma.DeliveryUpdateWithWhereUniqueWithoutAddressInput | Prisma.DeliveryUpdateWithWhereUniqueWithoutAddressInput[]
-  updateMany?: Prisma.DeliveryUpdateManyWithWhereWithoutAddressInput | Prisma.DeliveryUpdateManyWithWhereWithoutAddressInput[]
-  deleteMany?: Prisma.DeliveryScalarWhereInput | Prisma.DeliveryScalarWhereInput[]
+export type DeliveryUpdateOneWithoutAddressNestedInput = {
+  create?: Prisma.XOR<Prisma.DeliveryCreateWithoutAddressInput, Prisma.DeliveryUncheckedCreateWithoutAddressInput>
+  connectOrCreate?: Prisma.DeliveryCreateOrConnectWithoutAddressInput
+  upsert?: Prisma.DeliveryUpsertWithoutAddressInput
+  disconnect?: Prisma.DeliveryWhereInput | boolean
+  delete?: Prisma.DeliveryWhereInput | boolean
+  connect?: Prisma.DeliveryWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.DeliveryUpdateToOneWithWhereWithoutAddressInput, Prisma.DeliveryUpdateWithoutAddressInput>, Prisma.DeliveryUncheckedUpdateWithoutAddressInput>
 }
 
-export type DeliveryUncheckedUpdateManyWithoutAddressNestedInput = {
-  create?: Prisma.XOR<Prisma.DeliveryCreateWithoutAddressInput, Prisma.DeliveryUncheckedCreateWithoutAddressInput> | Prisma.DeliveryCreateWithoutAddressInput[] | Prisma.DeliveryUncheckedCreateWithoutAddressInput[]
-  connectOrCreate?: Prisma.DeliveryCreateOrConnectWithoutAddressInput | Prisma.DeliveryCreateOrConnectWithoutAddressInput[]
-  upsert?: Prisma.DeliveryUpsertWithWhereUniqueWithoutAddressInput | Prisma.DeliveryUpsertWithWhereUniqueWithoutAddressInput[]
-  createMany?: Prisma.DeliveryCreateManyAddressInputEnvelope
-  set?: Prisma.DeliveryWhereUniqueInput | Prisma.DeliveryWhereUniqueInput[]
-  disconnect?: Prisma.DeliveryWhereUniqueInput | Prisma.DeliveryWhereUniqueInput[]
-  delete?: Prisma.DeliveryWhereUniqueInput | Prisma.DeliveryWhereUniqueInput[]
-  connect?: Prisma.DeliveryWhereUniqueInput | Prisma.DeliveryWhereUniqueInput[]
-  update?: Prisma.DeliveryUpdateWithWhereUniqueWithoutAddressInput | Prisma.DeliveryUpdateWithWhereUniqueWithoutAddressInput[]
-  updateMany?: Prisma.DeliveryUpdateManyWithWhereWithoutAddressInput | Prisma.DeliveryUpdateManyWithWhereWithoutAddressInput[]
-  deleteMany?: Prisma.DeliveryScalarWhereInput | Prisma.DeliveryScalarWhereInput[]
+export type DeliveryUncheckedUpdateOneWithoutAddressNestedInput = {
+  create?: Prisma.XOR<Prisma.DeliveryCreateWithoutAddressInput, Prisma.DeliveryUncheckedCreateWithoutAddressInput>
+  connectOrCreate?: Prisma.DeliveryCreateOrConnectWithoutAddressInput
+  upsert?: Prisma.DeliveryUpsertWithoutAddressInput
+  disconnect?: Prisma.DeliveryWhereInput | boolean
+  delete?: Prisma.DeliveryWhereInput | boolean
+  connect?: Prisma.DeliveryWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.DeliveryUpdateToOneWithWhereWithoutAddressInput, Prisma.DeliveryUpdateWithoutAddressInput>, Prisma.DeliveryUncheckedUpdateWithoutAddressInput>
 }
 
 export type DeliveryCreateNestedManyWithoutOrderInput = {
@@ -670,45 +665,49 @@ export type DeliveryCreateOrConnectWithoutAddressInput = {
   create: Prisma.XOR<Prisma.DeliveryCreateWithoutAddressInput, Prisma.DeliveryUncheckedCreateWithoutAddressInput>
 }
 
-export type DeliveryCreateManyAddressInputEnvelope = {
-  data: Prisma.DeliveryCreateManyAddressInput | Prisma.DeliveryCreateManyAddressInput[]
-  skipDuplicates?: boolean
-}
-
-export type DeliveryUpsertWithWhereUniqueWithoutAddressInput = {
-  where: Prisma.DeliveryWhereUniqueInput
+export type DeliveryUpsertWithoutAddressInput = {
   update: Prisma.XOR<Prisma.DeliveryUpdateWithoutAddressInput, Prisma.DeliveryUncheckedUpdateWithoutAddressInput>
   create: Prisma.XOR<Prisma.DeliveryCreateWithoutAddressInput, Prisma.DeliveryUncheckedCreateWithoutAddressInput>
+  where?: Prisma.DeliveryWhereInput
 }
 
-export type DeliveryUpdateWithWhereUniqueWithoutAddressInput = {
-  where: Prisma.DeliveryWhereUniqueInput
+export type DeliveryUpdateToOneWithWhereWithoutAddressInput = {
+  where?: Prisma.DeliveryWhereInput
   data: Prisma.XOR<Prisma.DeliveryUpdateWithoutAddressInput, Prisma.DeliveryUncheckedUpdateWithoutAddressInput>
 }
 
-export type DeliveryUpdateManyWithWhereWithoutAddressInput = {
-  where: Prisma.DeliveryScalarWhereInput
-  data: Prisma.XOR<Prisma.DeliveryUpdateManyMutationInput, Prisma.DeliveryUncheckedUpdateManyWithoutAddressInput>
+export type DeliveryUpdateWithoutAddressInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  deliveryNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumDeliveryStatusFieldUpdateOperationsInput | $Enums.DeliveryStatus
+  carrierName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  trackingNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  trackingUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  plannedShipmentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  shippedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  estimatedDeliveryAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  order?: Prisma.OrderUpdateOneRequiredWithoutDeliveriesNestedInput
+  lines?: Prisma.DeliveryLineUpdateManyWithoutDeliveryNestedInput
 }
 
-export type DeliveryScalarWhereInput = {
-  AND?: Prisma.DeliveryScalarWhereInput | Prisma.DeliveryScalarWhereInput[]
-  OR?: Prisma.DeliveryScalarWhereInput[]
-  NOT?: Prisma.DeliveryScalarWhereInput | Prisma.DeliveryScalarWhereInput[]
-  id?: Prisma.UuidFilter<"Delivery"> | string
-  deliveryNumber?: Prisma.StringFilter<"Delivery"> | string
-  orderId?: Prisma.UuidFilter<"Delivery"> | string
-  addressId?: Prisma.UuidFilter<"Delivery"> | string
-  status?: Prisma.EnumDeliveryStatusFilter<"Delivery"> | $Enums.DeliveryStatus
-  carrierName?: Prisma.StringNullableFilter<"Delivery"> | string | null
-  trackingNumber?: Prisma.StringNullableFilter<"Delivery"> | string | null
-  trackingUrl?: Prisma.StringNullableFilter<"Delivery"> | string | null
-  plannedShipmentAt?: Prisma.DateTimeNullableFilter<"Delivery"> | Date | string | null
-  shippedAt?: Prisma.DateTimeNullableFilter<"Delivery"> | Date | string | null
-  estimatedDeliveryAt?: Prisma.DateTimeNullableFilter<"Delivery"> | Date | string | null
-  deliveredAt?: Prisma.DateTimeNullableFilter<"Delivery"> | Date | string | null
-  createdAt?: Prisma.DateTimeFilter<"Delivery"> | Date | string
-  updatedAt?: Prisma.DateTimeFilter<"Delivery"> | Date | string
+export type DeliveryUncheckedUpdateWithoutAddressInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  deliveryNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  orderId?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumDeliveryStatusFieldUpdateOperationsInput | $Enums.DeliveryStatus
+  carrierName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  trackingNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  trackingUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  plannedShipmentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  shippedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  estimatedDeliveryAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lines?: Prisma.DeliveryLineUncheckedUpdateManyWithoutDeliveryNestedInput
 }
 
 export type DeliveryCreateWithoutOrderInput = {
@@ -724,7 +723,7 @@ export type DeliveryCreateWithoutOrderInput = {
   deliveredAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  address: Prisma.AddressCreateNestedOneWithoutDeliveriesInput
+  address: Prisma.AddressCreateNestedOneWithoutDeliveryInput
   lines?: Prisma.DeliveryLineCreateNestedManyWithoutDeliveryInput
 }
 
@@ -771,6 +770,26 @@ export type DeliveryUpdateManyWithWhereWithoutOrderInput = {
   data: Prisma.XOR<Prisma.DeliveryUpdateManyMutationInput, Prisma.DeliveryUncheckedUpdateManyWithoutOrderInput>
 }
 
+export type DeliveryScalarWhereInput = {
+  AND?: Prisma.DeliveryScalarWhereInput | Prisma.DeliveryScalarWhereInput[]
+  OR?: Prisma.DeliveryScalarWhereInput[]
+  NOT?: Prisma.DeliveryScalarWhereInput | Prisma.DeliveryScalarWhereInput[]
+  id?: Prisma.UuidFilter<"Delivery"> | string
+  deliveryNumber?: Prisma.StringFilter<"Delivery"> | string
+  orderId?: Prisma.UuidFilter<"Delivery"> | string
+  addressId?: Prisma.UuidFilter<"Delivery"> | string
+  status?: Prisma.EnumDeliveryStatusFilter<"Delivery"> | $Enums.DeliveryStatus
+  carrierName?: Prisma.StringNullableFilter<"Delivery"> | string | null
+  trackingNumber?: Prisma.StringNullableFilter<"Delivery"> | string | null
+  trackingUrl?: Prisma.StringNullableFilter<"Delivery"> | string | null
+  plannedShipmentAt?: Prisma.DateTimeNullableFilter<"Delivery"> | Date | string | null
+  shippedAt?: Prisma.DateTimeNullableFilter<"Delivery"> | Date | string | null
+  estimatedDeliveryAt?: Prisma.DateTimeNullableFilter<"Delivery"> | Date | string | null
+  deliveredAt?: Prisma.DateTimeNullableFilter<"Delivery"> | Date | string | null
+  createdAt?: Prisma.DateTimeFilter<"Delivery"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"Delivery"> | Date | string
+}
+
 export type DeliveryCreateWithoutLinesInput = {
   id?: string
   deliveryNumber: string
@@ -785,7 +804,7 @@ export type DeliveryCreateWithoutLinesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   order: Prisma.OrderCreateNestedOneWithoutDeliveriesInput
-  address: Prisma.AddressCreateNestedOneWithoutDeliveriesInput
+  address: Prisma.AddressCreateNestedOneWithoutDeliveryInput
 }
 
 export type DeliveryUncheckedCreateWithoutLinesInput = {
@@ -835,7 +854,7 @@ export type DeliveryUpdateWithoutLinesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   order?: Prisma.OrderUpdateOneRequiredWithoutDeliveriesNestedInput
-  address?: Prisma.AddressUpdateOneRequiredWithoutDeliveriesNestedInput
+  address?: Prisma.AddressUpdateOneRequiredWithoutDeliveryNestedInput
 }
 
 export type DeliveryUncheckedUpdateWithoutLinesInput = {
@@ -843,72 +862,6 @@ export type DeliveryUncheckedUpdateWithoutLinesInput = {
   deliveryNumber?: Prisma.StringFieldUpdateOperationsInput | string
   orderId?: Prisma.StringFieldUpdateOperationsInput | string
   addressId?: Prisma.StringFieldUpdateOperationsInput | string
-  status?: Prisma.EnumDeliveryStatusFieldUpdateOperationsInput | $Enums.DeliveryStatus
-  carrierName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  trackingNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  trackingUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  plannedShipmentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  shippedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  estimatedDeliveryAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-}
-
-export type DeliveryCreateManyAddressInput = {
-  id?: string
-  deliveryNumber: string
-  orderId: string
-  status?: $Enums.DeliveryStatus
-  carrierName?: string | null
-  trackingNumber?: string | null
-  trackingUrl?: string | null
-  plannedShipmentAt?: Date | string | null
-  shippedAt?: Date | string | null
-  estimatedDeliveryAt?: Date | string | null
-  deliveredAt?: Date | string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-}
-
-export type DeliveryUpdateWithoutAddressInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  deliveryNumber?: Prisma.StringFieldUpdateOperationsInput | string
-  status?: Prisma.EnumDeliveryStatusFieldUpdateOperationsInput | $Enums.DeliveryStatus
-  carrierName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  trackingNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  trackingUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  plannedShipmentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  shippedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  estimatedDeliveryAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  order?: Prisma.OrderUpdateOneRequiredWithoutDeliveriesNestedInput
-  lines?: Prisma.DeliveryLineUpdateManyWithoutDeliveryNestedInput
-}
-
-export type DeliveryUncheckedUpdateWithoutAddressInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  deliveryNumber?: Prisma.StringFieldUpdateOperationsInput | string
-  orderId?: Prisma.StringFieldUpdateOperationsInput | string
-  status?: Prisma.EnumDeliveryStatusFieldUpdateOperationsInput | $Enums.DeliveryStatus
-  carrierName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  trackingNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  trackingUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  plannedShipmentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  shippedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  estimatedDeliveryAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  lines?: Prisma.DeliveryLineUncheckedUpdateManyWithoutDeliveryNestedInput
-}
-
-export type DeliveryUncheckedUpdateManyWithoutAddressInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  deliveryNumber?: Prisma.StringFieldUpdateOperationsInput | string
-  orderId?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumDeliveryStatusFieldUpdateOperationsInput | $Enums.DeliveryStatus
   carrierName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   trackingNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -950,7 +903,7 @@ export type DeliveryUpdateWithoutOrderInput = {
   deliveredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  address?: Prisma.AddressUpdateOneRequiredWithoutDeliveriesNestedInput
+  address?: Prisma.AddressUpdateOneRequiredWithoutDeliveryNestedInput
   lines?: Prisma.DeliveryLineUpdateManyWithoutDeliveryNestedInput
 }
 

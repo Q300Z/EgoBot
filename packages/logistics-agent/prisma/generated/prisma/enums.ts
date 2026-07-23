@@ -46,17 +46,6 @@ export const AddressStatus = {
 export type AddressStatus = (typeof AddressStatus)[keyof typeof AddressStatus]
 
 
-export const AddressUsage = {
-  CUSTOMER: 'CUSTOMER',
-  SUPPLIER: 'SUPPLIER',
-  BILLING: 'BILLING',
-  SHIPPING: 'SHIPPING',
-  DELIVERY: 'DELIVERY'
-} as const
-
-export type AddressUsage = (typeof AddressUsage)[keyof typeof AddressUsage]
-
-
 export const StockMovementType = {
   RECEIPT: 'RECEIPT',
   RESERVATION: 'RESERVATION',

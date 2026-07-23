@@ -17,8 +17,8 @@
 
 import * as runtime from "@prisma/client/runtime/index-browser"
 
-export type * from '../models'
-export type * from './prismaNamespace'
+export type * from '../models.js'
+export type * from './prismaNamespace.js'
 
 export const Decimal = runtime.Decimal
 
@@ -100,7 +100,6 @@ export type CustomerScalarFieldEnum = (typeof CustomerScalarFieldEnum)[keyof typ
 export const AddressScalarFieldEnum = {
   id: 'id',
   status: 'status',
-  usage: 'usage',
   label: 'label',
   line1: 'line1',
   line2: 'line2',

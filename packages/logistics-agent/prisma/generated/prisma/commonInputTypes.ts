@@ -10,8 +10,8 @@
  */
 
 import type * as runtime from "@prisma/client/runtime/client"
-import * as $Enums from "./enums"
-import type * as Prisma from "./internal/prismaNamespace"
+import * as $Enums from "./enums.js"
+import type * as Prisma from "./internal/prismaNamespace.js"
 
 
 export type UuidFilter<$PrismaModel = never> = {
@@ -184,13 +184,6 @@ export type EnumAddressStatusFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumAddressStatusFilter<$PrismaModel> | $Enums.AddressStatus
 }
 
-export type EnumAddressUsageFilter<$PrismaModel = never> = {
-  equals?: $Enums.AddressUsage | Prisma.EnumAddressUsageFieldRefInput<$PrismaModel>
-  in?: $Enums.AddressUsage[] | Prisma.ListEnumAddressUsageFieldRefInput<$PrismaModel>
-  notIn?: $Enums.AddressUsage[] | Prisma.ListEnumAddressUsageFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumAddressUsageFilter<$PrismaModel> | $Enums.AddressUsage
-}
-
 export type DateTimeNullableFilter<$PrismaModel = never> = {
   equals?: Date | string | Prisma.DateTimeFieldRefInput<$PrismaModel> | null
   in?: Date[] | string[] | Prisma.ListDateTimeFieldRefInput<$PrismaModel> | null
@@ -210,16 +203,6 @@ export type EnumAddressStatusWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumAddressStatusFilter<$PrismaModel>
   _max?: Prisma.NestedEnumAddressStatusFilter<$PrismaModel>
-}
-
-export type EnumAddressUsageWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.AddressUsage | Prisma.EnumAddressUsageFieldRefInput<$PrismaModel>
-  in?: $Enums.AddressUsage[] | Prisma.ListEnumAddressUsageFieldRefInput<$PrismaModel>
-  notIn?: $Enums.AddressUsage[] | Prisma.ListEnumAddressUsageFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumAddressUsageWithAggregatesFilter<$PrismaModel> | $Enums.AddressUsage
-  _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumAddressUsageFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumAddressUsageFilter<$PrismaModel>
 }
 
 export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -547,13 +530,6 @@ export type NestedEnumAddressStatusFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumAddressStatusFilter<$PrismaModel> | $Enums.AddressStatus
 }
 
-export type NestedEnumAddressUsageFilter<$PrismaModel = never> = {
-  equals?: $Enums.AddressUsage | Prisma.EnumAddressUsageFieldRefInput<$PrismaModel>
-  in?: $Enums.AddressUsage[] | Prisma.ListEnumAddressUsageFieldRefInput<$PrismaModel>
-  notIn?: $Enums.AddressUsage[] | Prisma.ListEnumAddressUsageFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumAddressUsageFilter<$PrismaModel> | $Enums.AddressUsage
-}
-
 export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
   equals?: Date | string | Prisma.DateTimeFieldRefInput<$PrismaModel> | null
   in?: Date[] | string[] | Prisma.ListDateTimeFieldRefInput<$PrismaModel> | null
@@ -573,16 +549,6 @@ export type NestedEnumAddressStatusWithAggregatesFilter<$PrismaModel = never> = 
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumAddressStatusFilter<$PrismaModel>
   _max?: Prisma.NestedEnumAddressStatusFilter<$PrismaModel>
-}
-
-export type NestedEnumAddressUsageWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.AddressUsage | Prisma.EnumAddressUsageFieldRefInput<$PrismaModel>
-  in?: $Enums.AddressUsage[] | Prisma.ListEnumAddressUsageFieldRefInput<$PrismaModel>
-  notIn?: $Enums.AddressUsage[] | Prisma.ListEnumAddressUsageFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumAddressUsageWithAggregatesFilter<$PrismaModel> | $Enums.AddressUsage
-  _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumAddressUsageFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumAddressUsageFilter<$PrismaModel>
 }
 
 export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {

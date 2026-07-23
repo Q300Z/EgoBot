@@ -9,8 +9,8 @@
  * 🟢 You can import this file directly.
  */
 import type * as runtime from "@prisma/client/runtime/client"
-import type * as $Enums from "../enums"
-import type * as Prisma from "../internal/prismaNamespace"
+import type * as $Enums from "../enums.js"
+import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model Supplier
@@ -235,19 +235,19 @@ export type SupplierOrderByWithRelationInput = {
 export type SupplierWhereUniqueInput = Prisma.AtLeast<{
   id?: string
   supplierCode?: string
+  currentAddressId?: string
   AND?: Prisma.SupplierWhereInput | Prisma.SupplierWhereInput[]
   OR?: Prisma.SupplierWhereInput[]
   NOT?: Prisma.SupplierWhereInput | Prisma.SupplierWhereInput[]
   name?: Prisma.StringFilter<"Supplier"> | string
   contactEmail?: Prisma.StringNullableFilter<"Supplier"> | string | null
   phone?: Prisma.StringNullableFilter<"Supplier"> | string | null
-  currentAddressId?: Prisma.UuidNullableFilter<"Supplier"> | string | null
   isActive?: Prisma.BoolFilter<"Supplier"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Supplier"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Supplier"> | Date | string
   currentAddress?: Prisma.XOR<Prisma.AddressNullableScalarRelationFilter, Prisma.AddressWhereInput> | null
   products?: Prisma.SupplierProductListRelationFilter
-}, "id" | "supplierCode">
+}, "id" | "supplierCode" | "currentAddressId">
 
 export type SupplierOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -288,7 +288,7 @@ export type SupplierCreateInput = {
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
-  currentAddress?: Prisma.AddressCreateNestedOneWithoutCurrentForSuppliersInput
+  currentAddress?: Prisma.AddressCreateNestedOneWithoutCurrentForSupplierInput
   products?: Prisma.SupplierProductCreateNestedManyWithoutSupplierInput
 }
 
@@ -314,7 +314,7 @@ export type SupplierUpdateInput = {
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  currentAddress?: Prisma.AddressUpdateOneWithoutCurrentForSuppliersNestedInput
+  currentAddress?: Prisma.AddressUpdateOneWithoutCurrentForSupplierNestedInput
   products?: Prisma.SupplierProductUpdateManyWithoutSupplierNestedInput
 }
 
@@ -366,14 +366,9 @@ export type SupplierUncheckedUpdateManyInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
-export type SupplierListRelationFilter = {
-  every?: Prisma.SupplierWhereInput
-  some?: Prisma.SupplierWhereInput
-  none?: Prisma.SupplierWhereInput
-}
-
-export type SupplierOrderByRelationAggregateInput = {
-  _count?: Prisma.SortOrder
+export type SupplierNullableScalarRelationFilter = {
+  is?: Prisma.SupplierWhereInput | null
+  isNot?: Prisma.SupplierWhereInput | null
 }
 
 export type SupplierCountOrderByAggregateInput = {
@@ -417,46 +412,36 @@ export type SupplierScalarRelationFilter = {
   isNot?: Prisma.SupplierWhereInput
 }
 
-export type SupplierCreateNestedManyWithoutCurrentAddressInput = {
-  create?: Prisma.XOR<Prisma.SupplierCreateWithoutCurrentAddressInput, Prisma.SupplierUncheckedCreateWithoutCurrentAddressInput> | Prisma.SupplierCreateWithoutCurrentAddressInput[] | Prisma.SupplierUncheckedCreateWithoutCurrentAddressInput[]
-  connectOrCreate?: Prisma.SupplierCreateOrConnectWithoutCurrentAddressInput | Prisma.SupplierCreateOrConnectWithoutCurrentAddressInput[]
-  createMany?: Prisma.SupplierCreateManyCurrentAddressInputEnvelope
-  connect?: Prisma.SupplierWhereUniqueInput | Prisma.SupplierWhereUniqueInput[]
+export type SupplierCreateNestedOneWithoutCurrentAddressInput = {
+  create?: Prisma.XOR<Prisma.SupplierCreateWithoutCurrentAddressInput, Prisma.SupplierUncheckedCreateWithoutCurrentAddressInput>
+  connectOrCreate?: Prisma.SupplierCreateOrConnectWithoutCurrentAddressInput
+  connect?: Prisma.SupplierWhereUniqueInput
 }
 
-export type SupplierUncheckedCreateNestedManyWithoutCurrentAddressInput = {
-  create?: Prisma.XOR<Prisma.SupplierCreateWithoutCurrentAddressInput, Prisma.SupplierUncheckedCreateWithoutCurrentAddressInput> | Prisma.SupplierCreateWithoutCurrentAddressInput[] | Prisma.SupplierUncheckedCreateWithoutCurrentAddressInput[]
-  connectOrCreate?: Prisma.SupplierCreateOrConnectWithoutCurrentAddressInput | Prisma.SupplierCreateOrConnectWithoutCurrentAddressInput[]
-  createMany?: Prisma.SupplierCreateManyCurrentAddressInputEnvelope
-  connect?: Prisma.SupplierWhereUniqueInput | Prisma.SupplierWhereUniqueInput[]
+export type SupplierUncheckedCreateNestedOneWithoutCurrentAddressInput = {
+  create?: Prisma.XOR<Prisma.SupplierCreateWithoutCurrentAddressInput, Prisma.SupplierUncheckedCreateWithoutCurrentAddressInput>
+  connectOrCreate?: Prisma.SupplierCreateOrConnectWithoutCurrentAddressInput
+  connect?: Prisma.SupplierWhereUniqueInput
 }
 
-export type SupplierUpdateManyWithoutCurrentAddressNestedInput = {
-  create?: Prisma.XOR<Prisma.SupplierCreateWithoutCurrentAddressInput, Prisma.SupplierUncheckedCreateWithoutCurrentAddressInput> | Prisma.SupplierCreateWithoutCurrentAddressInput[] | Prisma.SupplierUncheckedCreateWithoutCurrentAddressInput[]
-  connectOrCreate?: Prisma.SupplierCreateOrConnectWithoutCurrentAddressInput | Prisma.SupplierCreateOrConnectWithoutCurrentAddressInput[]
-  upsert?: Prisma.SupplierUpsertWithWhereUniqueWithoutCurrentAddressInput | Prisma.SupplierUpsertWithWhereUniqueWithoutCurrentAddressInput[]
-  createMany?: Prisma.SupplierCreateManyCurrentAddressInputEnvelope
-  set?: Prisma.SupplierWhereUniqueInput | Prisma.SupplierWhereUniqueInput[]
-  disconnect?: Prisma.SupplierWhereUniqueInput | Prisma.SupplierWhereUniqueInput[]
-  delete?: Prisma.SupplierWhereUniqueInput | Prisma.SupplierWhereUniqueInput[]
-  connect?: Prisma.SupplierWhereUniqueInput | Prisma.SupplierWhereUniqueInput[]
-  update?: Prisma.SupplierUpdateWithWhereUniqueWithoutCurrentAddressInput | Prisma.SupplierUpdateWithWhereUniqueWithoutCurrentAddressInput[]
-  updateMany?: Prisma.SupplierUpdateManyWithWhereWithoutCurrentAddressInput | Prisma.SupplierUpdateManyWithWhereWithoutCurrentAddressInput[]
-  deleteMany?: Prisma.SupplierScalarWhereInput | Prisma.SupplierScalarWhereInput[]
+export type SupplierUpdateOneWithoutCurrentAddressNestedInput = {
+  create?: Prisma.XOR<Prisma.SupplierCreateWithoutCurrentAddressInput, Prisma.SupplierUncheckedCreateWithoutCurrentAddressInput>
+  connectOrCreate?: Prisma.SupplierCreateOrConnectWithoutCurrentAddressInput
+  upsert?: Prisma.SupplierUpsertWithoutCurrentAddressInput
+  disconnect?: Prisma.SupplierWhereInput | boolean
+  delete?: Prisma.SupplierWhereInput | boolean
+  connect?: Prisma.SupplierWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.SupplierUpdateToOneWithWhereWithoutCurrentAddressInput, Prisma.SupplierUpdateWithoutCurrentAddressInput>, Prisma.SupplierUncheckedUpdateWithoutCurrentAddressInput>
 }
 
-export type SupplierUncheckedUpdateManyWithoutCurrentAddressNestedInput = {
-  create?: Prisma.XOR<Prisma.SupplierCreateWithoutCurrentAddressInput, Prisma.SupplierUncheckedCreateWithoutCurrentAddressInput> | Prisma.SupplierCreateWithoutCurrentAddressInput[] | Prisma.SupplierUncheckedCreateWithoutCurrentAddressInput[]
-  connectOrCreate?: Prisma.SupplierCreateOrConnectWithoutCurrentAddressInput | Prisma.SupplierCreateOrConnectWithoutCurrentAddressInput[]
-  upsert?: Prisma.SupplierUpsertWithWhereUniqueWithoutCurrentAddressInput | Prisma.SupplierUpsertWithWhereUniqueWithoutCurrentAddressInput[]
-  createMany?: Prisma.SupplierCreateManyCurrentAddressInputEnvelope
-  set?: Prisma.SupplierWhereUniqueInput | Prisma.SupplierWhereUniqueInput[]
-  disconnect?: Prisma.SupplierWhereUniqueInput | Prisma.SupplierWhereUniqueInput[]
-  delete?: Prisma.SupplierWhereUniqueInput | Prisma.SupplierWhereUniqueInput[]
-  connect?: Prisma.SupplierWhereUniqueInput | Prisma.SupplierWhereUniqueInput[]
-  update?: Prisma.SupplierUpdateWithWhereUniqueWithoutCurrentAddressInput | Prisma.SupplierUpdateWithWhereUniqueWithoutCurrentAddressInput[]
-  updateMany?: Prisma.SupplierUpdateManyWithWhereWithoutCurrentAddressInput | Prisma.SupplierUpdateManyWithWhereWithoutCurrentAddressInput[]
-  deleteMany?: Prisma.SupplierScalarWhereInput | Prisma.SupplierScalarWhereInput[]
+export type SupplierUncheckedUpdateOneWithoutCurrentAddressNestedInput = {
+  create?: Prisma.XOR<Prisma.SupplierCreateWithoutCurrentAddressInput, Prisma.SupplierUncheckedCreateWithoutCurrentAddressInput>
+  connectOrCreate?: Prisma.SupplierCreateOrConnectWithoutCurrentAddressInput
+  upsert?: Prisma.SupplierUpsertWithoutCurrentAddressInput
+  disconnect?: Prisma.SupplierWhereInput | boolean
+  delete?: Prisma.SupplierWhereInput | boolean
+  connect?: Prisma.SupplierWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.SupplierUpdateToOneWithWhereWithoutCurrentAddressInput, Prisma.SupplierUpdateWithoutCurrentAddressInput>, Prisma.SupplierUncheckedUpdateWithoutCurrentAddressInput>
 }
 
 export type SupplierCreateNestedOneWithoutProductsInput = {
@@ -502,40 +487,39 @@ export type SupplierCreateOrConnectWithoutCurrentAddressInput = {
   create: Prisma.XOR<Prisma.SupplierCreateWithoutCurrentAddressInput, Prisma.SupplierUncheckedCreateWithoutCurrentAddressInput>
 }
 
-export type SupplierCreateManyCurrentAddressInputEnvelope = {
-  data: Prisma.SupplierCreateManyCurrentAddressInput | Prisma.SupplierCreateManyCurrentAddressInput[]
-  skipDuplicates?: boolean
-}
-
-export type SupplierUpsertWithWhereUniqueWithoutCurrentAddressInput = {
-  where: Prisma.SupplierWhereUniqueInput
+export type SupplierUpsertWithoutCurrentAddressInput = {
   update: Prisma.XOR<Prisma.SupplierUpdateWithoutCurrentAddressInput, Prisma.SupplierUncheckedUpdateWithoutCurrentAddressInput>
   create: Prisma.XOR<Prisma.SupplierCreateWithoutCurrentAddressInput, Prisma.SupplierUncheckedCreateWithoutCurrentAddressInput>
+  where?: Prisma.SupplierWhereInput
 }
 
-export type SupplierUpdateWithWhereUniqueWithoutCurrentAddressInput = {
-  where: Prisma.SupplierWhereUniqueInput
+export type SupplierUpdateToOneWithWhereWithoutCurrentAddressInput = {
+  where?: Prisma.SupplierWhereInput
   data: Prisma.XOR<Prisma.SupplierUpdateWithoutCurrentAddressInput, Prisma.SupplierUncheckedUpdateWithoutCurrentAddressInput>
 }
 
-export type SupplierUpdateManyWithWhereWithoutCurrentAddressInput = {
-  where: Prisma.SupplierScalarWhereInput
-  data: Prisma.XOR<Prisma.SupplierUpdateManyMutationInput, Prisma.SupplierUncheckedUpdateManyWithoutCurrentAddressInput>
+export type SupplierUpdateWithoutCurrentAddressInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  supplierCode?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  contactEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  products?: Prisma.SupplierProductUpdateManyWithoutSupplierNestedInput
 }
 
-export type SupplierScalarWhereInput = {
-  AND?: Prisma.SupplierScalarWhereInput | Prisma.SupplierScalarWhereInput[]
-  OR?: Prisma.SupplierScalarWhereInput[]
-  NOT?: Prisma.SupplierScalarWhereInput | Prisma.SupplierScalarWhereInput[]
-  id?: Prisma.UuidFilter<"Supplier"> | string
-  supplierCode?: Prisma.StringFilter<"Supplier"> | string
-  name?: Prisma.StringFilter<"Supplier"> | string
-  contactEmail?: Prisma.StringNullableFilter<"Supplier"> | string | null
-  phone?: Prisma.StringNullableFilter<"Supplier"> | string | null
-  currentAddressId?: Prisma.UuidNullableFilter<"Supplier"> | string | null
-  isActive?: Prisma.BoolFilter<"Supplier"> | boolean
-  createdAt?: Prisma.DateTimeFilter<"Supplier"> | Date | string
-  updatedAt?: Prisma.DateTimeFilter<"Supplier"> | Date | string
+export type SupplierUncheckedUpdateWithoutCurrentAddressInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  supplierCode?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  contactEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  products?: Prisma.SupplierProductUncheckedUpdateManyWithoutSupplierNestedInput
 }
 
 export type SupplierCreateWithoutProductsInput = {
@@ -547,7 +531,7 @@ export type SupplierCreateWithoutProductsInput = {
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
-  currentAddress?: Prisma.AddressCreateNestedOneWithoutCurrentForSuppliersInput
+  currentAddress?: Prisma.AddressCreateNestedOneWithoutCurrentForSupplierInput
 }
 
 export type SupplierUncheckedCreateWithoutProductsInput = {
@@ -587,7 +571,7 @@ export type SupplierUpdateWithoutProductsInput = {
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  currentAddress?: Prisma.AddressUpdateOneWithoutCurrentForSuppliersNestedInput
+  currentAddress?: Prisma.AddressUpdateOneWithoutCurrentForSupplierNestedInput
 }
 
 export type SupplierUncheckedUpdateWithoutProductsInput = {
@@ -597,52 +581,6 @@ export type SupplierUncheckedUpdateWithoutProductsInput = {
   contactEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currentAddressId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-}
-
-export type SupplierCreateManyCurrentAddressInput = {
-  id?: string
-  supplierCode: string
-  name: string
-  contactEmail?: string | null
-  phone?: string | null
-  isActive?: boolean
-  createdAt?: Date | string
-  updatedAt?: Date | string
-}
-
-export type SupplierUpdateWithoutCurrentAddressInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  supplierCode?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  contactEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  products?: Prisma.SupplierProductUpdateManyWithoutSupplierNestedInput
-}
-
-export type SupplierUncheckedUpdateWithoutCurrentAddressInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  supplierCode?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  contactEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  products?: Prisma.SupplierProductUncheckedUpdateManyWithoutSupplierNestedInput
-}
-
-export type SupplierUncheckedUpdateManyWithoutCurrentAddressInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  supplierCode?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  contactEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string

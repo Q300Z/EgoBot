@@ -16,10 +16,10 @@
  */
 
 import * as runtime from "@prisma/client/runtime/client"
-import type * as Prisma from "../models"
-import { type PrismaClient } from "./class"
+import type * as Prisma from "../models.js"
+import { type PrismaClient } from "./class.js"
 
-export type * from '../models'
+export type * from '../models.js'
 
 export type DMMF = typeof runtime.DMMF
 
@@ -1374,7 +1374,6 @@ export type CustomerScalarFieldEnum = (typeof CustomerScalarFieldEnum)[keyof typ
 export const AddressScalarFieldEnum = {
   id: 'id',
   status: 'status',
-  usage: 'usage',
   label: 'label',
   line1: 'line1',
   line2: 'line2',
@@ -1629,20 +1628,6 @@ export type EnumAddressStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$Pr
  * Reference to a field of type 'AddressStatus[]'
  */
 export type ListEnumAddressStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AddressStatus[]'>
-    
-
-
-/**
- * Reference to a field of type 'AddressUsage'
- */
-export type EnumAddressUsageFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AddressUsage'>
-    
-
-
-/**
- * Reference to a field of type 'AddressUsage[]'
- */
-export type ListEnumAddressUsageFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AddressUsage[]'>
     
 
 

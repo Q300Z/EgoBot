@@ -9,8 +9,8 @@
  * 🟢 You can import this file directly.
  */
 import type * as runtime from "@prisma/client/runtime/client"
-import type * as $Enums from "../enums"
-import type * as Prisma from "../internal/prismaNamespace"
+import type * as $Enums from "../enums.js"
+import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model Customer
@@ -245,19 +245,19 @@ export type CustomerWhereUniqueInput = Prisma.AtLeast<{
   id?: string
   customerNumber?: string
   email?: string
+  currentAddressId?: string
   AND?: Prisma.CustomerWhereInput | Prisma.CustomerWhereInput[]
   OR?: Prisma.CustomerWhereInput[]
   NOT?: Prisma.CustomerWhereInput | Prisma.CustomerWhereInput[]
   firstName?: Prisma.StringFilter<"Customer"> | string
   lastName?: Prisma.StringFilter<"Customer"> | string
   phone?: Prisma.StringNullableFilter<"Customer"> | string | null
-  currentAddressId?: Prisma.UuidNullableFilter<"Customer"> | string | null
   isActive?: Prisma.BoolFilter<"Customer"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Customer"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Customer"> | Date | string
   currentAddress?: Prisma.XOR<Prisma.AddressNullableScalarRelationFilter, Prisma.AddressWhereInput> | null
   orders?: Prisma.OrderListRelationFilter
-}, "id" | "customerNumber" | "email">
+}, "id" | "customerNumber" | "email" | "currentAddressId">
 
 export type CustomerOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -301,7 +301,7 @@ export type CustomerCreateInput = {
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
-  currentAddress?: Prisma.AddressCreateNestedOneWithoutCurrentForCustomersInput
+  currentAddress?: Prisma.AddressCreateNestedOneWithoutCurrentForCustomerInput
   orders?: Prisma.OrderCreateNestedManyWithoutCustomerInput
 }
 
@@ -329,7 +329,7 @@ export type CustomerUpdateInput = {
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  currentAddress?: Prisma.AddressUpdateOneWithoutCurrentForCustomersNestedInput
+  currentAddress?: Prisma.AddressUpdateOneWithoutCurrentForCustomerNestedInput
   orders?: Prisma.OrderUpdateManyWithoutCustomerNestedInput
 }
 
@@ -424,14 +424,9 @@ export type CustomerMinOrderByAggregateInput = {
   updatedAt?: Prisma.SortOrder
 }
 
-export type CustomerListRelationFilter = {
-  every?: Prisma.CustomerWhereInput
-  some?: Prisma.CustomerWhereInput
-  none?: Prisma.CustomerWhereInput
-}
-
-export type CustomerOrderByRelationAggregateInput = {
-  _count?: Prisma.SortOrder
+export type CustomerNullableScalarRelationFilter = {
+  is?: Prisma.CustomerWhereInput | null
+  isNot?: Prisma.CustomerWhereInput | null
 }
 
 export type CustomerScalarRelationFilter = {
@@ -455,46 +450,36 @@ export type DateTimeFieldUpdateOperationsInput = {
   set?: Date | string
 }
 
-export type CustomerCreateNestedManyWithoutCurrentAddressInput = {
-  create?: Prisma.XOR<Prisma.CustomerCreateWithoutCurrentAddressInput, Prisma.CustomerUncheckedCreateWithoutCurrentAddressInput> | Prisma.CustomerCreateWithoutCurrentAddressInput[] | Prisma.CustomerUncheckedCreateWithoutCurrentAddressInput[]
-  connectOrCreate?: Prisma.CustomerCreateOrConnectWithoutCurrentAddressInput | Prisma.CustomerCreateOrConnectWithoutCurrentAddressInput[]
-  createMany?: Prisma.CustomerCreateManyCurrentAddressInputEnvelope
-  connect?: Prisma.CustomerWhereUniqueInput | Prisma.CustomerWhereUniqueInput[]
+export type CustomerCreateNestedOneWithoutCurrentAddressInput = {
+  create?: Prisma.XOR<Prisma.CustomerCreateWithoutCurrentAddressInput, Prisma.CustomerUncheckedCreateWithoutCurrentAddressInput>
+  connectOrCreate?: Prisma.CustomerCreateOrConnectWithoutCurrentAddressInput
+  connect?: Prisma.CustomerWhereUniqueInput
 }
 
-export type CustomerUncheckedCreateNestedManyWithoutCurrentAddressInput = {
-  create?: Prisma.XOR<Prisma.CustomerCreateWithoutCurrentAddressInput, Prisma.CustomerUncheckedCreateWithoutCurrentAddressInput> | Prisma.CustomerCreateWithoutCurrentAddressInput[] | Prisma.CustomerUncheckedCreateWithoutCurrentAddressInput[]
-  connectOrCreate?: Prisma.CustomerCreateOrConnectWithoutCurrentAddressInput | Prisma.CustomerCreateOrConnectWithoutCurrentAddressInput[]
-  createMany?: Prisma.CustomerCreateManyCurrentAddressInputEnvelope
-  connect?: Prisma.CustomerWhereUniqueInput | Prisma.CustomerWhereUniqueInput[]
+export type CustomerUncheckedCreateNestedOneWithoutCurrentAddressInput = {
+  create?: Prisma.XOR<Prisma.CustomerCreateWithoutCurrentAddressInput, Prisma.CustomerUncheckedCreateWithoutCurrentAddressInput>
+  connectOrCreate?: Prisma.CustomerCreateOrConnectWithoutCurrentAddressInput
+  connect?: Prisma.CustomerWhereUniqueInput
 }
 
-export type CustomerUpdateManyWithoutCurrentAddressNestedInput = {
-  create?: Prisma.XOR<Prisma.CustomerCreateWithoutCurrentAddressInput, Prisma.CustomerUncheckedCreateWithoutCurrentAddressInput> | Prisma.CustomerCreateWithoutCurrentAddressInput[] | Prisma.CustomerUncheckedCreateWithoutCurrentAddressInput[]
-  connectOrCreate?: Prisma.CustomerCreateOrConnectWithoutCurrentAddressInput | Prisma.CustomerCreateOrConnectWithoutCurrentAddressInput[]
-  upsert?: Prisma.CustomerUpsertWithWhereUniqueWithoutCurrentAddressInput | Prisma.CustomerUpsertWithWhereUniqueWithoutCurrentAddressInput[]
-  createMany?: Prisma.CustomerCreateManyCurrentAddressInputEnvelope
-  set?: Prisma.CustomerWhereUniqueInput | Prisma.CustomerWhereUniqueInput[]
-  disconnect?: Prisma.CustomerWhereUniqueInput | Prisma.CustomerWhereUniqueInput[]
-  delete?: Prisma.CustomerWhereUniqueInput | Prisma.CustomerWhereUniqueInput[]
-  connect?: Prisma.CustomerWhereUniqueInput | Prisma.CustomerWhereUniqueInput[]
-  update?: Prisma.CustomerUpdateWithWhereUniqueWithoutCurrentAddressInput | Prisma.CustomerUpdateWithWhereUniqueWithoutCurrentAddressInput[]
-  updateMany?: Prisma.CustomerUpdateManyWithWhereWithoutCurrentAddressInput | Prisma.CustomerUpdateManyWithWhereWithoutCurrentAddressInput[]
-  deleteMany?: Prisma.CustomerScalarWhereInput | Prisma.CustomerScalarWhereInput[]
+export type CustomerUpdateOneWithoutCurrentAddressNestedInput = {
+  create?: Prisma.XOR<Prisma.CustomerCreateWithoutCurrentAddressInput, Prisma.CustomerUncheckedCreateWithoutCurrentAddressInput>
+  connectOrCreate?: Prisma.CustomerCreateOrConnectWithoutCurrentAddressInput
+  upsert?: Prisma.CustomerUpsertWithoutCurrentAddressInput
+  disconnect?: Prisma.CustomerWhereInput | boolean
+  delete?: Prisma.CustomerWhereInput | boolean
+  connect?: Prisma.CustomerWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.CustomerUpdateToOneWithWhereWithoutCurrentAddressInput, Prisma.CustomerUpdateWithoutCurrentAddressInput>, Prisma.CustomerUncheckedUpdateWithoutCurrentAddressInput>
 }
 
-export type CustomerUncheckedUpdateManyWithoutCurrentAddressNestedInput = {
-  create?: Prisma.XOR<Prisma.CustomerCreateWithoutCurrentAddressInput, Prisma.CustomerUncheckedCreateWithoutCurrentAddressInput> | Prisma.CustomerCreateWithoutCurrentAddressInput[] | Prisma.CustomerUncheckedCreateWithoutCurrentAddressInput[]
-  connectOrCreate?: Prisma.CustomerCreateOrConnectWithoutCurrentAddressInput | Prisma.CustomerCreateOrConnectWithoutCurrentAddressInput[]
-  upsert?: Prisma.CustomerUpsertWithWhereUniqueWithoutCurrentAddressInput | Prisma.CustomerUpsertWithWhereUniqueWithoutCurrentAddressInput[]
-  createMany?: Prisma.CustomerCreateManyCurrentAddressInputEnvelope
-  set?: Prisma.CustomerWhereUniqueInput | Prisma.CustomerWhereUniqueInput[]
-  disconnect?: Prisma.CustomerWhereUniqueInput | Prisma.CustomerWhereUniqueInput[]
-  delete?: Prisma.CustomerWhereUniqueInput | Prisma.CustomerWhereUniqueInput[]
-  connect?: Prisma.CustomerWhereUniqueInput | Prisma.CustomerWhereUniqueInput[]
-  update?: Prisma.CustomerUpdateWithWhereUniqueWithoutCurrentAddressInput | Prisma.CustomerUpdateWithWhereUniqueWithoutCurrentAddressInput[]
-  updateMany?: Prisma.CustomerUpdateManyWithWhereWithoutCurrentAddressInput | Prisma.CustomerUpdateManyWithWhereWithoutCurrentAddressInput[]
-  deleteMany?: Prisma.CustomerScalarWhereInput | Prisma.CustomerScalarWhereInput[]
+export type CustomerUncheckedUpdateOneWithoutCurrentAddressNestedInput = {
+  create?: Prisma.XOR<Prisma.CustomerCreateWithoutCurrentAddressInput, Prisma.CustomerUncheckedCreateWithoutCurrentAddressInput>
+  connectOrCreate?: Prisma.CustomerCreateOrConnectWithoutCurrentAddressInput
+  upsert?: Prisma.CustomerUpsertWithoutCurrentAddressInput
+  disconnect?: Prisma.CustomerWhereInput | boolean
+  delete?: Prisma.CustomerWhereInput | boolean
+  connect?: Prisma.CustomerWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.CustomerUpdateToOneWithWhereWithoutCurrentAddressInput, Prisma.CustomerUpdateWithoutCurrentAddressInput>, Prisma.CustomerUncheckedUpdateWithoutCurrentAddressInput>
 }
 
 export type CustomerCreateNestedOneWithoutOrdersInput = {
@@ -542,41 +527,41 @@ export type CustomerCreateOrConnectWithoutCurrentAddressInput = {
   create: Prisma.XOR<Prisma.CustomerCreateWithoutCurrentAddressInput, Prisma.CustomerUncheckedCreateWithoutCurrentAddressInput>
 }
 
-export type CustomerCreateManyCurrentAddressInputEnvelope = {
-  data: Prisma.CustomerCreateManyCurrentAddressInput | Prisma.CustomerCreateManyCurrentAddressInput[]
-  skipDuplicates?: boolean
-}
-
-export type CustomerUpsertWithWhereUniqueWithoutCurrentAddressInput = {
-  where: Prisma.CustomerWhereUniqueInput
+export type CustomerUpsertWithoutCurrentAddressInput = {
   update: Prisma.XOR<Prisma.CustomerUpdateWithoutCurrentAddressInput, Prisma.CustomerUncheckedUpdateWithoutCurrentAddressInput>
   create: Prisma.XOR<Prisma.CustomerCreateWithoutCurrentAddressInput, Prisma.CustomerUncheckedCreateWithoutCurrentAddressInput>
+  where?: Prisma.CustomerWhereInput
 }
 
-export type CustomerUpdateWithWhereUniqueWithoutCurrentAddressInput = {
-  where: Prisma.CustomerWhereUniqueInput
+export type CustomerUpdateToOneWithWhereWithoutCurrentAddressInput = {
+  where?: Prisma.CustomerWhereInput
   data: Prisma.XOR<Prisma.CustomerUpdateWithoutCurrentAddressInput, Prisma.CustomerUncheckedUpdateWithoutCurrentAddressInput>
 }
 
-export type CustomerUpdateManyWithWhereWithoutCurrentAddressInput = {
-  where: Prisma.CustomerScalarWhereInput
-  data: Prisma.XOR<Prisma.CustomerUpdateManyMutationInput, Prisma.CustomerUncheckedUpdateManyWithoutCurrentAddressInput>
+export type CustomerUpdateWithoutCurrentAddressInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  customerNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  firstName?: Prisma.StringFieldUpdateOperationsInput | string
+  lastName?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  orders?: Prisma.OrderUpdateManyWithoutCustomerNestedInput
 }
 
-export type CustomerScalarWhereInput = {
-  AND?: Prisma.CustomerScalarWhereInput | Prisma.CustomerScalarWhereInput[]
-  OR?: Prisma.CustomerScalarWhereInput[]
-  NOT?: Prisma.CustomerScalarWhereInput | Prisma.CustomerScalarWhereInput[]
-  id?: Prisma.UuidFilter<"Customer"> | string
-  customerNumber?: Prisma.StringFilter<"Customer"> | string
-  firstName?: Prisma.StringFilter<"Customer"> | string
-  lastName?: Prisma.StringFilter<"Customer"> | string
-  email?: Prisma.StringFilter<"Customer"> | string
-  phone?: Prisma.StringNullableFilter<"Customer"> | string | null
-  currentAddressId?: Prisma.UuidNullableFilter<"Customer"> | string | null
-  isActive?: Prisma.BoolFilter<"Customer"> | boolean
-  createdAt?: Prisma.DateTimeFilter<"Customer"> | Date | string
-  updatedAt?: Prisma.DateTimeFilter<"Customer"> | Date | string
+export type CustomerUncheckedUpdateWithoutCurrentAddressInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  customerNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  firstName?: Prisma.StringFieldUpdateOperationsInput | string
+  lastName?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  orders?: Prisma.OrderUncheckedUpdateManyWithoutCustomerNestedInput
 }
 
 export type CustomerCreateWithoutOrdersInput = {
@@ -589,7 +574,7 @@ export type CustomerCreateWithoutOrdersInput = {
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
-  currentAddress?: Prisma.AddressCreateNestedOneWithoutCurrentForCustomersInput
+  currentAddress?: Prisma.AddressCreateNestedOneWithoutCurrentForCustomerInput
 }
 
 export type CustomerUncheckedCreateWithoutOrdersInput = {
@@ -631,7 +616,7 @@ export type CustomerUpdateWithoutOrdersInput = {
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  currentAddress?: Prisma.AddressUpdateOneWithoutCurrentForCustomersNestedInput
+  currentAddress?: Prisma.AddressUpdateOneWithoutCurrentForCustomerNestedInput
 }
 
 export type CustomerUncheckedUpdateWithoutOrdersInput = {
@@ -642,56 +627,6 @@ export type CustomerUncheckedUpdateWithoutOrdersInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currentAddressId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-}
-
-export type CustomerCreateManyCurrentAddressInput = {
-  id?: string
-  customerNumber: string
-  firstName: string
-  lastName: string
-  email: string
-  phone?: string | null
-  isActive?: boolean
-  createdAt?: Date | string
-  updatedAt?: Date | string
-}
-
-export type CustomerUpdateWithoutCurrentAddressInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  customerNumber?: Prisma.StringFieldUpdateOperationsInput | string
-  firstName?: Prisma.StringFieldUpdateOperationsInput | string
-  lastName?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  orders?: Prisma.OrderUpdateManyWithoutCustomerNestedInput
-}
-
-export type CustomerUncheckedUpdateWithoutCurrentAddressInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  customerNumber?: Prisma.StringFieldUpdateOperationsInput | string
-  firstName?: Prisma.StringFieldUpdateOperationsInput | string
-  lastName?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  orders?: Prisma.OrderUncheckedUpdateManyWithoutCustomerNestedInput
-}
-
-export type CustomerUncheckedUpdateManyWithoutCurrentAddressInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  customerNumber?: Prisma.StringFieldUpdateOperationsInput | string
-  firstName?: Prisma.StringFieldUpdateOperationsInput | string
-  lastName?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string

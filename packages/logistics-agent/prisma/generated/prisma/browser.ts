@@ -4,43 +4,19 @@
 // biome-ignore-all lint: generated file
 // @ts-nocheck 
 /*
- * This file should be your main import to use Prisma. Through it you get access to all the models, enums, and input types.
- * If you're looking for something you can import in the client-side of your application, please refer to the `browser.ts` file instead.
+ * This file should be your main import to use Prisma-related types and utilities in a browser. 
+ * Use it to get access to models, enums, and input types.
+ * 
+ * This file does not contain a `PrismaClient` class, nor several other helpers that are intended as server-side only.
+ * See `client.ts` for the standard, server-side entry point.
  *
  * 🟢 You can import this file directly.
  */
 
-import * as process from 'node:process'
-import * as path from 'node:path'
-import { fileURLToPath } from 'node:url'
-globalThis['__dirname'] = path.dirname(fileURLToPath(import.meta.url))
-
-import * as runtime from "@prisma/client/runtime/client"
-import * as $Enums from "./enums"
-import * as $Class from "./internal/class"
-import * as Prisma from "./internal/prismaNamespace"
-
-export * as $Enums from './enums'
-export * from "./enums"
-/**
- * ## Prisma Client
- * 
- * Type-safe database client for TypeScript
- * @example
- * ```
- * const prisma = new PrismaClient({
- *   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL })
- * })
- * // Fetch zero or more Customers
- * const customers = await prisma.customer.findMany()
- * ```
- * 
- * Read more in our [docs](https://pris.ly/d/client).
- */
-export const PrismaClient = $Class.getPrismaClientClass()
-export type PrismaClient<LogOpts extends Prisma.LogLevel = never, OmitOpts extends Prisma.PrismaClientOptions["omit"] = Prisma.PrismaClientOptions["omit"], ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = $Class.PrismaClient<LogOpts, OmitOpts, ExtArgs>
+import * as Prisma from './internal/prismaNamespaceBrowser.js'
 export { Prisma }
-
+export * as $Enums from './enums.js'
+export * from './enums.js';
 /**
  * Model Customer
  * Client passant des commandes.
@@ -48,10 +24,11 @@ export { Prisma }
 export type Customer = Prisma.CustomerModel
 /**
  * Model Address
- * Adresse centralisée.
+ * Adresse unique et centralisée.
  * 
- * Elle peut représenter une adresse courante ou une adresse figée utilisée
- * pour une commande ou une livraison.
+ * Le même modèle est utilisé pour un client, un fournisseur, une commande
+ * ou une livraison. Son rôle est déduit de ses relations et n'est donc pas
+ * stocké dans un champ discriminant supplémentaire.
  */
 export type Address = Prisma.AddressModel
 /**

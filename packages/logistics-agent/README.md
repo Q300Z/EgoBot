@@ -10,17 +10,21 @@ src/
 ├── agent/       # Factory createAgent et prompt système
 ├── database/    # Création explicite du client Prisma PostgreSQL
 ├── dtos/        # Contrats Zod sérialisables retournés au LLM
-├── services/    # Requêtes Prisma filtrées et mapping vers les DTOs
+├── services/    # Services par entité/cas d'usage et mapping vers les DTOs
 ├── tools/       # Adaptateurs LangChain orientés cas d'usage
-└── generated/   # Client Prisma généré
 prisma/
+├── generated/   # Client Prisma généré
 └── schema.prisma
 ```
 
 Les outils disponibles sont :
 
+- `get_customer_profile`
+- `get_customer_identity`
+- `get_customer_current_address`
 - `get_order_status`
 - `get_order_details`
+- `get_last_order`
 - `get_delivery_tracking`
 - `get_product_availability`
 
@@ -28,6 +32,21 @@ L'identifiant client ne fait jamais partie des paramètres visibles par le
 LLM. Il est validé puis capturé depuis la session serveur lors de la création
 des outils. Les requêtes de commande et de livraison appliquent ce filtre
 directement dans Prisma.
+
+`CustomerService` est strictement limité à l'entité `Customer` et à sa
+relation `currentAddress`. Il propose uniquement des recherches par
+identifiant, numéro client ou e-mail, ainsi que les lectures ciblées de
+l'identité et de l'adresse courante. Il ne modifie aucune donnée et ne
+duplique aucune opération de commande, livraison ou stock.
+
+`OrderService` suit la même organisation pour l'entité `Order` : recherche
+par identifiant ou numéro, dernière commande d'un client, liste et recherche
+paginées, comptage, statut et détails complets. Toutes ses opérations sont
+en lecture seule.
+
+Les outils LangChain n'exposent que les lectures du client authentifié. Les
+commandes, livraisons et stocks appellent directement `OrderService`,
+`DeliveryQueryService` et `InventoryQueryService`.
 
 ## Utilisation
 
