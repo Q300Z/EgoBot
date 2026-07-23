@@ -111,8 +111,13 @@ describe("App.vue Component", () => {
   describe("Authenticated State & Navigation", () => {
     beforeEach(() => {
       const authStore = useAuthStore();
+      const backofficeStore = useBackofficeStore();
       authStore.token = "valid-token";
       authStore.user = { id: "u1", email: "admin@test.com", role: "ADMIN" };
+      vi.spyOn(backofficeStore, "loadAdminConversations").mockResolvedValue();
+      vi.spyOn(backofficeStore, "loadUsers").mockResolvedValue();
+      vi.spyOn(authStore.sdk, "getUsers").mockResolvedValue([]);
+      vi.spyOn(authStore.sdk, "getAdminConversations").mockResolvedValue([]);
     });
 
     it("renders navigation bar when authenticated", async () => {
@@ -264,8 +269,13 @@ describe("App.vue Component", () => {
   describe("Backoffice Administration Operations", () => {
     beforeEach(() => {
       const authStore = useAuthStore();
+      const backofficeStore = useBackofficeStore();
       authStore.token = "valid-token";
       authStore.user = { id: "admin-1", email: "admin@test.com", role: "ADMIN" };
+      vi.spyOn(backofficeStore, "loadAdminConversations").mockResolvedValue();
+      vi.spyOn(backofficeStore, "loadUsers").mockResolvedValue();
+      vi.spyOn(authStore.sdk, "getUsers").mockResolvedValue([]);
+      vi.spyOn(authStore.sdk, "getAdminConversations").mockResolvedValue([]);
     });
 
     it("creates user in admin view", async () => {

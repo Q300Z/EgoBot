@@ -6,6 +6,7 @@ export const useBackofficeStore = defineStore("backoffice", () => {
   const authStore = useAuthStore();
   const users = ref<any[]>([]);
   const adminConversations = ref<any[]>([]);
+  const userConversations = ref<any[]>([]);
 
   async function loadUsers() {
     users.value = await authStore.sdk.getUsers();
@@ -31,6 +32,11 @@ export const useBackofficeStore = defineStore("backoffice", () => {
     adminConversations.value = await authStore.sdk.getAdminConversations(userId);
   }
 
+  async function loadUserConversations(userId: string) {
+    userConversations.value = await authStore.sdk.getUserConversations(userId);
+    return userConversations.value;
+  }
+
   async function getAdminConversation(id: string) {
     return await authStore.sdk.getAdminConversation(id);
   }
@@ -38,11 +44,13 @@ export const useBackofficeStore = defineStore("backoffice", () => {
   return {
     users,
     adminConversations,
+    userConversations,
     loadUsers,
     createUser,
     updateUser,
     deleteUser,
     loadAdminConversations,
+    loadUserConversations,
     getAdminConversation,
   };
 });

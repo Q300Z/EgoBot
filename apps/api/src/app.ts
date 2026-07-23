@@ -40,3 +40,4 @@ app.put("/api/v1/admin/users/:id", authMiddleware as any, requireAdmin as any, A
 app.delete("/api/v1/admin/users/:id", authMiddleware as any, requireAdmin as any, AdminController.deleteUser);
 app.get("/api/v1/admin/conversations", authMiddleware as any, requireAdmin as any, AdminController.getConversations);
 app.get("/api/v1/admin/conversations/:id", authMiddleware as any, requireAdmin as any, AdminController.getConversation);
+app.get("/api/v1/admin/users/:userId/conversations", authMiddleware as any, requireAdmin as any, AdminController.getUserConversations);

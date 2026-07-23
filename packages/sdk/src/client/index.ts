@@ -106,6 +106,11 @@ export class LogibotClientSDK {
     return res.data;
   }
 
+  async getUserConversations(userId: string) {
+    const res = await this.api.get(`/api/v1/admin/users/${userId}/conversations`);
+    return res.data;
+  }
+
   connectAdminConversationStream(
     conversationId: string,
     callbacks: {

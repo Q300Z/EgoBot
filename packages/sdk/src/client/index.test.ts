@@ -17,6 +17,7 @@ describe("LogibotClientSDK", () => {
       },
       post: vi.fn(),
       get: vi.fn(),
+      put: vi.fn(),
       delete: vi.fn(),
     };
     (axios.create as any).mockReturnValue(mockAxiosInstance);
@@ -183,6 +184,51 @@ describe("LogibotClientSDK", () => {
       expect(mockAxiosInstance.delete).toHaveBeenCalledWith("/api/v1/admin/users/u2");
       expect(res).toEqual({ success: true });
     });
+
+    it("should update user details and handle password reset response", async () => {
+      const sdk = new LogibotClientSDK({ baseUrl: "http://localhost:3000" });
+      mockAxiosInstance.put.mockResolvedValueOnce({
+        data: { id: "u2", email: "updated@test.com", role: "USER", generatedPassword: "abc" },
+      });
+
+      const res = await sdk.updateUser("u2", { email: "updated@test.com", resetPassword: true });
+      expect(mockAxiosInstance.put).toHaveBeenCalledWith("/api/v1/admin/users/u2", {
+        email: "updated@test.com",
+        resetPassword: true,
+      });
+      expect(res).toEqual({ id: "u2", email: "updated@test.com", role: "USER", generatedPassword: "abc" });
+    });
+
+    it("should fetch admin conversations list and single conversation", async () => {
+      const sdk = new LogibotClientSDK({ baseUrl: "http://localhost:3000" });
+      mockAxiosInstance.get.mockResolvedValueOnce({
+        data: [{ id: "conv-1", title: "Conv 1" }],
+      });
+
+      const resList = await sdk.getAdminConversations("u1");
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith("/api/v1/admin/conversations", {
+        params: { userId: "u1" },
+      });
+      expect(resList).toEqual([{ id: "conv-1", title: "Conv 1" }]);
+
+      mockAxiosInstance.get.mockResolvedValueOnce({
+        data: { id: "conv-1", title: "Conv 1", messages: [] },
+      });
+      const resSingle = await sdk.getAdminConversation("conv-1");
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith("/api/v1/admin/conversations/conv-1");
+      expect(resSingle).toEqual({ id: "conv-1", title: "Conv 1", messages: [] });
+    });
+
+    it("should fetch user conversations via getUserConversations", async () => {
+      const sdk = new LogibotClientSDK({ baseUrl: "http://localhost:3000" });
+      mockAxiosInstance.get.mockResolvedValueOnce({
+        data: [{ id: "conv-user-1", title: "User Conv 1", _count: { messages: 2 } }],
+      });
+
+      const res = await sdk.getUserConversations("u123");
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith("/api/v1/admin/users/u123/conversations");
+      expect(res).toEqual([{ id: "conv-user-1", title: "User Conv 1", _count: { messages: 2 } }]);
+    });
   });
 
   describe("connectJobStream (SSE)", () => {
@@ -295,6 +341,32 @@ describe("LogibotClientSDK", () => {
 
       // 8. Call unsubscribe
       unsubscribe();
+    });
+
+    it("should connect to admin conversation SSE stream and emit tokens/status", () => {
+      const sdk = new LogibotClientSDK({ baseUrl: "http://localhost:3000", token: "admin-jwt" });
+      const onToken = vi.fn();
+      const onStatus = vi.fn();
+
+      let createdEsInstance: MockEventSource | null = null;
+      (globalThis as any).EventSource = class extends MockEventSource {
+        constructor(url: string) {
+          super(url);
+          createdEsInstance = this;
+        }
+      };
+
+      const unsubscribe = sdk.connectAdminConversationStream("conv-777", { onToken, onStatus });
+      expect(createdEsInstance!.url).toBe("http://localhost:3000/sse/v1/admin/conversations/conv-777?token=admin-jwt");
+
+      createdEsInstance!.emit("job.progress", { type: "job.progress", payload: { kind: "token", chunk: "Admin live token " } });
+      expect(onToken).toHaveBeenCalledWith("Admin live token ");
+
+      createdEsInstance!.emit("job.completed", { type: "job.completed", payload: { status: "COMPLETED" } });
+      expect(onStatus).toHaveBeenCalledWith("COMPLETED");
+
+      unsubscribe();
+      expect(createdEsInstance!.closed).toBe(true);
     });
   });
 });

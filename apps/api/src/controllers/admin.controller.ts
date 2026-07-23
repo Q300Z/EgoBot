@@ -18,6 +18,12 @@ export class AdminController {
     return res.status(200).json(conversations);
   }
 
+  static async getUserConversations(req: AuthRequest, res: Response) {
+    const userId = req.params.userId as string;
+    const conversations = await ConversationRepository.findByUserIdAdmin(userId);
+    return res.status(200).json(conversations);
+  }
+
   static async getConversation(req: AuthRequest, res: Response) {
     const id = req.params.id as string;
     const conversation = await ConversationRepository.findByIdAdmin(id);
