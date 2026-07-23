@@ -11,6 +11,7 @@
             size="small"
             variant="flat"
             title="Nouvelle Conversation"
+            aria-label="Nouvelle Conversation"
             @click="handleNewConversation"
           ></v-btn>
         </v-card-title>
@@ -37,6 +38,8 @@
                 size="x-small"
                 variant="text"
                 color="error"
+                title="Supprimer la conversation"
+                aria-label="Supprimer la conversation"
                 @click.stop="handleDeleteConversation(c.id)"
               ></v-btn>
             </template>

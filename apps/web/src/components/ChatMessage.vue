@@ -5,7 +5,7 @@
   >
     <div :class="['d-flex align-start max-w-75', message.role === 'USER' ? 'flex-row-reverse' : 'flex-row']">
       <v-avatar size="32" :color="message.role === 'USER' ? 'primary' : 'secondary'" class="mx-2" aria-hidden="true">
-        <v-icon :icon="message.role === 'USER' ? 'mdi-account' : 'mdi-robot-outline'" size="18"></v-icon>
+        <v-icon :icon="message.role === 'USER' ? 'mdi-account' : 'mdi-robot-outline'" size="18" color="white"></v-icon>
       </v-avatar>
       <v-card
         :color="message.role === 'USER' ? 'primary' : 'surface-variant'"
@@ -13,11 +13,11 @@
         class="pa-3 rounded-lg"
         elevation="1"
       >
-        <div class="text-caption text-medium-emphasis mb-1 font-weight-bold">
+        <div :class="['text-caption mb-1 font-weight-bold', message.role === 'USER' ? 'text-grey-lighten-3' : 'text-grey-darken-4']">
           {{ message.role === 'USER' ? (userName || 'Vous') : 'EgoBot (Duhamel Logistique)' }}
         </div>
-        <div v-if="message.role === 'USER'" class="text-body-2 white-space-pre-wrap">{{ message.content }}</div>
-        <div v-else class="text-body-2 markdown-body" v-html="renderedMarkdown"></div>
+        <div v-if="message.role === 'USER'" class="text-body-2 white-space-pre-wrap text-white">{{ message.content }}</div>
+        <div v-else class="text-body-2 markdown-body text-grey-darken-4" v-html="renderedMarkdown"></div>
       </v-card>
     </div>
   </div>
@@ -49,6 +49,9 @@ const renderedMarkdown = computed(() => {
 .max-w-75 {
   max-width: 75%;
 }
+.markdown-body {
+  color: #182630 !important;
+}
 .markdown-body :deep(table) {
   border-collapse: collapse;
   margin: 0.5rem 0;
@@ -56,12 +59,13 @@ const renderedMarkdown = computed(() => {
 }
 .markdown-body :deep(th),
 .markdown-body :deep(td) {
-  border: 1px solid rgba(128, 128, 128, 0.3);
+  border: 1px solid rgba(24, 38, 48, 0.3);
   padding: 6px 12px;
   text-align: left;
+  color: #182630 !important;
 }
 .markdown-body :deep(th) {
-  background-color: rgba(128, 128, 128, 0.15);
+  background-color: rgba(24, 38, 48, 0.1);
   font-weight: bold;
 }
 .markdown-body :deep(img) {
@@ -71,7 +75,8 @@ const renderedMarkdown = computed(() => {
   margin: 0.5rem 0;
 }
 .markdown-body :deep(pre) {
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: #182630;
+  color: #FFFFFF;
   padding: 8px 12px;
   border-radius: 6px;
   overflow-x: auto;
@@ -82,6 +87,7 @@ const renderedMarkdown = computed(() => {
 }
 .markdown-body :deep(p) {
   margin-bottom: 0.5rem;
+  color: #182630 !important;
 }
 .markdown-body :deep(p:last-child) {
   margin-bottom: 0;

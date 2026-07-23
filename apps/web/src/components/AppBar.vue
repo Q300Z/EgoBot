@@ -3,7 +3,7 @@
     <v-app-bar-title class="font-weight-bold d-flex align-center">
       <v-icon icon="mdi-truck-delivery-outline" color="secondary" class="mr-2" aria-hidden="true"></v-icon>
       <span>EgoBot</span>
-      <v-chip size="x-small" color="secondary" variant="flat" class="ml-2 font-weight-bold">
+      <v-chip size="x-small" color="secondary" variant="flat" class="ml-2 font-weight-bold text-white">
         EgoNet — Duhamel Logistique
       </v-chip>
     </v-app-bar-title>
@@ -15,7 +15,7 @@
       <v-icon start icon="mdi-account"></v-icon>
       {{ authStore.user?.email || 'Utilisateur' }}
     </v-chip>
-    <v-chip :color="authStore.user?.role === 'ADMIN' ? 'warning' : 'info'" variant="flat" size="small" class="mr-4">
+    <v-chip :color="authStore.user?.role === 'ADMIN' ? 'warning' : 'info'" variant="flat" size="small" class="mr-4 text-white font-weight-bold">
       {{ authStore.user?.role }}
     </v-chip>
 

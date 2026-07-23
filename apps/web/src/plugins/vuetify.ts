@@ -19,8 +19,8 @@ export default createVuetify({
       dark: {
         dark: true,
         colors: {
-          primary: "#EA670C", // Duhamel Orange Accent
-          secondary: "#385266", // Duhamel Slate Navy Light
+          primary: "#F97316", // Duhamel Orange High Contrast Dark
+          secondary: "#47637A", // Duhamel Slate Navy Light
           accent: "#FDF0E8",
           background: "#101920", // Deep Duhamel Navy Dark
           surface: "#182630", // Duhamel Dark Navy
@@ -36,17 +36,19 @@ export default createVuetify({
       light: {
         dark: false,
         colors: {
-          primary: "#182630", // Duhamel Dark Navy Slate
-          secondary: "#EA670C", // Duhamel Orange Accent
-          accent: "#D05400",
+          primary: "#182630", // Duhamel Dark Navy Slate (Contrast > 14:1)
+          secondary: "#B84300", // Duhamel Copper Orange High Contrast (Contrast > 5.2:1)
+          accent: "#9E3800",
           background: "#F4F6F8",
           surface: "#FFFFFF",
-          "surface-variant": "#EBF0F3",
-          error: "#DC2626",
-          info: "#0284C7",
-          success: "#059669",
-          warning: "#D97706",
+          "surface-variant": "#E6ECF0", // High contrast surface variant
+          error: "#991B1B", // Dark red contrast > 7:1
+          info: "#0369A1", // Dark blue contrast > 5:1
+          success: "#047857", // Dark green contrast > 5:1
+          warning: "#853B00", // Dark amber contrast > 7.1:1
           "on-primary": "#FFFFFF",
+          "on-secondary": "#FFFFFF",
+          "on-warning": "#FFFFFF",
           "on-surface": "#182630",
         },
       },

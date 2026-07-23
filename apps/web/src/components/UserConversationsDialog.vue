@@ -13,7 +13,7 @@
             </div>
           </div>
         </div>
-        <v-btn icon="mdi-close" variant="text" size="small" @click="close"></v-btn>
+        <v-btn icon="mdi-close" variant="text" size="small" aria-label="Fermer la fenêtre" title="Fermer" @click="close"></v-btn>
       </v-card-title>
 
       <v-card-text class="pa-0">

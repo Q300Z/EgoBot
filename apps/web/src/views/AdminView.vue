@@ -61,8 +61,8 @@
                   >
                     Conversations
                   </v-btn>
-                  <v-btn icon="mdi-pencil" color="primary" variant="text" size="small" class="mr-1" title="Modifier" @click="openEditUserDialog(u)"></v-btn>
-                  <v-btn icon="mdi-delete" color="error" variant="text" size="small" title="Supprimer" @click="handleDeleteUser(u.id)"></v-btn>
+                  <v-btn icon="mdi-pencil" color="primary" variant="text" size="small" class="mr-1" title="Modifier l'utilisateur" aria-label="Modifier l'utilisateur" @click="openEditUserDialog(u)"></v-btn>
+                  <v-btn icon="mdi-delete" color="error" variant="text" size="small" title="Supprimer l'utilisateur" aria-label="Supprimer l'utilisateur" @click="handleDeleteUser(u.id)"></v-btn>
                 </td>
               </tr>
               <tr v-if="backofficeStore.users.length === 0">
