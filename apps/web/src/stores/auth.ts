@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import { LogibotClientSDK } from "@my-llm/sdk/client";
+import { LogibotClientSDK } from "@egobot/sdk/client";
 
 export const useAuthStore = defineStore("auth", () => {
   const token = ref<string | null>(localStorage.getItem("token"));

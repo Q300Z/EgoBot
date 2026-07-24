@@ -1,10 +1,12 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
-import Database from "better-sqlite3";
+import path from "node:path";
 
-const sqlite = new Database("prisma/prod.db");
-sqlite.pragma("journal_mode = WAL");
-sqlite.pragma("synchronous = NORMAL");
+const cwd = process.cwd();
+const apiDir = cwd.endsWith("api") ? cwd : path.join(cwd, "apps/api");
+const defaultDbPath = path.resolve(apiDir, "prisma/dev.db");
 
-const adapter = new PrismaBetterSqlite3(sqlite as any);
+const dbPath = process.env.DATABASE_URL || defaultDbPath;
+const adapter = new PrismaBetterSqlite3({ url: dbPath });
+
 export const prisma = new PrismaClient({ adapter });

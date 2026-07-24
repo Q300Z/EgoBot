@@ -12,15 +12,19 @@ export class SseService {
   static init() {
     eventBus.subscribe("job.token_emitted", (event) => {
       const { jobId, envelope } = event.payload as any;
-      const conversationId = envelope.data?.conversation_id;
+      if (!envelope) return;
 
-      const jobSessions = this.activeSessions.get(jobId) || new Set();
-      const convSessions = conversationId ? this.activeSessions.get(`conv:${conversationId}`) || new Set() : new Set();
+      const payload = envelope.payload || envelope.data || envelope;
+      const eventName = envelope.type || envelope.event || "token";
+      const conversationId = payload?.conversation_id || payload?.conversationId;
+
+      const jobSessions = this.activeSessions.get(jobId) || new Set<Session>();
+      const convSessions = conversationId ? this.activeSessions.get(`conv:${conversationId}`) || new Set<Session>() : new Set<Session>();
 
       const targetSessions = new Set([...jobSessions, ...convSessions]);
 
       for (const session of targetSessions) {
-        (session as any).push(envelope.data, envelope.event);
+        session.push(payload, eventName);
       }
     });
 
@@ -42,7 +46,7 @@ export class SseService {
         logger.info(`[SSE Recovery] Replay de ${missedEvents.length} événement(s) manqué(s) pour le job ${jobId}`);
 
         for (const [eventId, fields] of missedEvents) {
-          let eventName = "job.progress";
+          let eventName = "token";
           let eventData = "";
           for (let i = 0; i < fields.length; i += 2) {
             if (fields[i] === "event") eventName = fields[i + 1];
@@ -50,7 +54,9 @@ export class SseService {
           }
           if (eventData) {
             const parsed = JSON.parse(eventData);
-            (session as any).push(parsed.data, eventName, eventId);
+            const payload = parsed.payload || parsed.data || parsed;
+            const typeName = parsed.type || eventName;
+            session.push(payload, typeName, eventId);
           }
         }
       } catch (err) {

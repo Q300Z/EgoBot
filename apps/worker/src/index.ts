@@ -1,4 +1,4 @@
-import { WorkerApplication } from "@my-llm/sdk/worker";
+import { WorkerApplication } from "@egobot/sdk/worker";
 import dotenv from "dotenv";
 
 dotenv.config();

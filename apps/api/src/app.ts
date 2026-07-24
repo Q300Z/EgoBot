@@ -18,9 +18,13 @@ app.post("/api/v1/auth/login", AuthController.login);
 app.post("/api/v1/auth/register", AuthController.register);
 
 // SSE Client & Debug Live EventBus
-app.get("/sse/v1/job/:jobId", sseAuthMiddleware as any, MessageController.streamJobEvents);
-app.get("/sse/v1/admin/conversations/:id", authMiddleware as any, requireAdmin as any, AdminController.streamAdminConversation);
-app.get("/sse/v1/debug/eventbus", authMiddleware as any, requireAdmin as any, AdminController.streamEventBusDebug);
+app.get("/sse/:jobId", MessageController.streamJobEvents);
+app.get("/sse/v1/admin/conversations/:id", sseAuthMiddleware as any, requireAdmin as any, AdminController.streamAdminConversation);
+
+// Route de debug — uniquement disponible en environnement de développement
+if (["dev", "development"].includes(process.env.NODE_ENV ?? "dev")) {
+  app.get("/sse/v1/debug/eventbus", sseAuthMiddleware as any, requireAdmin as any, AdminController.streamEventBusDebug);
+}
 
 // Routes protégées Utilisateur
 app.get("/api/v1/auth/me", authMiddleware as any, AuthController.me);
@@ -32,4 +36,8 @@ app.delete("/api/v1/conversations/:id", authMiddleware as any, MessageController
 // Routes d'administration Backoffice
 app.get("/api/v1/admin/users", authMiddleware as any, requireAdmin as any, AdminController.getUsers);
 app.post("/api/v1/admin/users", authMiddleware as any, requireAdmin as any, AdminController.createUser);
+app.put("/api/v1/admin/users/:id", authMiddleware as any, requireAdmin as any, AdminController.updateUser);
 app.delete("/api/v1/admin/users/:id", authMiddleware as any, requireAdmin as any, AdminController.deleteUser);
+app.get("/api/v1/admin/conversations", authMiddleware as any, requireAdmin as any, AdminController.getConversations);
+app.get("/api/v1/admin/conversations/:id", authMiddleware as any, requireAdmin as any, AdminController.getConversation);
+app.get("/api/v1/admin/users/:userId/conversations", authMiddleware as any, requireAdmin as any, AdminController.getUserConversations);

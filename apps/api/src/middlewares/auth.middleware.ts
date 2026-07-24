@@ -33,7 +33,7 @@ export function authMiddleware(req: AuthRequest, res: Response, next: NextFuncti
  */
 export async function sseAuthMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
   const jobId = req.params.jobId as string;
-  const token = (req.query.token as string) || (req.headers.authorization?.split(" ")[1]);
+  const token = (req.query?.token as string) || (req.headers?.authorization?.split(" ")[1]);
 
   // Si un token JWT est fourni, on valide l'identité
   if (token) {

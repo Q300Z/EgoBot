@@ -1,0 +1,83 @@
+import { config } from "@vue/test-utils";
+import { vi } from "vitest";
+
+// Polyfill ResizeObserver for Vuetify 3 in JSDOM
+global.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
+// Polyfill IntersectionObserver
+global.IntersectionObserver = class IntersectionObserver {
+  readonly root: Element | null = null;
+  readonly rootMargin: string = "";
+  readonly thresholds: ReadonlyArray<number> = [];
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+  takeRecords() {
+    return [];
+  }
+} as any;
+
+// Mock window.scrollTo
+if (typeof window !== "undefined") {
+  window.scrollTo = vi.fn();
+}
+
+// Mock localStorage
+const storage: Record<string, string> = {};
+const mockLocalStorage = {
+  getItem: vi.fn((key: string) => storage[key] || null),
+  setItem: vi.fn((key: string, val: string) => {
+    storage[key] = String(val);
+  }),
+  removeItem: vi.fn((key: string) => {
+    delete storage[key];
+  }),
+  clear: vi.fn(() => {
+    Object.keys(storage).forEach((key) => delete storage[key]);
+  }),
+};
+
+Object.defineProperty(window, "localStorage", {
+  value: mockLocalStorage,
+  writable: true,
+});
+
+// Mock window.matchMedia (non disponible dans jsdom)
+Object.defineProperty(window, "matchMedia", {
+  writable: true,
+  value: vi.fn().mockImplementation((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+});
+
+// Mock EventSource
+class MockEventSource {
+  static CONNECTING = 0;
+  static OPEN = 1;
+  static CLOSED = 2;
+  readyState = MockEventSource.OPEN;
+  onmessage: ((e: any) => void) | null = null;
+  onerror: ((e: any) => void) | null = null;
+  url: string;
+
+  constructor(url: string) {
+    this.url = url;
+  }
+
+  close() {
+    this.readyState = MockEventSource.CLOSED;
+  }
+}
+
+global.EventSource = MockEventSource as any;

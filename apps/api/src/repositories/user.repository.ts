@@ -27,6 +27,10 @@ export class UserRepository {
     });
   }
 
+  static async update(id: string, data: { email?: string; password_hash?: string; role?: Role }) {
+    return prisma.user.update({ where: { id }, data });
+  }
+
   static async delete(id: string) {
     return prisma.user.delete({ where: { id } });
   }

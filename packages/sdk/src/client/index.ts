@@ -89,6 +89,88 @@ export class LogibotClientSDK {
     return res.data;
   }
 
+  async updateUser(id: string, data: { email?: string; role?: string; resetPassword?: boolean }) {
+    const res = await this.api.put(`/api/v1/admin/users/${id}`, data);
+    return res.data; // { id, email, role, created_at, updated_at, generatedPassword? }
+  }
+
+  async getAdminConversations(userId?: string) {
+    const res = await this.api.get("/api/v1/admin/conversations", {
+      params: userId ? { userId } : undefined,
+    });
+    return res.data;
+  }
+
+  async getAdminConversation(id: string) {
+    const res = await this.api.get(`/api/v1/admin/conversations/${id}`);
+    return res.data;
+  }
+
+  async getUserConversations(userId: string) {
+    const res = await this.api.get(`/api/v1/admin/users/${userId}/conversations`);
+    return res.data;
+  }
+
+  connectAdminConversationStream(
+    conversationId: string,
+    callbacks: {
+      onToken?: (chunk: string, jobId?: string) => void;
+      onStatus?: (status: string, jobId?: string) => void;
+      onError?: (err: any) => void;
+    }
+  ): () => void {
+    const streamUrl = `${this.api.defaults.baseURL}/sse/v1/admin/conversations/${conversationId}${this.token ? `?token=${this.token}` : ""}`;
+    const eventSource = new EventSource(streamUrl);
+
+    const handleEvent = (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data);
+        const eventType = data.type || data.kind || "unknown";
+        const payload = data.payload || data;
+        const jobId = payload.jobId || data.jobId || payload.job_id;
+
+        if (eventType === "token" || data.kind === "token" || payload.kind === "token") {
+          if (callbacks.onToken) {
+            const chunk = payload.chunk || payload.data?.chunk || data.chunk || "";
+            if (jobId !== undefined) {
+              callbacks.onToken(chunk, jobId);
+            } else {
+              callbacks.onToken(chunk);
+            }
+          }
+        }
+
+        const status = data.status || payload.status;
+        if (status) {
+          if (callbacks.onStatus) {
+            if (jobId !== undefined) {
+              callbacks.onStatus(status, jobId);
+            } else {
+              callbacks.onStatus(status);
+            }
+          }
+        }
+      } catch {}
+    };
+
+    eventSource.onmessage = handleEvent;
+    eventSource.addEventListener("job.progress", handleEvent);
+    eventSource.addEventListener("job.completed", handleEvent);
+    eventSource.addEventListener("token", handleEvent);
+    eventSource.addEventListener("status", handleEvent);
+
+    eventSource.onerror = (err) => {
+      if (callbacks.onError) {
+        callbacks.onError(err);
+      }
+      eventSource.close();
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }
+
   /**
    * Écoute d'un flux SSE réactif avec tolérance absolue aux événements inconnus (Non-strict Event Parser).
    */
@@ -102,45 +184,44 @@ export class LogibotClientSDK {
       onError?: (err: any) => void;
     }
   ): () => void {
-    const streamUrl = `${this.api.defaults.baseURL}/sse/v1/job/${jobId}`;
+    const streamUrl = `${this.api.defaults.baseURL}/sse/${jobId}`;
     const eventSource = new EventSource(streamUrl);
 
-    eventSource.onmessage = (event) => {
+    const handleEvent = (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data);
         const eventType = data.type || data.kind || "unknown";
         const payload = data.payload || data;
 
-        switch (eventType) {
-          case "token":
-            if (callbacks.onToken) {
-              callbacks.onToken(payload.chunk || payload.data?.chunk || "");
-            }
-            break;
+        const isToken = eventType === "token" || data.kind === "token" || payload.kind === "token";
+        const isStatus = Boolean(data.status || payload.status);
+        const isStats = eventType === "statistics" || Boolean(payload.statistics || data.statistics);
 
-          case "status":
-            if (callbacks.onStatus) {
-              callbacks.onStatus(payload.status, payload.error);
-            }
-            break;
-
-          case "statistics":
-            if (callbacks.onStatistics) {
-              callbacks.onStatistics(payload);
-            }
-            break;
-
-          default:
-            // Tolérance aux événements futurs ou inconnus : ignoré silencieusement sans faire planter le SDK !
-            if (callbacks.onUnknownEvent) {
-              callbacks.onUnknownEvent(eventType, payload);
-            }
-            break;
+        if (isToken) {
+          if (callbacks.onToken) {
+            callbacks.onToken(payload.chunk || payload.data?.chunk || data.chunk || "");
+          }
+        } else if (isStatus) {
+          if (callbacks.onStatus) {
+            callbacks.onStatus(data.status || payload.status, payload.error || data.error);
+          }
+        } else if (isStats) {
+          if (callbacks.onStatistics) {
+            callbacks.onStatistics(payload.statistics || data.statistics || payload);
+          }
+        } else {
+          if (callbacks.onUnknownEvent) {
+            callbacks.onUnknownEvent(eventType, payload);
+          }
         }
-      } catch (err) {
-        // Ignorer les données malformées sans planter le SDK
-      }
+      } catch (err) {}
     };
+
+    eventSource.onmessage = handleEvent;
+    eventSource.addEventListener("job.progress", handleEvent);
+    eventSource.addEventListener("job.completed", handleEvent);
+    eventSource.addEventListener("token", handleEvent);
+    eventSource.addEventListener("status", handleEvent);
 
     eventSource.onerror = (err) => {
       if (callbacks.onError) {

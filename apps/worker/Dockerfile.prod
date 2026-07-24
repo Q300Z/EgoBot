@@ -3,7 +3,7 @@ FROM node:22-alpine AS pruner
 WORKDIR /app
 RUN npm install -g turbo@2.10.5
 COPY . .
-RUN turbo prune @my-llm/worker --docker
+RUN turbo prune @egobot/worker --docker
 
 # Stage 2: Install dependencies & compile
 FROM node:22-alpine AS installer
@@ -17,7 +17,7 @@ RUN pnpm install
 # Copy full source & build
 COPY --from=pruner /app/out/full/ .
 RUN pnpm build
-RUN pnpm --filter @my-llm/worker deploy /prod/worker --prod --legacy
+RUN pnpm --filter @egobot/worker deploy /prod/worker --prod --legacy
 
 # Stage 3: Minimal Production Runner (Dive Minimal Layer Image)
 FROM node:22-alpine AS runner

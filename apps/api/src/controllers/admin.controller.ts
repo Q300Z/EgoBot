@@ -1,6 +1,7 @@
 import type { Response } from "express";
 import bcrypt from "bcryptjs";
 import { UserRepository } from "../repositories/user.repository.js";
+import { ConversationRepository } from "../repositories/conversation.repository.js";
 import { SseService } from "../services/sse.service.js";
 import { eventBus } from "../events/eventBus.js";
 import type { AuthRequest } from "../middlewares/auth.middleware.js";
@@ -9,6 +10,27 @@ export class AdminController {
   static async getUsers(req: AuthRequest, res: Response) {
     const users = await UserRepository.findAll();
     return res.status(200).json(users);
+  }
+
+  static async getConversations(req: AuthRequest, res: Response) {
+    const userId = req.query.userId as string | undefined;
+    const conversations = await ConversationRepository.findAllAdmin(userId);
+    return res.status(200).json(conversations);
+  }
+
+  static async getUserConversations(req: AuthRequest, res: Response) {
+    const userId = req.params.userId as string;
+    const conversations = await ConversationRepository.findByUserIdAdmin(userId);
+    return res.status(200).json(conversations);
+  }
+
+  static async getConversation(req: AuthRequest, res: Response) {
+    const id = req.params.id as string;
+    const conversation = await ConversationRepository.findByIdAdmin(id);
+    if (!conversation) {
+      return res.status(404).json({ error: "Conversation introuvable" });
+    }
+    return res.status(200).json(conversation);
   }
 
   static async createUser(req: AuthRequest, res: Response) {
@@ -32,6 +54,37 @@ export class AdminController {
     await UserRepository.delete(req.params.id as string);
     return res.status(200).json({ message: "Utilisateur supprimé" });
   }
+
+  static async updateUser(req: AuthRequest, res: Response) {
+    const id = req.params.id as string;
+    const { email, role, resetPassword } = req.body;
+
+    const updateData: { email?: string; role?: any; password_hash?: string } = {};
+    let generatedPassword: string | undefined;
+
+    if (email) updateData.email = email;
+    if (role) updateData.role = role;
+
+    if (resetPassword === true) {
+      // Génère un mot de passe aléatoire de 12 caractères hex
+      const { randomBytes } = await import("node:crypto");
+      generatedPassword = randomBytes(6).toString("hex");
+      updateData.password_hash = await bcrypt.hash(generatedPassword, 10);
+    }
+
+    const user = await UserRepository.update(id, updateData);
+    const response: any = {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      created_at: user.created_at.toISOString(),
+      updated_at: user.updated_at.toISOString(),
+    };
+    if (generatedPassword) response.generatedPassword = generatedPassword;
+
+    return res.status(200).json(response);
+  }
+
 
   static async streamAdminConversation(req: AuthRequest, res: Response) {
     const convId = req.params.id as string;

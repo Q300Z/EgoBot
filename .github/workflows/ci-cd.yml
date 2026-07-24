@@ -31,7 +31,7 @@ jobs:
         run: pnpm install
 
       - name: Generate Prisma Client
-        run: pnpm --filter @my-llm/api exec prisma generate
+        run: pnpm --filter @egobot/api exec prisma generate
 
       - name: Run lint
         run: pnpm lint
