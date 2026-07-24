@@ -30,7 +30,7 @@
  *  Frais de port : taxés à 20 %.
  */
 
-import { PrismaClient } from "../src/generated/prisma/client";
+import { PrismaClient, type AddressStatus, type AddressUsage } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { fakerFR as faker } from "@faker-js/faker";
 import { randomUUID } from "node:crypto";
@@ -112,8 +112,8 @@ async function purge() {
 
 type AddressRow = {
   id: string;
-  status: string;
-  usage: string;
+  status: AddressStatus;
+  usage: AddressUsage;
   label: string | null;
   line1: string;
   line2: string | null;
@@ -131,8 +131,8 @@ const addresses: AddressRow[] = [];
 /** Fabrique une adresse. Les adresses LOCKED sont celles gelées au moment
  *  d'une commande : elles ne doivent plus jamais être modifiées. */
 function makeAddress(opts: {
-  usage: string;
-  status?: string;
+  usage: AddressUsage;
+  status?: AddressStatus;
   label?: string | null;
   when?: Date;
   copyOf?: AddressRow;
