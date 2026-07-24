@@ -21,6 +21,16 @@ export class JobService {
     this.isRunning = false;
   }
 
+  private static lastProcessedIds = new Map<string, string>();
+
+  private static incrementStreamId(id: string): string {
+    const parts = id.split("-");
+    if (parts.length === 2) {
+      return `${parts[0]}-${parseInt(parts[1], 10) + 1}`;
+    }
+    return id;
+  }
+
   static async createJob(userId: string, prompt: string, conversationId?: string, model: string = "CHATBOT") {
     let convId: string = conversationId || "";
     if (!convId) {
@@ -55,24 +65,27 @@ export class JobService {
     return {
       job_id: jobId,
       conversation_id: convId,
-      stream_url: `http://localhost:8000/sse/v1/job/${jobId}`,
+      stream_url: `http://localhost:8000/sse/${jobId}`,
     };
   }
 
   private static async pollSseStreams() {
     while (this.isRunning) {
       try {
-        const keys = await valkeyStream.keys("jobs:sse:dev:*");
+        const keys = await valkeyStream.keys("jobs:sse:*");
         for (const key of keys) {
           const parts = key.split(":");
           const jobId = parts[parts.length - 1];
 
-          const events = await valkeyStream.xrange(key, "-", "+");
+          const lastId = this.lastProcessedIds.get(key);
+          const startId = lastId ? this.incrementStreamId(lastId) : "-";
+          const events = await valkeyStream.xrange(key, startId, "+");
           let fullContent = "";
           let isCompleted = false;
           let completedData: any = null;
 
           for (const [eventId, fields] of events) {
+            this.lastProcessedIds.set(key, eventId);
             let eventName = "token";
             let eventData = "";
 
@@ -119,6 +132,7 @@ export class JobService {
                 time_to_first_token: completedData?.statistics?.time_to_first_token,
               });
             }
+            this.lastProcessedIds.delete(key);
             await valkeyWriter.del(key);
           }
         }

@@ -270,13 +270,22 @@ describe("LogibotClientSDK", () => {
       (globalThis as any).EventSource = MockEventSource;
     });
 
-    it("should open EventSource with token in URL if set", () => {
+    it("should open EventSource at /sse/:jobId without token in URL", () => {
+      let createdEsInstance: MockEventSource | null = null;
+      (globalThis as any).EventSource = class extends MockEventSource {
+        constructor(url: string) {
+          super(url);
+          createdEsInstance = this;
+        }
+      };
+
       const sdk = new LogibotClientSDK({
         baseUrl: "http://localhost:3000",
         token: "my-token",
       });
 
       const unsubscribe = sdk.connectJobStream("job-123", {});
+      expect(createdEsInstance?.url).toBe("http://localhost:3000/sse/job-123");
       expect(unsubscribe).toBeTypeOf("function");
       unsubscribe();
     });

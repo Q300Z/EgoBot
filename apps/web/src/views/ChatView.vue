@@ -235,7 +235,9 @@ watch(
 
 onMounted(async () => {
   if (chatStore.conversations.length === 0) {
-    await chatStore.loadConversations();
+    try {
+      await chatStore.loadConversations();
+    } catch {}
   }
 });
 </script>

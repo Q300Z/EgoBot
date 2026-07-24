@@ -18,7 +18,7 @@ app.post("/api/v1/auth/login", AuthController.login);
 app.post("/api/v1/auth/register", AuthController.register);
 
 // SSE Client & Debug Live EventBus
-app.get("/sse/v1/job/:jobId", sseAuthMiddleware as any, MessageController.streamJobEvents);
+app.get("/sse/:jobId", MessageController.streamJobEvents);
 app.get("/sse/v1/admin/conversations/:id", sseAuthMiddleware as any, requireAdmin as any, AdminController.streamAdminConversation);
 
 // Route de debug — uniquement disponible en environnement de développement

@@ -184,7 +184,7 @@ export class LogibotClientSDK {
       onError?: (err: any) => void;
     }
   ): () => void {
-    const streamUrl = `${this.api.defaults.baseURL}/sse/v1/job/${jobId}${this.token ? `?token=${this.token}` : ""}`;
+    const streamUrl = `${this.api.defaults.baseURL}/sse/${jobId}`;
     const eventSource = new EventSource(streamUrl);
 
     const handleEvent = (event: MessageEvent) => {

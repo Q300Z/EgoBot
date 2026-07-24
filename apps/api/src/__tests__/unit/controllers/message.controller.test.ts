@@ -53,7 +53,7 @@ describe("MessageController Unit Tests", () => {
         return {
           job_id: "job-123",
           conversation_id: convId || "conv-999",
-          stream_url: "http://localhost/sse/v1/job/job-123",
+          stream_url: "http://localhost/sse/job-123",
         };
       };
 
