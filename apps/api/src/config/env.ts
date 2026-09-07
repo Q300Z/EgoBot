@@ -39,9 +39,15 @@ const envSchema = z
 		CACHE_PASSWORD: z.string().default(""),
 		CACHE_DB_NAME: z.coerce.number().default(0),
 		CACHE_EXPIRE: z.coerce.number().default(3600),
-		WORKER_STATUS_INTERVAL_MS: z.coerce.number().default(5000),
 		VALKEY_URL: z.string().optional(),
 		REDIS_URL: z.string().default("redis://127.0.0.1:6379"),
+		VALKEY_ENABLE_CLIENT_CACHE: z.preprocess((val) => val === "true" || val === true, z.boolean()).default(true),
+		VALKEY_CACHE_SIZE_KB: z.coerce.number().default(1024),
+		VALKEY_CACHE_TTL_MS: z.coerce.number().default(60000),
+		VALKEY_ENABLE_CIRCUIT_BREAKER: z.preprocess(
+			(val) => (val === undefined ? undefined : val === "true" || val === true),
+			z.boolean().optional(),
+		),
 	})
 	.superRefine((data, ctx) => {
 		if (data.NODE_ENV === "production") {
