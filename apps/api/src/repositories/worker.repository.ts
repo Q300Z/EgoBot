@@ -1,8 +1,8 @@
-import { valkeyReader, valkeyWriter } from "../config/valkey.js";
+import { valkeyReader, valkeyWriter, scanKeys } from "../config/valkey.js";
 
 export class WorkerRepository {
   static async getActiveWorkerKeys(): Promise<string[]> {
-    const keys = await valkeyReader.keys("workers:presence:*");
+    const keys = await scanKeys(valkeyReader, "workers:presence:*");
     return keys
       .map((k) => String(k))
       .filter((key) => !key.startsWith("workers:presence:api:"));

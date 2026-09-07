@@ -7,7 +7,48 @@ import { WorkerRepository } from "../../../repositories/worker.repository.js";
 import { prisma } from "../../../config/db.js";
 import { valkeyReader, valkeyWriter } from "../../../config/valkey.js";
 
+// Les tests des contrôleurs, middlewares et services remplacent définitivement
+// les méthodes statiques des repositories (46 affectations, aucune restaurée).
+// Ce fichier-ci teste les vraies implémentations : il héritait donc des stubs
+// des fichiers importés avant lui, et deux de ses tests échouaient.
+//
+// On capture les méthodes d'origine à l'évaluation du module — node:test
+// n'exécute aucun test avant que tous les imports soient résolus, elles sont
+// donc encore intactes ici — puis on les réinstalle avant chaque test.
+type StaticMethods = Record<string, (...args: any[]) => any>;
+
+function snapshotStatics(target: object): StaticMethods {
+  const snapshot: StaticMethods = {};
+  for (const key of Object.getOwnPropertyNames(target)) {
+    const value = (target as any)[key];
+    if (typeof value === "function" && key !== "constructor") {
+      snapshot[key] = value;
+    }
+  }
+  return snapshot;
+}
+
+function restoreStatics(target: object, snapshot: StaticMethods): void {
+  for (const [key, value] of Object.entries(snapshot)) {
+    (target as any)[key] = value;
+  }
+}
+
+const ORIGINAL_USER = snapshotStatics(UserRepository);
+const ORIGINAL_CONVERSATION = snapshotStatics(ConversationRepository);
+const ORIGINAL_JOB = snapshotStatics(JobRepository);
+const ORIGINAL_WORKER = snapshotStatics(WorkerRepository);
+
 describe("Repositories Unit Tests", () => {
+  // Hook externe : node:test exécute les hooks du plus externe au plus interne,
+  // la restauration précède donc les mocks Prisma posés par chaque describe.
+  beforeEach(() => {
+    restoreStatics(UserRepository, ORIGINAL_USER);
+    restoreStatics(ConversationRepository, ORIGINAL_CONVERSATION);
+    restoreStatics(JobRepository, ORIGINAL_JOB);
+    restoreStatics(WorkerRepository, ORIGINAL_WORKER);
+  });
+
   describe("UserRepository", () => {
     beforeEach(() => {
       (prisma as any).user = {
@@ -141,12 +182,13 @@ describe("Repositories Unit Tests", () => {
 
   describe("WorkerRepository", () => {
     it("getActiveWorkerKeys & getActiveWorkersCount devraient filtrer la présence des workers", async () => {
-      const originalKeys = valkeyReader.keys;
-      valkeyReader.keys = async () => [
-        "workers:presence:w-1:node-1",
-        "workers:presence:w-2:node-2",
-        "workers:presence:api:node-api",
-      ] as any;
+      // scanKeys utilise SCAN et non KEYS : le curseur "0" en retour signale la
+      // fin du parcours, sinon la boucle ne se terminerait jamais.
+      const originalScan = valkeyReader.scan;
+      valkeyReader.scan = (async () => [
+        "0",
+        ["workers:presence:w-1:node-1", "workers:presence:w-2:node-2", "workers:presence:api:node-api"],
+      ]) as any;
 
       const keys = await WorkerRepository.getActiveWorkerKeys();
       assert.deepStrictEqual(keys, ["workers:presence:w-1:node-1", "workers:presence:w-2:node-2"]);
@@ -154,7 +196,7 @@ describe("Repositories Unit Tests", () => {
       const count = await WorkerRepository.getActiveWorkersCount();
       assert.strictEqual(count, 2);
 
-      valkeyReader.keys = originalKeys;
+      valkeyReader.scan = originalScan;
     });
 
     it("publishPresence devrait écrire dans Valkey avec expiration", async () => {
