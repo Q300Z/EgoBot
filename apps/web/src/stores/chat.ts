@@ -71,6 +71,10 @@ export const useChatStore = defineStore("chat", () => {
           lastMsg.content += chunk;
         }
       },
+      onSource: (_source) => {
+        receivedAnyToken = true;
+        if (fallbackTimer) clearTimeout(fallbackTimer);
+      },
       onStatus: async (status) => {
         if (status === "COMPLETED" || status === "FAILED" || status === "CANCELLED") {
           if (fallbackTimer) clearTimeout(fallbackTimer);
@@ -94,6 +98,7 @@ export const useChatStore = defineStore("chat", () => {
     isStreaming,
     isLoadingConversations,
     isLoadingConversation,
+    activeStreamCleanup,
     loadConversations,
     loadConversation,
     sendMessage,

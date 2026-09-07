@@ -21,15 +21,37 @@
           </v-alert>
 
           <v-form @submit.prevent="handleAuthSubmit">
-            <v-text-field
-              v-model="email"
-              label="Adresse Email"
-              prepend-inner-icon="mdi-email"
-              type="email"
-              variant="outlined"
-              density="comfortable"
-              required
-            ></v-text-field>
+            <template v-if="authTab === 'login'">
+              <v-text-field
+                v-model="loginIdentifier"
+                label="Identifiant (Email ou nom d'utilisateur)"
+                prepend-inner-icon="mdi-account"
+                type="text"
+                variant="outlined"
+                density="comfortable"
+                required
+              ></v-text-field>
+            </template>
+            <template v-else>
+              <v-text-field
+                v-model="email"
+                label="Adresse Email"
+                prepend-inner-icon="mdi-email"
+                type="email"
+                variant="outlined"
+                density="comfortable"
+                required
+              ></v-text-field>
+
+              <v-text-field
+                v-model="username"
+                label="Nom d'utilisateur (optionnel)"
+                prepend-inner-icon="mdi-account"
+                type="text"
+                variant="outlined"
+                density="comfortable"
+              ></v-text-field>
+            </template>
 
             <v-text-field
               v-model="password"
@@ -80,7 +102,9 @@ const authStore = useAuthStore();
 const chatStore = useChatStore();
 
 const authTab = ref<"login" | "register">("login");
+const loginIdentifier = ref("");
 const email = ref("");
+const username = ref("");
 const password = ref("");
 const role = ref<"USER" | "ADMIN">("USER");
 const authError = ref("");
@@ -91,9 +115,9 @@ async function handleAuthSubmit() {
   authLoading.value = true;
   try {
     if (authTab.value === "login") {
-      await authStore.login(email.value, password.value);
+      await authStore.login(loginIdentifier.value, password.value);
     } else {
-      await authStore.register(email.value, password.value, role.value);
+      await authStore.register(email.value, password.value, role.value, username.value || undefined);
     }
     await chatStore.loadConversations();
     router.push("/chat");

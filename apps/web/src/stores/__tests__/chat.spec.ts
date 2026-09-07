@@ -6,6 +6,8 @@ import { useAuthStore } from "../auth";
 describe("Chat Store", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
+    const authStore = useAuthStore();
+    vi.spyOn(authStore.sdk, "getConversations").mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -164,10 +166,49 @@ describe("Chat Store", () => {
     await chatStore.sendMessage("Slow stream message");
     expect(chatStore.isStreaming).toBe(true);
 
-    // Fast forward 6 seconds
-    await vi.advanceTimersByTimeAsync(6500);
+    // Fast forward past 20 seconds fallback timer
+    await vi.advanceTimersByTimeAsync(21000);
 
     expect(chatStore.isStreaming).toBe(false);
     expect(authStore.sdk.getConversation).toHaveBeenCalledWith("conv-timeout");
+  });
+
+  it("should progressively accumulate tokens and source markers", async () => {
+    const authStore = useAuthStore();
+    const chatStore = useChatStore();
+
+    const mockJobResult = { job_id: "job-src", conversation_id: "conv-src" };
+    const mockConvDetail = {
+      id: "conv-src",
+      title: "Source Test",
+      messages: [
+        { role: "USER", content: "Test source" },
+        { role: "ASSISTANT", content: "" },
+      ],
+    };
+
+    let streamCallbacks: any = null;
+    vi.spyOn(authStore.sdk, "createMessage").mockResolvedValue(mockJobResult as any);
+    vi.spyOn(authStore.sdk, "getConversation").mockResolvedValue(mockConvDetail as any);
+    vi.spyOn(authStore.sdk, "connectJobStream").mockImplementation((_jobId: string, callbacks: any) => {
+      streamCallbacks = callbacks;
+      return vi.fn();
+    });
+
+    await chatStore.sendMessage("Test source");
+
+    // Emit initial token
+    streamCallbacks.onToken("Bonjour ! ");
+    // Emit source marker
+    const marker = '[[source:{"type":"doc","title":"Manuel Logistique v2","url":"https://example.com/doc"}]]';
+    streamCallbacks.onToken(marker);
+    if (streamCallbacks.onSource) {
+      streamCallbacks.onSource({ type: "doc", title: "Manuel Logistique v2", url: "https://example.com/doc" });
+    }
+    // Emit continuation token
+    streamCallbacks.onToken(" pour vous servir.");
+
+    const lastMsg = chatStore.currentConversation.messages[1];
+    expect(lastMsg.content).toBe(`Bonjour ! ${marker} pour vous servir.`);
   });
 });
