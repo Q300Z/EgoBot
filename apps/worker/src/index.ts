@@ -7,66 +7,148 @@ dotenv.config();
 
 const worker = new WorkerApplication({
   workerId: "ts-worker-1",
-  models: ["CHATBOT", "ANALYTICS", "LOGISTICS"],
+  models: ["CHATBOT", "LOGISTICS"],
   env: process.env.NODE_ENV || "dev",
   redisUrl: process.env.REDIS_URL || "redis://localhost:6379",
 });
 
 worker.registerTask("CHATBOT", async (payload, ctx) => {
-  const prompt = payload.prompt || payload.data?.prompt || "";
+  const prompt = (payload.prompt || payload.data?.prompt || "").trim();
+  const lower = prompt.toLowerCase();
   console.log(`[Worker TS] Prompt reçu pour le job ${ctx.jobId} : "${prompt}"`);
 
-  const firstPart = [
-    "Bonjour",
-    " !",
-    " Je",
-    " suis",
-    " un",
-    " worker",
-    " d'inférence",
-    " basé",
-    " sur",
-    " la",
-    " documentation",
-    " officielle",
-    " ",
-  ];
-
-  for (const word of firstPart) {
-    if (await ctx.checkCancellation()) {
-      console.warn(`[Worker TS] Annulation du job ${ctx.jobId} détectée !`);
-      return;
+  const streamWords = async (text: string, delayMs = 30) => {
+    const tokens = text.split(/(\s+)/);
+    for (const token of tokens) {
+      if (await ctx.checkCancellation()) return false;
+      await ctx.sendToken(token);
+      if (delayMs > 0) await new Promise((r) => setTimeout(r, delayMs));
     }
-    await ctx.sendToken(word);
-    await new Promise((r) => setTimeout(r, 120));
+    return true;
+  };
+
+  // 1. Démo Graphique Chart.js
+  if (lower.includes("chart") || lower.includes("graph")) {
+    await streamWords("Voici la répartition des stocks pour l'article demandé en temps réel :\n\n");
+    const chartData = {
+      type: "bar",
+      title: "Disponibilité par statut — SKU-00042 (Cartons M)",
+      labels: ["En stock (physique)", "Réservé (commandes)", "Disponible à la vente"],
+      datasets: [
+        {
+          label: "Entrepôt Paris-A01",
+          data: [450, 95, 355],
+        },
+      ],
+    };
+    await ctx.sendToken("\n```chart\n" + JSON.stringify(chartData, null, 2) + "\n```\n");
+    await streamWords("\nLe stock disponible est suffisant pour couvrir les expéditions prévues aujourd'hui.\n");
+    await ctx.sendSource({
+      title: "Table StockItem (SQLite)",
+      type: "database",
+    });
+    return;
   }
 
-  // Émission d'une source de données au milieu de la réponse
+  // 2. Démo Diagramme Mermaid
+  if (lower.includes("mermaid") || lower.includes("livraison") || lower.includes("suivi")) {
+    await streamWords("Voici l'état d'acheminement de la livraison **LIV-2026-000042** :\n\n");
+    const mermaidCode = [
+      "stateDiagram-v2",
+      "    PLANNED --> PREPARING: Prise en charge",
+      "    PREPARING --> READY: Colis scellé",
+      "    READY --> IN_TRANSIT: Pris en charge transporteur",
+      "    IN_TRANSIT --> DELIVERED: Remis au destinataire",
+      "    note right of IN_TRANSIT: Étape actuelle (En cours de livraison)",
+    ].join("\n");
+    await ctx.sendToken("\n```mermaid\n" + mermaidCode + "\n```\n");
+    await streamWords("\nTransporteur : **Colissimo** (N° de suivi `6A12345678901`). Livraison estimée le 08/09/2026.\n");
+    await ctx.sendSource({
+      title: "API Transporteur Colissimo",
+      url: "https://laposte.fr",
+      type: "api",
+    });
+    return;
+  }
+
+  // 3. Démo Tableau Markdown GFM
+  if (lower.includes("table") || lower.includes("commande")) {
+    await streamWords("Voici la liste de vos dernières commandes enregistrées :\n\n");
+    const tableText = [
+      "| N° Commande | Date | Statut | Articles | Total TTC |",
+      "| :--- | :--- | :--- | :--- | :--- |",
+      "| `CMD-2026-000042` | 04/09/2026 | **Livrée** | 25 cartons taille M | 145,00 € |",
+      "| `CMD-2026-000067` | 06/09/2026 | *En préparation* | 10 rouleaux film | 89,50 € |",
+      "| `CMD-2026-000091` | 07/09/2026 | *Confirmée* | 2 transpalettes | 520,00 € |",
+      "",
+    ].join("\n");
+    await streamWords(tableText);
+    await ctx.sendSource({
+      title: "Extrait Facturation & Commandes",
+      type: "doc",
+    });
+    return;
+  }
+
+  // 4. Démo Puces de sources interactives
+  if (lower.includes("source")) {
+    await streamWords("Cette réponse illustre les différents types de puces de sources gérées par le composant :\n\n");
+    await ctx.sendSource({ title: "Documentation officielle", url: "https://example.com/doc", type: "doc" });
+    await ctx.sendSource({ title: "Base de données SQLite", type: "database" });
+    await ctx.sendSource({ title: "API Externe Transport", url: "https://example.com/api", type: "api" });
+    await ctx.sendSource({ title: "Site web logistique", url: "https://example.com", type: "web" });
+    await ctx.sendSource({ title: "Fichier contrat_client.pdf", type: "file" });
+    return;
+  }
+
+  // 5. Démo complète (tout combiné)
+  if (lower.includes("demo")) {
+    await streamWords("### Démonstration multi-formats EgoBot\n\nVoici un récapitulatif complet :\n\n");
+    
+    // Tableau
+    await streamWords("| Réf | Article | Stock dispo |\n| :--- | :--- | :--- |\n| SKU-01 | Carton M | 350 |\n| SKU-02 | Film étirable | 140 |\n\n");
+    
+    // Graphique
+    const chartData = {
+      type: "bar",
+      title: "Stocks comparés",
+      labels: ["Carton M", "Film étirable", "Palettes"],
+      datasets: [{ label: "Unités", data: [350, 140, 85] }],
+    };
+    await ctx.sendToken("\n```chart\n" + JSON.stringify(chartData, null, 2) + "\n```\n\n");
+    
+    // Diagramme
+    await ctx.sendToken("\n```mermaid\nstateDiagram-v2\n    COMMANDE --> EXPEDITION\n    EXPEDITION --> LIVRAISON\n```\n\n");
+    
+    // Sources
+    await ctx.sendSource({ title: "Manuel Duhamel Logistique", url: "https://example.com/doc", type: "doc" });
+    await ctx.sendSource({ title: "Inventaire WMS", type: "database" });
+    return;
+  }
+
+  // Réponse par défaut
+  const defaultWords = [
+    "Bonjour", " !", " Je", " suis", " le", " worker", " d'inférence", " EgoBot", ".",
+    " Vous", " pouvez", " tester", " les", " différents", " rendus", " visuels", " en",
+    " tapant", " les", " mots-clés", " :",
+    " `chart`", " (graphique),",
+    " `mermaid`", " (diagramme),",
+    " `table`", " (tableau),",
+    " `sources`", " (puces),",
+    " ou", " `demo`", " (vue d'ensemble)."
+  ];
+
+  for (const word of defaultWords) {
+    if (await ctx.checkCancellation()) return;
+    await ctx.sendToken(word);
+    await new Promise((r) => setTimeout(r, 60));
+  }
+
   await ctx.sendSource({
-    title: "Manuel Logistique v2",
-    url: "https://example.com/doc",
+    title: "Guide de démonstration EgoBot",
+    url: "https://example.com/guide",
     type: "doc",
   });
-
-  const secondPart = [
-    " ",
-    "pour",
-    " répondre",
-    " précisément",
-    " à",
-    " votre",
-    " demande",
-    ".",
-  ];
-
-  for (const word of secondPart) {
-    if (await ctx.checkCancellation()) {
-      console.warn(`[Worker TS] Annulation du job ${ctx.jobId} détectée !`);
-      return;
-    }
-    await ctx.sendToken(word);
-    await new Promise((r) => setTimeout(r, 120));
-  }
 });
 
 let logisticsPrisma: LogisticsPrismaClient | undefined;

@@ -4,9 +4,7 @@ import { defineConfig } from "prisma/config";
 export default defineConfig({
   schema: "./prisma/schema.prisma",
   datasource: {
-    url:
-      process.env.DATABASE_URL ??
-      "postgresql://egobot:egobot@localhost:5432/egobot",
+    url: process.env.DATABASE_URL ?? "file:./logistics.db",
   },
   migrations: {
     path: "./prisma/migrations",

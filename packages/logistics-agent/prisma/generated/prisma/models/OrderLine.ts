@@ -253,10 +253,10 @@ export type OrderLineWhereInput = {
   AND?: Prisma.OrderLineWhereInput | Prisma.OrderLineWhereInput[]
   OR?: Prisma.OrderLineWhereInput[]
   NOT?: Prisma.OrderLineWhereInput | Prisma.OrderLineWhereInput[]
-  id?: Prisma.UuidFilter<"OrderLine"> | string
-  orderId?: Prisma.UuidFilter<"OrderLine"> | string
-  priceId?: Prisma.UuidFilter<"OrderLine"> | string
-  productId?: Prisma.UuidFilter<"OrderLine"> | string
+  id?: Prisma.StringFilter<"OrderLine"> | string
+  orderId?: Prisma.StringFilter<"OrderLine"> | string
+  priceId?: Prisma.StringFilter<"OrderLine"> | string
+  productId?: Prisma.StringFilter<"OrderLine"> | string
   lineNumber?: Prisma.IntFilter<"OrderLine"> | number
   skuSnapshot?: Prisma.StringFilter<"OrderLine"> | string
   nameSnapshot?: Prisma.StringFilter<"OrderLine"> | string
@@ -293,8 +293,8 @@ export type OrderLineWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.OrderLineWhereInput | Prisma.OrderLineWhereInput[]
   OR?: Prisma.OrderLineWhereInput[]
   NOT?: Prisma.OrderLineWhereInput | Prisma.OrderLineWhereInput[]
-  orderId?: Prisma.UuidFilter<"OrderLine"> | string
-  productId?: Prisma.UuidFilter<"OrderLine"> | string
+  orderId?: Prisma.StringFilter<"OrderLine"> | string
+  productId?: Prisma.StringFilter<"OrderLine"> | string
   lineNumber?: Prisma.IntFilter<"OrderLine"> | number
   skuSnapshot?: Prisma.StringFilter<"OrderLine"> | string
   nameSnapshot?: Prisma.StringFilter<"OrderLine"> | string
@@ -329,10 +329,10 @@ export type OrderLineScalarWhereWithAggregatesInput = {
   AND?: Prisma.OrderLineScalarWhereWithAggregatesInput | Prisma.OrderLineScalarWhereWithAggregatesInput[]
   OR?: Prisma.OrderLineScalarWhereWithAggregatesInput[]
   NOT?: Prisma.OrderLineScalarWhereWithAggregatesInput | Prisma.OrderLineScalarWhereWithAggregatesInput[]
-  id?: Prisma.UuidWithAggregatesFilter<"OrderLine"> | string
-  orderId?: Prisma.UuidWithAggregatesFilter<"OrderLine"> | string
-  priceId?: Prisma.UuidWithAggregatesFilter<"OrderLine"> | string
-  productId?: Prisma.UuidWithAggregatesFilter<"OrderLine"> | string
+  id?: Prisma.StringWithAggregatesFilter<"OrderLine"> | string
+  orderId?: Prisma.StringWithAggregatesFilter<"OrderLine"> | string
+  priceId?: Prisma.StringWithAggregatesFilter<"OrderLine"> | string
+  productId?: Prisma.StringWithAggregatesFilter<"OrderLine"> | string
   lineNumber?: Prisma.IntWithAggregatesFilter<"OrderLine"> | number
   skuSnapshot?: Prisma.StringWithAggregatesFilter<"OrderLine"> | string
   nameSnapshot?: Prisma.StringWithAggregatesFilter<"OrderLine"> | string
@@ -678,7 +678,6 @@ export type OrderLineCreateOrConnectWithoutOrderInput = {
 
 export type OrderLineCreateManyOrderInputEnvelope = {
   data: Prisma.OrderLineCreateManyOrderInput | Prisma.OrderLineCreateManyOrderInput[]
-  skipDuplicates?: boolean
 }
 
 export type OrderLineUpsertWithWhereUniqueWithoutOrderInput = {
@@ -701,10 +700,10 @@ export type OrderLineScalarWhereInput = {
   AND?: Prisma.OrderLineScalarWhereInput | Prisma.OrderLineScalarWhereInput[]
   OR?: Prisma.OrderLineScalarWhereInput[]
   NOT?: Prisma.OrderLineScalarWhereInput | Prisma.OrderLineScalarWhereInput[]
-  id?: Prisma.UuidFilter<"OrderLine"> | string
-  orderId?: Prisma.UuidFilter<"OrderLine"> | string
-  priceId?: Prisma.UuidFilter<"OrderLine"> | string
-  productId?: Prisma.UuidFilter<"OrderLine"> | string
+  id?: Prisma.StringFilter<"OrderLine"> | string
+  orderId?: Prisma.StringFilter<"OrderLine"> | string
+  priceId?: Prisma.StringFilter<"OrderLine"> | string
+  productId?: Prisma.StringFilter<"OrderLine"> | string
   lineNumber?: Prisma.IntFilter<"OrderLine"> | number
   skuSnapshot?: Prisma.StringFilter<"OrderLine"> | string
   nameSnapshot?: Prisma.StringFilter<"OrderLine"> | string
@@ -882,7 +881,6 @@ export type OrderLineCreateOrConnectWithoutProductInput = {
 
 export type OrderLineCreateManyProductInputEnvelope = {
   data: Prisma.OrderLineCreateManyProductInput | Prisma.OrderLineCreateManyProductInput[]
-  skipDuplicates?: boolean
 }
 
 export type OrderLineUpsertWithWhereUniqueWithoutProductInput = {
@@ -1810,7 +1808,6 @@ export type OrderLineCreateManyArgs<ExtArgs extends runtime.Types.Extensions.Int
    * The data used to create many OrderLines.
    */
   data: Prisma.OrderLineCreateManyInput | Prisma.OrderLineCreateManyInput[]
-  skipDuplicates?: boolean
 }
 
 /**
@@ -1829,7 +1826,6 @@ export type OrderLineCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Exten
    * The data used to create many OrderLines.
    */
   data: Prisma.OrderLineCreateManyInput | Prisma.OrderLineCreateManyInput[]
-  skipDuplicates?: boolean
   /**
    * Choose, which related nodes to fetch as well
    */

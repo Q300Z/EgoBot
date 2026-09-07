@@ -183,4 +183,51 @@ describe("SseService & BufferedSession", () => {
 		expect(writtenChunks.length).toBe(1);
 		expect(writtenChunks[0]).toContain("Realtime token");
 	});
+
+	it("SseService - should close conversation sessions with job.cancelled event", () => {
+		const writtenChunks: string[] = [];
+		const mockRes = {
+			on: vi.fn(),
+			writableEnded: false,
+			write: vi.fn((data: string) => {
+				writtenChunks.push(data);
+				return true;
+			}),
+			end: vi.fn(),
+		} as unknown as Response;
+
+		const session = new BufferedSession(mockRes, "conv:conv-to-delete");
+		SseService.registerConversationSession("conv-to-delete", session);
+
+		SseService.closeConversationSessions("conv-to-delete", "Discussion supprimée");
+
+		expect(writtenChunks.length).toBe(1);
+		expect(writtenChunks[0]).toContain("event: job.cancelled\n");
+		expect(writtenChunks[0]).toContain('"status":"CANCELLED"');
+		expect(writtenChunks[0]).toContain('"error":"Discussion supprimée"');
+		expect(session.isConnected).toBe(false);
+	});
+
+	it("SseService - should close job sessions with job.cancelled event", () => {
+		const writtenChunks: string[] = [];
+		const mockRes = {
+			on: vi.fn(),
+			writableEnded: false,
+			write: vi.fn((data: string) => {
+				writtenChunks.push(data);
+				return true;
+			}),
+			end: vi.fn(),
+		} as unknown as Response;
+
+		const session = new BufferedSession(mockRes, "job-to-cancel");
+		SseService.registerSession("job-to-cancel", session);
+
+		SseService.closeJobSessions("job-to-cancel", "Job annulé par l'utilisateur");
+
+		expect(writtenChunks.length).toBe(1);
+		expect(writtenChunks[0]).toContain("event: job.cancelled\n");
+		expect(writtenChunks[0]).toContain('"status":"CANCELLED"');
+		expect(session.isConnected).toBe(false);
+	});
 });

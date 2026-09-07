@@ -50,6 +50,7 @@ export class JobStreamHandler {
 			entityId: jobId,
 			pollIntervalMs: 500,
 			terminalEvents: ["job.completed", "job.failed", "job.cancelled"],
+			timeoutMs: 5 * 60 * 1000,
 		});
 	}
 
@@ -185,13 +186,35 @@ export class JobStreamHandler {
 
 	// ============================================================================
 	/**
-	 * Supprime la clé de flux Redis SSE associée à un job.
+	 * Supprime la clé de flux Redis SSE associée à un job sur tous les environnements.
 	 */
 	// ============================================================================
 	public static async deleteSseStream(env: "dev" | "prod" | string = getAppEnv(), jobId: string = ""): Promise<void> {
-		const envFlag: "dev" | "prod" = env === "dev" ? "dev" : env === "prod" ? "prod" : getAppEnv();
-		const streamKey = StreamKeys.sse(envFlag, jobId);
-		await redisWriter.del(streamKey);
+		if (!jobId) return;
+		await redisWriter.del(
+			StreamKeys.sse("dev", jobId),
+			StreamKeys.sse("prod", jobId),
+			StreamKeys.jobEnv(jobId),
+		);
+	}
+
+	// ============================================================================
+	/**
+	 * Retire un job différé du Sorted Set Redis lors d'une annulation ou suppression.
+	 */
+	// ============================================================================
+	public static async removeDeferredJob(jobId: string): Promise<void> {
+		try {
+			const rawJobs = await redisReader.zRangeByScore(JobStreamKeys.deferred, 0, "+inf" as any);
+			for (const rawJob of rawJobs) {
+				if (rawJob.includes(jobId)) {
+					await redisWriter.zRem(JobStreamKeys.deferred, rawJob);
+					logger.info(`Job différé ${jobId} retiré du Sorted Set Redis.`);
+				}
+			}
+		} catch (err) {
+			logger.warn(`Erreur lors du retrait du job différé ${jobId} de Redis:`, err);
+		}
 	}
 
 	// ============================================================================
@@ -214,6 +237,14 @@ export class JobStreamHandler {
 				.catch((err) => {
 					logger.error("Erreur lors de la restauration initiale des jobs actifs", err);
 				});
+		}
+
+		if (!this.unsubscribeObserver) {
+			this.unsubscribeObserver = streamObserver.onTimeout((entityId) => {
+				logger.warn(`StreamObserver timeout détecté pour le job ${entityId}`);
+				this.cleanupJob(entityId);
+				eventBus.emit(JobEvents.timeout, { jobId: entityId });
+			});
 		}
 
 		this.pollingTask = createSafeInterval(
@@ -306,16 +337,19 @@ export class JobStreamHandler {
 
 	// ============================================================================
 	/**
-	 * Évince les entrées inactives depuis plus de 2 heures pour éviter les fuites mémoire.
+	 * Évince les entrées inactives depuis plus de 5 minutes pour éviter les fuites mémoire
+	 * et notifie le système d'une expiration du job.
 	 */
 	// ============================================================================
 	private static pruneStaleMemoryEntries(): void {
 		const now = Date.now();
-		const maxAgeMs = 2 * 60 * 60 * 1000;
+		const maxAgeMs = 5 * 60 * 1000; // 5 minutes d'inactivité
 
 		for (const [jobId, timestamp] of this.lastAccessTimestamps.entries()) {
 			if (now - timestamp > maxAgeMs) {
+				logger.warn(`Éviction pour inactivité du job ${jobId} après 5 minutes sans événement.`);
 				this.cleanupJob(jobId);
+				eventBus.emit(JobEvents.timeout, { jobId });
 			}
 		}
 	}

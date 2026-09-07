@@ -240,10 +240,10 @@ export type DeliveryWhereInput = {
   AND?: Prisma.DeliveryWhereInput | Prisma.DeliveryWhereInput[]
   OR?: Prisma.DeliveryWhereInput[]
   NOT?: Prisma.DeliveryWhereInput | Prisma.DeliveryWhereInput[]
-  id?: Prisma.UuidFilter<"Delivery"> | string
+  id?: Prisma.StringFilter<"Delivery"> | string
   deliveryNumber?: Prisma.StringFilter<"Delivery"> | string
-  orderId?: Prisma.UuidFilter<"Delivery"> | string
-  addressId?: Prisma.UuidFilter<"Delivery"> | string
+  orderId?: Prisma.StringFilter<"Delivery"> | string
+  addressId?: Prisma.StringFilter<"Delivery"> | string
   status?: Prisma.EnumDeliveryStatusFilter<"Delivery"> | $Enums.DeliveryStatus
   carrierName?: Prisma.StringNullableFilter<"Delivery"> | string | null
   trackingNumber?: Prisma.StringNullableFilter<"Delivery"> | string | null
@@ -286,7 +286,7 @@ export type DeliveryWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.DeliveryWhereInput | Prisma.DeliveryWhereInput[]
   OR?: Prisma.DeliveryWhereInput[]
   NOT?: Prisma.DeliveryWhereInput | Prisma.DeliveryWhereInput[]
-  orderId?: Prisma.UuidFilter<"Delivery"> | string
+  orderId?: Prisma.StringFilter<"Delivery"> | string
   status?: Prisma.EnumDeliveryStatusFilter<"Delivery"> | $Enums.DeliveryStatus
   carrierName?: Prisma.StringNullableFilter<"Delivery"> | string | null
   trackingNumber?: Prisma.StringNullableFilter<"Delivery"> | string | null
@@ -326,10 +326,10 @@ export type DeliveryScalarWhereWithAggregatesInput = {
   AND?: Prisma.DeliveryScalarWhereWithAggregatesInput | Prisma.DeliveryScalarWhereWithAggregatesInput[]
   OR?: Prisma.DeliveryScalarWhereWithAggregatesInput[]
   NOT?: Prisma.DeliveryScalarWhereWithAggregatesInput | Prisma.DeliveryScalarWhereWithAggregatesInput[]
-  id?: Prisma.UuidWithAggregatesFilter<"Delivery"> | string
+  id?: Prisma.StringWithAggregatesFilter<"Delivery"> | string
   deliveryNumber?: Prisma.StringWithAggregatesFilter<"Delivery"> | string
-  orderId?: Prisma.UuidWithAggregatesFilter<"Delivery"> | string
-  addressId?: Prisma.UuidWithAggregatesFilter<"Delivery"> | string
+  orderId?: Prisma.StringWithAggregatesFilter<"Delivery"> | string
+  addressId?: Prisma.StringWithAggregatesFilter<"Delivery"> | string
   status?: Prisma.EnumDeliveryStatusWithAggregatesFilter<"Delivery"> | $Enums.DeliveryStatus
   carrierName?: Prisma.StringNullableWithAggregatesFilter<"Delivery"> | string | null
   trackingNumber?: Prisma.StringNullableWithAggregatesFilter<"Delivery"> | string | null
@@ -751,7 +751,6 @@ export type DeliveryCreateOrConnectWithoutOrderInput = {
 
 export type DeliveryCreateManyOrderInputEnvelope = {
   data: Prisma.DeliveryCreateManyOrderInput | Prisma.DeliveryCreateManyOrderInput[]
-  skipDuplicates?: boolean
 }
 
 export type DeliveryUpsertWithWhereUniqueWithoutOrderInput = {
@@ -774,10 +773,10 @@ export type DeliveryScalarWhereInput = {
   AND?: Prisma.DeliveryScalarWhereInput | Prisma.DeliveryScalarWhereInput[]
   OR?: Prisma.DeliveryScalarWhereInput[]
   NOT?: Prisma.DeliveryScalarWhereInput | Prisma.DeliveryScalarWhereInput[]
-  id?: Prisma.UuidFilter<"Delivery"> | string
+  id?: Prisma.StringFilter<"Delivery"> | string
   deliveryNumber?: Prisma.StringFilter<"Delivery"> | string
-  orderId?: Prisma.UuidFilter<"Delivery"> | string
-  addressId?: Prisma.UuidFilter<"Delivery"> | string
+  orderId?: Prisma.StringFilter<"Delivery"> | string
+  addressId?: Prisma.StringFilter<"Delivery"> | string
   status?: Prisma.EnumDeliveryStatusFilter<"Delivery"> | $Enums.DeliveryStatus
   carrierName?: Prisma.StringNullableFilter<"Delivery"> | string | null
   trackingNumber?: Prisma.StringNullableFilter<"Delivery"> | string | null
@@ -1759,7 +1758,6 @@ export type DeliveryCreateManyArgs<ExtArgs extends runtime.Types.Extensions.Inte
    * The data used to create many Deliveries.
    */
   data: Prisma.DeliveryCreateManyInput | Prisma.DeliveryCreateManyInput[]
-  skipDuplicates?: boolean
 }
 
 /**
@@ -1778,7 +1776,6 @@ export type DeliveryCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extens
    * The data used to create many Deliveries.
    */
   data: Prisma.DeliveryCreateManyInput | Prisma.DeliveryCreateManyInput[]
-  skipDuplicates?: boolean
   /**
    * Choose, which related nodes to fetch as well
    */

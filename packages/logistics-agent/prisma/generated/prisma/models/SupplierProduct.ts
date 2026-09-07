@@ -261,9 +261,9 @@ export type SupplierProductWhereInput = {
   AND?: Prisma.SupplierProductWhereInput | Prisma.SupplierProductWhereInput[]
   OR?: Prisma.SupplierProductWhereInput[]
   NOT?: Prisma.SupplierProductWhereInput | Prisma.SupplierProductWhereInput[]
-  id?: Prisma.UuidFilter<"SupplierProduct"> | string
-  supplierId?: Prisma.UuidFilter<"SupplierProduct"> | string
-  productId?: Prisma.UuidFilter<"SupplierProduct"> | string
+  id?: Prisma.StringFilter<"SupplierProduct"> | string
+  supplierId?: Prisma.StringFilter<"SupplierProduct"> | string
+  productId?: Prisma.StringFilter<"SupplierProduct"> | string
   supplierSku?: Prisma.StringNullableFilter<"SupplierProduct"> | string | null
   purchasePrice?: Prisma.DecimalFilter<"SupplierProduct"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   currencyCode?: Prisma.StringFilter<"SupplierProduct"> | string
@@ -298,8 +298,8 @@ export type SupplierProductWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.SupplierProductWhereInput | Prisma.SupplierProductWhereInput[]
   OR?: Prisma.SupplierProductWhereInput[]
   NOT?: Prisma.SupplierProductWhereInput | Prisma.SupplierProductWhereInput[]
-  supplierId?: Prisma.UuidFilter<"SupplierProduct"> | string
-  productId?: Prisma.UuidFilter<"SupplierProduct"> | string
+  supplierId?: Prisma.StringFilter<"SupplierProduct"> | string
+  productId?: Prisma.StringFilter<"SupplierProduct"> | string
   supplierSku?: Prisma.StringNullableFilter<"SupplierProduct"> | string | null
   purchasePrice?: Prisma.DecimalFilter<"SupplierProduct"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   currencyCode?: Prisma.StringFilter<"SupplierProduct"> | string
@@ -335,9 +335,9 @@ export type SupplierProductScalarWhereWithAggregatesInput = {
   AND?: Prisma.SupplierProductScalarWhereWithAggregatesInput | Prisma.SupplierProductScalarWhereWithAggregatesInput[]
   OR?: Prisma.SupplierProductScalarWhereWithAggregatesInput[]
   NOT?: Prisma.SupplierProductScalarWhereWithAggregatesInput | Prisma.SupplierProductScalarWhereWithAggregatesInput[]
-  id?: Prisma.UuidWithAggregatesFilter<"SupplierProduct"> | string
-  supplierId?: Prisma.UuidWithAggregatesFilter<"SupplierProduct"> | string
-  productId?: Prisma.UuidWithAggregatesFilter<"SupplierProduct"> | string
+  id?: Prisma.StringWithAggregatesFilter<"SupplierProduct"> | string
+  supplierId?: Prisma.StringWithAggregatesFilter<"SupplierProduct"> | string
+  productId?: Prisma.StringWithAggregatesFilter<"SupplierProduct"> | string
   supplierSku?: Prisma.StringNullableWithAggregatesFilter<"SupplierProduct"> | string | null
   purchasePrice?: Prisma.DecimalWithAggregatesFilter<"SupplierProduct"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   currencyCode?: Prisma.StringWithAggregatesFilter<"SupplierProduct"> | string
@@ -638,7 +638,6 @@ export type SupplierProductCreateOrConnectWithoutSupplierInput = {
 
 export type SupplierProductCreateManySupplierInputEnvelope = {
   data: Prisma.SupplierProductCreateManySupplierInput | Prisma.SupplierProductCreateManySupplierInput[]
-  skipDuplicates?: boolean
 }
 
 export type SupplierProductUpsertWithWhereUniqueWithoutSupplierInput = {
@@ -661,9 +660,9 @@ export type SupplierProductScalarWhereInput = {
   AND?: Prisma.SupplierProductScalarWhereInput | Prisma.SupplierProductScalarWhereInput[]
   OR?: Prisma.SupplierProductScalarWhereInput[]
   NOT?: Prisma.SupplierProductScalarWhereInput | Prisma.SupplierProductScalarWhereInput[]
-  id?: Prisma.UuidFilter<"SupplierProduct"> | string
-  supplierId?: Prisma.UuidFilter<"SupplierProduct"> | string
-  productId?: Prisma.UuidFilter<"SupplierProduct"> | string
+  id?: Prisma.StringFilter<"SupplierProduct"> | string
+  supplierId?: Prisma.StringFilter<"SupplierProduct"> | string
+  productId?: Prisma.StringFilter<"SupplierProduct"> | string
   supplierSku?: Prisma.StringNullableFilter<"SupplierProduct"> | string | null
   purchasePrice?: Prisma.DecimalFilter<"SupplierProduct"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   currencyCode?: Prisma.StringFilter<"SupplierProduct"> | string
@@ -707,7 +706,6 @@ export type SupplierProductCreateOrConnectWithoutProductInput = {
 
 export type SupplierProductCreateManyProductInputEnvelope = {
   data: Prisma.SupplierProductCreateManyProductInput | Prisma.SupplierProductCreateManyProductInput[]
-  skipDuplicates?: boolean
 }
 
 export type SupplierProductUpsertWithWhereUniqueWithoutProductInput = {
@@ -1596,7 +1594,6 @@ export type SupplierProductCreateManyArgs<ExtArgs extends runtime.Types.Extensio
    * The data used to create many SupplierProducts.
    */
   data: Prisma.SupplierProductCreateManyInput | Prisma.SupplierProductCreateManyInput[]
-  skipDuplicates?: boolean
 }
 
 /**
@@ -1615,7 +1612,6 @@ export type SupplierProductCreateManyAndReturnArgs<ExtArgs extends runtime.Types
    * The data used to create many SupplierProducts.
    */
   data: Prisma.SupplierProductCreateManyInput | Prisma.SupplierProductCreateManyInput[]
-  skipDuplicates?: boolean
   /**
    * Choose, which related nodes to fetch as well
    */

@@ -199,11 +199,15 @@ export class EgobotClientSDK {
     };
 
     eventSource.onmessage = handleEvent;
-    eventSource.addEventListener("job.progress", handleEvent);
-    eventSource.addEventListener("job.completed", handleEvent);
-    eventSource.addEventListener("token", handleEvent);
-    eventSource.addEventListener("source", handleEvent);
-    eventSource.addEventListener("status", handleEvent);
+    if (typeof eventSource.addEventListener === "function") {
+      eventSource.addEventListener("job.progress", handleEvent);
+      eventSource.addEventListener("job.completed", handleEvent);
+      eventSource.addEventListener("job.cancelled", handleEvent);
+      eventSource.addEventListener("job.failed", handleEvent);
+      eventSource.addEventListener("token", handleEvent);
+      eventSource.addEventListener("source", handleEvent);
+      eventSource.addEventListener("status", handleEvent);
+    }
 
     eventSource.onerror = (err) => {
       if (callbacks.onError) {
@@ -279,8 +283,12 @@ export class EgobotClientSDK {
             callbacks.onToken(chunk);
           }
         } else if (isStatus) {
+          const status = data.status || payload.status;
           if (callbacks.onStatus) {
-            callbacks.onStatus(data.status || payload.status, payload.error || data.error);
+            callbacks.onStatus(status, payload.error || data.error);
+          }
+          if (status === "COMPLETED" || status === "FAILED" || status === "CANCELLED") {
+            eventSource.close();
           }
         } else if (isStats) {
           if (callbacks.onStatistics) {
@@ -295,11 +303,15 @@ export class EgobotClientSDK {
     };
 
     eventSource.onmessage = handleEvent;
-    eventSource.addEventListener("job.progress", handleEvent);
-    eventSource.addEventListener("job.completed", handleEvent);
-    eventSource.addEventListener("token", handleEvent);
-    eventSource.addEventListener("source", handleEvent);
-    eventSource.addEventListener("status", handleEvent);
+    if (typeof eventSource.addEventListener === "function") {
+      eventSource.addEventListener("job.progress", handleEvent);
+      eventSource.addEventListener("job.completed", handleEvent);
+      eventSource.addEventListener("job.cancelled", handleEvent);
+      eventSource.addEventListener("job.failed", handleEvent);
+      eventSource.addEventListener("token", handleEvent);
+      eventSource.addEventListener("source", handleEvent);
+      eventSource.addEventListener("status", handleEvent);
+    }
 
     eventSource.onerror = (err) => {
       if (callbacks.onError) {

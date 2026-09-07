@@ -1,16 +1,11 @@
-import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaClient } from "../../prisma/generated/prisma/client.js";
 
 export function createPrismaClient(
-  connectionString = process.env.DATABASE_URL,
+  connectionString = process.env.DATABASE_URL || "file:./logistics.db",
 ): PrismaClient {
-  if (!connectionString)
-    throw new Error(
-      "DATABASE_URL est requis pour créer le client Prisma logistique.",
-    );
-
   return new PrismaClient({
-    adapter: new PrismaPg({ connectionString }),
+    adapter: new PrismaBetterSqlite3({ url: connectionString }),
   });
 }
 

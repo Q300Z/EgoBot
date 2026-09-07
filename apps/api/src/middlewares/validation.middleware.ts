@@ -74,10 +74,30 @@ export const validate = (schema: ZodType, safe: boolean = false) => {
 					req.body = data.body;
 				}
 				if ("params" in data && data.params !== undefined) {
-					req.params = data.params as any;
+					try {
+						req.params = data.params as any;
+					} catch {
+						Object.defineProperty(req, "params", {
+							value: data.params,
+							writable: true,
+							enumerable: true,
+							configurable: true,
+						});
+					}
 				}
 				if ("query" in data && data.query !== undefined) {
-					req.query = data.query as any;
+					try {
+						Object.defineProperty(req, "query", {
+							value: data.query,
+							writable: true,
+							enumerable: true,
+							configurable: true,
+						});
+					} catch {
+						if (req.query && typeof req.query === "object") {
+							Object.assign(req.query, data.query);
+						}
+					}
 				}
 			}
 

@@ -30,19 +30,35 @@ export const useChatStore = defineStore("chat", () => {
     }
   }
 
-  async function loadConversation(id: string) {
-    isLoadingConversation.value = true;
+  function stopStreaming() {
+    if (activeStreamCleanup.value) {
+      activeStreamCleanup.value();
+      activeStreamCleanup.value = null;
+    }
+    isStreaming.value = false;
+  }
+
+  async function loadConversation(id: string, options?: { silent?: boolean }) {
+    if (currentConversation.value?.id !== id && isStreaming.value) {
+      stopStreaming();
+    }
+    const silent = options?.silent ?? false;
+    if (!silent) {
+      isLoadingConversation.value = true;
+    }
     try {
       currentConversation.value = await authStore.sdk.getConversation(id);
     } catch (err: any) {
       if (err.response?.status !== 401) {
         notificationStore.showError(err, {
           text: "Réessayer",
-          callback: () => loadConversation(id),
+          callback: () => loadConversation(id, options),
         });
       }
     } finally {
-      isLoadingConversation.value = false;
+      if (!silent) {
+        isLoadingConversation.value = false;
+      }
     }
   }
 
@@ -67,7 +83,7 @@ export const useChatStore = defineStore("chat", () => {
     }
 
     if (!currentConversation.value) {
-      await loadConversation(jobResult.conversation_id);
+      await loadConversation(jobResult.conversation_id, { silent: true });
       await loadConversations();
     } else {
       currentConversation.value.messages.push({ role: "USER", content: prompt });
@@ -83,7 +99,7 @@ export const useChatStore = defineStore("chat", () => {
         console.warn("[ChatStore] Fallback SSE activé -> Passage en Batch HTTP Polling (aucun token reçu après 20s)");
         if (activeStreamCleanup.value) activeStreamCleanup.value();
         isStreaming.value = false;
-        await loadConversation(jobResult.conversation_id);
+        await loadConversation(jobResult.conversation_id, { silent: true });
       }
     }, 20000);
 
@@ -105,18 +121,28 @@ export const useChatStore = defineStore("chat", () => {
         if (status === "COMPLETED" || status === "FAILED" || status === "CANCELLED") {
           if (fallbackTimer) clearTimeout(fallbackTimer);
           isStreaming.value = false;
+          if (activeStreamCleanup.value) {
+            activeStreamCleanup.value();
+            activeStreamCleanup.value = null;
+          }
           if (status === "FAILED") {
             notificationStore.showError(
               new Error("Le modèle d'intelligence artificielle a rencontré une erreur lors de la génération de la réponse.")
             );
           }
-          await loadConversation(jobResult.conversation_id);
+          await loadConversation(jobResult.conversation_id, { silent: true });
           await loadConversations();
         }
       },
       onError: async () => {
         if (fallbackTimer) clearTimeout(fallbackTimer);
+        // Si le streaming était déjà terminé (normalement ou par annulation), la clôture HTTP n'est pas une erreur
+        if (!isStreaming.value) return;
         isStreaming.value = false;
+        if (activeStreamCleanup.value) {
+          activeStreamCleanup.value();
+          activeStreamCleanup.value = null;
+        }
         notificationStore.showWarning(
           "Flux temps réel interrompu",
           "La connexion de streaming a été coupée. Nous basculons sur la récupération des données en arrière-plan."
@@ -137,5 +163,6 @@ export const useChatStore = defineStore("chat", () => {
     loadConversations,
     loadConversation,
     sendMessage,
+    stopStreaming,
   };
 });

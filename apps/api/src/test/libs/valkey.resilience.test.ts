@@ -72,4 +72,50 @@ describe("Valkey GLIDE Resilience & Configuration", () => {
 		expect(config.clientCircuitBreaker).toBeUndefined();
 		expect(config.protocol).toBe(ProtocolVersion.RESP2);
 	});
+
+	it("should correctly parse stream fields in various formats (arrays, {key, value}, maps, buffers)", async () => {
+		const { parseStreamFields, parseStreamEntries } = await import("../../config/valkey");
+
+		// 1. Array of flat pairs: ["event", "job.progress", "data", "test"]
+		expect(parseStreamFields(["event", "job.progress", "data", "test"])).toEqual({
+			event: "job.progress",
+			data: "test",
+		});
+
+		// 2. Array of key-value objects from Valkey GLIDE: [{ key: "event", value: "job.progress" }]
+		expect(
+			parseStreamFields([
+				{ key: "event", value: "job.progress" },
+				{ key: "chunk", value: Buffer.from("hello") },
+			]),
+		).toEqual({
+			event: "job.progress",
+			chunk: "hello",
+		});
+
+		// 3. Map instance
+		const mapFields = new Map<string, any>([
+			["event", "source"],
+			["url", Buffer.from("https://example.com")],
+		]);
+		expect(parseStreamFields(mapFields)).toEqual({
+			event: "source",
+			url: "https://example.com",
+		});
+
+		// 4. Stream entries with various formats
+		const rawEntries = [
+			{ id: "100-0", message: { event: "job.progress" } },
+			{ id: "100-1", fields: [{ field: "event", value: "job.completed" }] },
+			{ key: "100-2", value: [["event", "job.cancelled"]] },
+			["100-3", [["event", "source"]]],
+		];
+
+		const parsed = parseStreamEntries(rawEntries);
+		expect(parsed).toHaveLength(4);
+		expect(parsed[0]).toEqual({ id: "100-0", message: { event: "job.progress" } });
+		expect(parsed[1]).toEqual({ id: "100-1", message: { event: "job.completed" } });
+		expect(parsed[2]).toEqual({ id: "100-2", message: { event: "job.cancelled" } });
+		expect(parsed[3]).toEqual({ id: "100-3", message: { event: "source" } });
+	});
 });

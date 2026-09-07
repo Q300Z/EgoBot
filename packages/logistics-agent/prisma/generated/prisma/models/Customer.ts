@@ -212,13 +212,13 @@ export type CustomerWhereInput = {
   AND?: Prisma.CustomerWhereInput | Prisma.CustomerWhereInput[]
   OR?: Prisma.CustomerWhereInput[]
   NOT?: Prisma.CustomerWhereInput | Prisma.CustomerWhereInput[]
-  id?: Prisma.UuidFilter<"Customer"> | string
+  id?: Prisma.StringFilter<"Customer"> | string
   customerNumber?: Prisma.StringFilter<"Customer"> | string
   firstName?: Prisma.StringFilter<"Customer"> | string
   lastName?: Prisma.StringFilter<"Customer"> | string
   email?: Prisma.StringFilter<"Customer"> | string
   phone?: Prisma.StringNullableFilter<"Customer"> | string | null
-  currentAddressId?: Prisma.UuidNullableFilter<"Customer"> | string | null
+  currentAddressId?: Prisma.StringNullableFilter<"Customer"> | string | null
   isActive?: Prisma.BoolFilter<"Customer"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Customer"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Customer"> | Date | string
@@ -279,13 +279,13 @@ export type CustomerScalarWhereWithAggregatesInput = {
   AND?: Prisma.CustomerScalarWhereWithAggregatesInput | Prisma.CustomerScalarWhereWithAggregatesInput[]
   OR?: Prisma.CustomerScalarWhereWithAggregatesInput[]
   NOT?: Prisma.CustomerScalarWhereWithAggregatesInput | Prisma.CustomerScalarWhereWithAggregatesInput[]
-  id?: Prisma.UuidWithAggregatesFilter<"Customer"> | string
+  id?: Prisma.StringWithAggregatesFilter<"Customer"> | string
   customerNumber?: Prisma.StringWithAggregatesFilter<"Customer"> | string
   firstName?: Prisma.StringWithAggregatesFilter<"Customer"> | string
   lastName?: Prisma.StringWithAggregatesFilter<"Customer"> | string
   email?: Prisma.StringWithAggregatesFilter<"Customer"> | string
   phone?: Prisma.StringNullableWithAggregatesFilter<"Customer"> | string | null
-  currentAddressId?: Prisma.UuidNullableWithAggregatesFilter<"Customer"> | string | null
+  currentAddressId?: Prisma.StringNullableWithAggregatesFilter<"Customer"> | string | null
   isActive?: Prisma.BoolWithAggregatesFilter<"Customer"> | boolean
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Customer"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Customer"> | Date | string
@@ -1427,7 +1427,6 @@ export type CustomerCreateManyArgs<ExtArgs extends runtime.Types.Extensions.Inte
    * The data used to create many Customers.
    */
   data: Prisma.CustomerCreateManyInput | Prisma.CustomerCreateManyInput[]
-  skipDuplicates?: boolean
 }
 
 /**
@@ -1446,7 +1445,6 @@ export type CustomerCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extens
    * The data used to create many Customers.
    */
   data: Prisma.CustomerCreateManyInput | Prisma.CustomerCreateManyInput[]
-  skipDuplicates?: boolean
   /**
    * Choose, which related nodes to fetch as well
    */

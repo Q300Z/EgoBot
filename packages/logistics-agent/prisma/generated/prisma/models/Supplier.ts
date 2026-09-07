@@ -205,12 +205,12 @@ export type SupplierWhereInput = {
   AND?: Prisma.SupplierWhereInput | Prisma.SupplierWhereInput[]
   OR?: Prisma.SupplierWhereInput[]
   NOT?: Prisma.SupplierWhereInput | Prisma.SupplierWhereInput[]
-  id?: Prisma.UuidFilter<"Supplier"> | string
+  id?: Prisma.StringFilter<"Supplier"> | string
   supplierCode?: Prisma.StringFilter<"Supplier"> | string
   name?: Prisma.StringFilter<"Supplier"> | string
   contactEmail?: Prisma.StringNullableFilter<"Supplier"> | string | null
   phone?: Prisma.StringNullableFilter<"Supplier"> | string | null
-  currentAddressId?: Prisma.UuidNullableFilter<"Supplier"> | string | null
+  currentAddressId?: Prisma.StringNullableFilter<"Supplier"> | string | null
   isActive?: Prisma.BoolFilter<"Supplier"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Supplier"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Supplier"> | Date | string
@@ -268,12 +268,12 @@ export type SupplierScalarWhereWithAggregatesInput = {
   AND?: Prisma.SupplierScalarWhereWithAggregatesInput | Prisma.SupplierScalarWhereWithAggregatesInput[]
   OR?: Prisma.SupplierScalarWhereWithAggregatesInput[]
   NOT?: Prisma.SupplierScalarWhereWithAggregatesInput | Prisma.SupplierScalarWhereWithAggregatesInput[]
-  id?: Prisma.UuidWithAggregatesFilter<"Supplier"> | string
+  id?: Prisma.StringWithAggregatesFilter<"Supplier"> | string
   supplierCode?: Prisma.StringWithAggregatesFilter<"Supplier"> | string
   name?: Prisma.StringWithAggregatesFilter<"Supplier"> | string
   contactEmail?: Prisma.StringNullableWithAggregatesFilter<"Supplier"> | string | null
   phone?: Prisma.StringNullableWithAggregatesFilter<"Supplier"> | string | null
-  currentAddressId?: Prisma.UuidNullableWithAggregatesFilter<"Supplier"> | string | null
+  currentAddressId?: Prisma.StringNullableWithAggregatesFilter<"Supplier"> | string | null
   isActive?: Prisma.BoolWithAggregatesFilter<"Supplier"> | boolean
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Supplier"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Supplier"> | Date | string
@@ -1367,7 +1367,6 @@ export type SupplierCreateManyArgs<ExtArgs extends runtime.Types.Extensions.Inte
    * The data used to create many Suppliers.
    */
   data: Prisma.SupplierCreateManyInput | Prisma.SupplierCreateManyInput[]
-  skipDuplicates?: boolean
 }
 
 /**
@@ -1386,7 +1385,6 @@ export type SupplierCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extens
    * The data used to create many Suppliers.
    */
   data: Prisma.SupplierCreateManyInput | Prisma.SupplierCreateManyInput[]
-  skipDuplicates?: boolean
   /**
    * Choose, which related nodes to fetch as well
    */

@@ -214,9 +214,9 @@ export type DeliveryLineWhereInput = {
   AND?: Prisma.DeliveryLineWhereInput | Prisma.DeliveryLineWhereInput[]
   OR?: Prisma.DeliveryLineWhereInput[]
   NOT?: Prisma.DeliveryLineWhereInput | Prisma.DeliveryLineWhereInput[]
-  id?: Prisma.UuidFilter<"DeliveryLine"> | string
-  deliveryId?: Prisma.UuidFilter<"DeliveryLine"> | string
-  orderLineId?: Prisma.UuidFilter<"DeliveryLine"> | string
+  id?: Prisma.StringFilter<"DeliveryLine"> | string
+  deliveryId?: Prisma.StringFilter<"DeliveryLine"> | string
+  orderLineId?: Prisma.StringFilter<"DeliveryLine"> | string
   shippedQuantity?: Prisma.IntFilter<"DeliveryLine"> | number
   createdAt?: Prisma.DateTimeFilter<"DeliveryLine"> | Date | string
   delivery?: Prisma.XOR<Prisma.DeliveryScalarRelationFilter, Prisma.DeliveryWhereInput>
@@ -239,8 +239,8 @@ export type DeliveryLineWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.DeliveryLineWhereInput | Prisma.DeliveryLineWhereInput[]
   OR?: Prisma.DeliveryLineWhereInput[]
   NOT?: Prisma.DeliveryLineWhereInput | Prisma.DeliveryLineWhereInput[]
-  deliveryId?: Prisma.UuidFilter<"DeliveryLine"> | string
-  orderLineId?: Prisma.UuidFilter<"DeliveryLine"> | string
+  deliveryId?: Prisma.StringFilter<"DeliveryLine"> | string
+  orderLineId?: Prisma.StringFilter<"DeliveryLine"> | string
   shippedQuantity?: Prisma.IntFilter<"DeliveryLine"> | number
   createdAt?: Prisma.DateTimeFilter<"DeliveryLine"> | Date | string
   delivery?: Prisma.XOR<Prisma.DeliveryScalarRelationFilter, Prisma.DeliveryWhereInput>
@@ -264,9 +264,9 @@ export type DeliveryLineScalarWhereWithAggregatesInput = {
   AND?: Prisma.DeliveryLineScalarWhereWithAggregatesInput | Prisma.DeliveryLineScalarWhereWithAggregatesInput[]
   OR?: Prisma.DeliveryLineScalarWhereWithAggregatesInput[]
   NOT?: Prisma.DeliveryLineScalarWhereWithAggregatesInput | Prisma.DeliveryLineScalarWhereWithAggregatesInput[]
-  id?: Prisma.UuidWithAggregatesFilter<"DeliveryLine"> | string
-  deliveryId?: Prisma.UuidWithAggregatesFilter<"DeliveryLine"> | string
-  orderLineId?: Prisma.UuidWithAggregatesFilter<"DeliveryLine"> | string
+  id?: Prisma.StringWithAggregatesFilter<"DeliveryLine"> | string
+  deliveryId?: Prisma.StringWithAggregatesFilter<"DeliveryLine"> | string
+  orderLineId?: Prisma.StringWithAggregatesFilter<"DeliveryLine"> | string
   shippedQuantity?: Prisma.IntWithAggregatesFilter<"DeliveryLine"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"DeliveryLine"> | Date | string
 }
@@ -477,7 +477,6 @@ export type DeliveryLineCreateOrConnectWithoutOrderLineInput = {
 
 export type DeliveryLineCreateManyOrderLineInputEnvelope = {
   data: Prisma.DeliveryLineCreateManyOrderLineInput | Prisma.DeliveryLineCreateManyOrderLineInput[]
-  skipDuplicates?: boolean
 }
 
 export type DeliveryLineUpsertWithWhereUniqueWithoutOrderLineInput = {
@@ -500,9 +499,9 @@ export type DeliveryLineScalarWhereInput = {
   AND?: Prisma.DeliveryLineScalarWhereInput | Prisma.DeliveryLineScalarWhereInput[]
   OR?: Prisma.DeliveryLineScalarWhereInput[]
   NOT?: Prisma.DeliveryLineScalarWhereInput | Prisma.DeliveryLineScalarWhereInput[]
-  id?: Prisma.UuidFilter<"DeliveryLine"> | string
-  deliveryId?: Prisma.UuidFilter<"DeliveryLine"> | string
-  orderLineId?: Prisma.UuidFilter<"DeliveryLine"> | string
+  id?: Prisma.StringFilter<"DeliveryLine"> | string
+  deliveryId?: Prisma.StringFilter<"DeliveryLine"> | string
+  orderLineId?: Prisma.StringFilter<"DeliveryLine"> | string
   shippedQuantity?: Prisma.IntFilter<"DeliveryLine"> | number
   createdAt?: Prisma.DateTimeFilter<"DeliveryLine"> | Date | string
 }
@@ -528,7 +527,6 @@ export type DeliveryLineCreateOrConnectWithoutDeliveryInput = {
 
 export type DeliveryLineCreateManyDeliveryInputEnvelope = {
   data: Prisma.DeliveryLineCreateManyDeliveryInput | Prisma.DeliveryLineCreateManyDeliveryInput[]
-  skipDuplicates?: boolean
 }
 
 export type DeliveryLineUpsertWithWhereUniqueWithoutDeliveryInput = {
@@ -1333,7 +1331,6 @@ export type DeliveryLineCreateManyArgs<ExtArgs extends runtime.Types.Extensions.
    * The data used to create many DeliveryLines.
    */
   data: Prisma.DeliveryLineCreateManyInput | Prisma.DeliveryLineCreateManyInput[]
-  skipDuplicates?: boolean
 }
 
 /**
@@ -1352,7 +1349,6 @@ export type DeliveryLineCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Ex
    * The data used to create many DeliveryLines.
    */
   data: Prisma.DeliveryLineCreateManyInput | Prisma.DeliveryLineCreateManyInput[]
-  skipDuplicates?: boolean
   /**
    * Choose, which related nodes to fetch as well
    */

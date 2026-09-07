@@ -9,10 +9,11 @@ import { JobCommands } from "./job.commands";
 import { JobEvents } from "./job.events";
 import { AuthRepository } from "../auth/AuthRepository";
 import { ConversationEvents } from "../conversation/conversation.events";
-import { redisStream } from "../../config/redis";
+import { redisStream, redisWriter } from "../../config/redis";
 import { JobStreamKeys } from "./job.streams";
 import type { JobEventEnvelope } from "./job.schema";
 import { env, getAppEnv } from "../../config/env";
+import { SseService } from "../../core/sse";
 
 const logger = LoggerFactory.getLogger("JobService");
 
@@ -60,13 +61,23 @@ export class JobService {
 		eventBus.on(ConversationEvents.deleted, async ({ conversationId }) => {
 			try {
 				const activeJobs = await prisma.job.findMany({
-					where: { conversation_id: conversationId, status: { in: ["PENDING", "IN_PROGRESS"] } },
+					where: {
+						conversation_id: conversationId,
+						status: { in: [Status.PENDING, Status.IN_PROGRESS, Status.DEFERRED] },
+					},
 					select: { id: true },
 				});
 				for (const job of activeJobs) {
-					await JobStreamHandler.deleteSseStream(getAppEnv(), job.id);
-					await this.cancelJob({ jobId: job.id });
+					await this.cancelJob({
+						jobId: job.id,
+						reason: "Discussion supprimée",
+					});
+					await JobStreamHandler.deleteSseStream("prod", job.id);
+					await JobStreamHandler.deleteSseStream("dev", job.id);
+					JobStreamHandler.cleanupJob(job.id);
 				}
+				// Clôture immédiate de toutes les sessions SSE connectées à cette conversation
+				SseService.closeConversationSessions(conversationId, "Discussion supprimée");
 			} catch (err) {
 				logger.error(`Erreur lors du nettoyage des jobs pour la conversation ${conversationId}`, err);
 			}
@@ -257,7 +268,7 @@ export class JobService {
 	 */
 	// ============================================================================
 	public static async cancelJob(payload: any): Promise<{ jobId: string; status: "CANCELLED" }> {
-		const { jobId, correlationId } = payload || {};
+		const { jobId, correlationId, reason } = payload || {};
 		if (!jobId) return { jobId: "", status: "CANCELLED" };
 
 		logger.info(`Traitement d'annulation pour le job ${jobId}`, { correlationId });
@@ -265,20 +276,68 @@ export class JobService {
 		const job = await JobRepository.findById(jobId);
 		if (!job) return { jobId, status: "CANCELLED" };
 
-		if (job.status !== "PENDING" && job.status !== "IN_PROGRESS") {
+		if (job.status !== Status.PENDING && job.status !== Status.IN_PROGRESS && job.status !== Status.DEFERRED) {
 			return { jobId, status: "CANCELLED" };
 		}
 
+		terminalJobs.add(jobId);
+		startedJobs.delete(jobId);
+
 		await prisma.$transaction(async (tx) => {
-			await JobRepository.update(job.id, { status: "CANCELLED", ended_at: new Date() }, tx);
+			await JobRepository.update(job.id, { status: Status.CANCELLED, ended_at: new Date() }, tx);
+			const assistantMsg = await tx.message.findUnique({ where: { id: job.assistant_message_id } });
+			const existingContent = assistantMsg?.content || "";
+			const newContent = existingContent.trim().length > 0
+				? `${existingContent}\n[Génération annulée]`
+				: "<cancelled>";
 			await tx.message.update({
 				where: { id: job.assistant_message_id },
-				data: { content: "<cancelled>" },
+				data: { content: newContent },
 			});
 		});
 
+		// 1. Notifier les workers via la clé Redis jobs:cancel:<jobId>
 		await JobStreamHandler.requestCancellation(job.id);
-		logger.info(`Job ${jobId} marqué comme annulé.`, { correlationId });
+
+		// 2. Si le job était différé, le retirer du sorted set Redis
+		if (job.status === Status.DEFERRED) {
+			await JobStreamHandler.removeDeferredJob(job.id);
+		}
+
+		// 3. Diffuser l'événement job.cancelled
+		const cancelEnvelope: JobEventEnvelope = {
+			event: "job.cancelled",
+			data: {
+				kind: "state",
+				status: "CANCELLED",
+				job_id: job.id,
+				conversation_id: job.conversation_id,
+				error: reason || "Job annulé par l'utilisateur.",
+			},
+		};
+
+		const streamEnv = JobStreamHandler.jobEnvsMap.get(job.id) || getAppEnv();
+		try {
+			await JobStreamHandler.publishToSseStream(streamEnv, job.id, cancelEnvelope);
+		} catch (streamErr) {
+			logger.warn(`Impossible d'écrire l'annulation dans le flux SSE pour le job ${job.id}`, streamErr);
+		}
+
+		// Diffusion sur l'EventBus interne vers SseService
+		eventBus.emit(JobEvents.tokenEmitted, {
+			jobId: job.id,
+			eventId: "cancelled",
+			env: streamEnv,
+			envelope: cancelEnvelope,
+		});
+
+		// Fermeture propre des sessions SSE
+		SseService.closeJobSessions(job.id, reason || "Job annulé");
+
+		// Nettoyage de la mémoire et désinscription de StreamObserver
+		JobStreamHandler.cleanupJob(job.id);
+
+		logger.info(`Job ${jobId} marqué comme annulé et nettoyé.`, { correlationId });
 
 		return { jobId, status: "CANCELLED" };
 	}
@@ -554,7 +613,10 @@ export class JobService {
 			logger.warn(`Expiration (timeout) détectée pour le job ${jobId}`);
 
 			const job = await JobRepository.findById(jobId);
-			if (job && (job.status === "PENDING" || job.status === "IN_PROGRESS")) {
+			if (job && (job.status === Status.PENDING || job.status === Status.IN_PROGRESS)) {
+				terminalJobs.add(jobId);
+				startedJobs.delete(jobId);
+
 				await prisma.$transaction(async (tx) => {
 					await JobRepository.update(
 						jobId,
@@ -567,25 +629,31 @@ export class JobService {
 					);
 
 					const assistantMsg = await tx.message.findUnique({ where: { id: job.assistant_message_id } });
+					const existingContent = assistantMsg?.content || "";
 					await tx.message.update({
 						where: { id: job.assistant_message_id },
-						data: { content: "<error> " + (assistantMsg?.content || "") },
+						data: { content: existingContent ? `${existingContent}\n<error>` : "<error>" },
 					});
 				});
+
+				const failEnvelope: JobEventEnvelope = {
+					event: "job.failed",
+					data: {
+						kind: "state",
+						status: "FAILED",
+						job_id: job.id,
+						conversation_id: job.conversation_id,
+						error: "Délai d'attente dépassé (inactivité du worker).",
+					},
+				};
 
 				eventBus.emit(JobEvents.tokenEmitted, {
 					jobId: job.id,
 					eventId: "timeout",
-					envelope: {
-						event: "job.failed",
-						data: {
-							kind: "state",
-							status: "FAILED",
-							job_id: job.id,
-							error: "Délai d'attente dépassé (inactivité du worker).",
-						},
-					},
+					envelope: failEnvelope,
 				});
+
+				SseService.closeJobSessions(job.id, "Délai d'attente dépassé");
 			}
 
 			startedJobs.delete(jobId);
@@ -611,6 +679,18 @@ export class JobService {
 				try {
 					const payload = JSON.parse(rawJob);
 					const { jobId, model, envelope } = payload;
+
+					// Vérification : si le job a été explicitement annulé ou passé en échec, ignorer
+					let existingJob: any = null;
+					try {
+						existingJob = await JobRepository.findById(jobId);
+					} catch {}
+
+					if (existingJob && (existingJob.status === Status.CANCELLED || existingJob.status === Status.FAILED)) {
+						logger.info(`Job différé ${jobId} ignoré car son statut est [${existingJob.status}].`);
+						await redisWriter.zRem(JobStreamKeys.deferred, rawJob);
+						continue;
+					}
 
 					const updatedEnvelope = {
 						...envelope,

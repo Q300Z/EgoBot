@@ -210,6 +210,41 @@ export class SseService {
 
 	// ============================================================================
 	/**
+	 * Ferme proprement toutes les sessions SSE rattachées à une conversation.
+	 */
+	// ============================================================================
+	public static closeConversationSessions(conversationId: string, reason = "Conversation supprimée"): void {
+		const key = `conv:${conversationId}`;
+		const sessions = activeSessions.get(key);
+		if (sessions && sessions.size > 0) {
+			logger.info(`Fermeture de ${sessions.size} session(s) SSE pour la conversation ${conversationId}`);
+			for (const session of Array.from(sessions)) {
+				session.push({ kind: "state", status: "CANCELLED", conversation_id: conversationId, error: reason }, "job.cancelled");
+				session.destroy();
+			}
+			activeSessions.delete(key);
+		}
+	}
+
+	// ============================================================================
+	/**
+	 * Ferme proprement toutes les sessions SSE rattachées à un job.
+	 */
+	// ============================================================================
+	public static closeJobSessions(jobId: string, reason = "Job annulé"): void {
+		const sessions = activeSessions.get(jobId);
+		if (sessions && sessions.size > 0) {
+			logger.info(`Fermeture de ${sessions.size} session(s) SSE pour le job ${jobId}`);
+			for (const session of Array.from(sessions)) {
+				session.push({ kind: "state", status: "CANCELLED", job_id: jobId, error: reason }, "job.cancelled");
+				session.destroy();
+			}
+			activeSessions.delete(jobId);
+		}
+	}
+
+	// ============================================================================
+	/**
 	 * Initialise une session SSE dédiée au streaming des tokens d'un job.
 	 */
 	// ============================================================================
@@ -299,6 +334,15 @@ export class SseService {
 				status: "IN_PROGRESS",
 				chunk: (envelope.data as any).chunk,
 				source: (envelope.data as any).source,
+			};
+		}
+		if (envelope.event === "job.cancelled") {
+			return {
+				kind: "state",
+				status: "CANCELLED",
+				job_id: (envelope.data as any).job_id,
+				conversation_id: (envelope.data as any).conversation_id,
+				error: (envelope.data as any).error ?? "Job annulé",
 			};
 		}
 		return envelope.data;

@@ -275,7 +275,6 @@ describe("OrderService", () => {
           status: "CONFIRMED",
           orderNumber: {
             contains: "0042",
-            mode: "insensitive",
           },
         },
         take: 2,

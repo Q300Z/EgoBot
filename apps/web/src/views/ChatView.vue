@@ -122,7 +122,7 @@
           <div v-else key="messages-list">
             <ChatMessage
               v-for="(msg, idx) in chatStore.currentConversation?.messages || []"
-              :key="idx"
+              :key="msg.id || idx"
               :message="msg"
             />
           </div>
@@ -177,7 +177,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, nextTick } from "vue";
+import { ref, watch, onMounted, onUnmounted, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useChatStore } from "../stores/chat";
 import { useAuthStore } from "../stores/auth";
@@ -195,6 +195,9 @@ const selectedModel = ref<"CHATBOT" | "LOGISTICS">("CHATBOT");
 const chatBoxRef = ref<HTMLElement | null>(null);
 
 async function selectConversation(id: string) {
+  if (chatStore.currentConversation?.id !== id) {
+    chatStore.stopStreaming();
+  }
   if (router && route.path !== `/chat/${id}`) {
     router.push(`/chat/${id}`);
   }
@@ -203,6 +206,7 @@ async function selectConversation(id: string) {
 }
 
 function handleNewConversation() {
+  chatStore.stopStreaming();
   chatStore.currentConversation = null;
   if (router && route.path !== "/chat") {
     router.push("/chat");
@@ -215,6 +219,9 @@ async function handleSend() {
   promptInput.value = "";
   try {
     await chatStore.sendMessage(text, chatStore.currentConversation?.model || selectedModel.value);
+    if (router && chatStore.currentConversation?.id && route.path !== `/chat/${chatStore.currentConversation.id}`) {
+      router.replace(`/chat/${chatStore.currentConversation.id}`);
+    }
     await scrollToBottom();
   } catch (err: any) {
     if (err.response?.status === 401) {
@@ -228,11 +235,12 @@ async function handleSend() {
 
 async function handleDeleteConversation(id: string) {
   try {
-    await authStore.sdk.deleteConversation(id);
-    await chatStore.loadConversations();
     if (chatStore.currentConversation?.id === id) {
+      chatStore.stopStreaming();
       chatStore.currentConversation = null;
     }
+    await authStore.sdk.deleteConversation(id);
+    await chatStore.loadConversations();
   } catch (err: any) {
     if (err.response?.status === 401) {
       authStore.logout();
@@ -254,9 +262,11 @@ watch(
   () => route?.params?.id,
   async (newId) => {
     if (newId && typeof newId === "string" && chatStore.currentConversation?.id !== newId) {
+      chatStore.stopStreaming();
       await chatStore.loadConversation(newId);
       await scrollToBottom();
     } else if (!newId) {
+      chatStore.stopStreaming();
       chatStore.currentConversation = null;
     }
   },
@@ -269,6 +279,10 @@ onMounted(async () => {
       await chatStore.loadConversations();
     } catch {}
   }
+});
+
+onUnmounted(() => {
+  chatStore.stopStreaming();
 });
 </script>
 

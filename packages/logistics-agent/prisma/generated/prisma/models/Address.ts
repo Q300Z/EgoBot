@@ -230,7 +230,7 @@ export type AddressWhereInput = {
   AND?: Prisma.AddressWhereInput | Prisma.AddressWhereInput[]
   OR?: Prisma.AddressWhereInput[]
   NOT?: Prisma.AddressWhereInput | Prisma.AddressWhereInput[]
-  id?: Prisma.UuidFilter<"Address"> | string
+  id?: Prisma.StringFilter<"Address"> | string
   status?: Prisma.EnumAddressStatusFilter<"Address"> | $Enums.AddressStatus
   label?: Prisma.StringNullableFilter<"Address"> | string | null
   line1?: Prisma.StringFilter<"Address"> | string
@@ -314,7 +314,7 @@ export type AddressScalarWhereWithAggregatesInput = {
   AND?: Prisma.AddressScalarWhereWithAggregatesInput | Prisma.AddressScalarWhereWithAggregatesInput[]
   OR?: Prisma.AddressScalarWhereWithAggregatesInput[]
   NOT?: Prisma.AddressScalarWhereWithAggregatesInput | Prisma.AddressScalarWhereWithAggregatesInput[]
-  id?: Prisma.UuidWithAggregatesFilter<"Address"> | string
+  id?: Prisma.StringWithAggregatesFilter<"Address"> | string
   status?: Prisma.EnumAddressStatusWithAggregatesFilter<"Address"> | $Enums.AddressStatus
   label?: Prisma.StringNullableWithAggregatesFilter<"Address"> | string | null
   line1?: Prisma.StringWithAggregatesFilter<"Address"> | string
@@ -1833,7 +1833,6 @@ export type AddressCreateManyArgs<ExtArgs extends runtime.Types.Extensions.Inter
    * The data used to create many Addresses.
    */
   data: Prisma.AddressCreateManyInput | Prisma.AddressCreateManyInput[]
-  skipDuplicates?: boolean
 }
 
 /**
@@ -1852,7 +1851,6 @@ export type AddressCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensi
    * The data used to create many Addresses.
    */
   data: Prisma.AddressCreateManyInput | Prisma.AddressCreateManyInput[]
-  skipDuplicates?: boolean
 }
 
 /**

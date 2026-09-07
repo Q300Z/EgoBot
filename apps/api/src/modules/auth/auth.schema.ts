@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 // --- Enums & Schémas de base ---
-export const ModelEnum = z.enum(["CHATBOT", "STATISTIQUE", "OBJ_TRV_PERDU"], {
+export const ModelEnum = z.enum(["CHATBOT", "LOGISTICS"], {
 	message: "Le modèle Egobot est invalide",
 });
 

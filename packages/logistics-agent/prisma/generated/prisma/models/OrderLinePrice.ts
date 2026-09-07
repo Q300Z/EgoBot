@@ -262,7 +262,7 @@ export type OrderLinePriceWhereInput = {
   AND?: Prisma.OrderLinePriceWhereInput | Prisma.OrderLinePriceWhereInput[]
   OR?: Prisma.OrderLinePriceWhereInput[]
   NOT?: Prisma.OrderLinePriceWhereInput | Prisma.OrderLinePriceWhereInput[]
-  id?: Prisma.UuidFilter<"OrderLinePrice"> | string
+  id?: Prisma.StringFilter<"OrderLinePrice"> | string
   currencyCode?: Prisma.StringFilter<"OrderLinePrice"> | string
   unitPriceExcludingTax?: Prisma.DecimalFilter<"OrderLinePrice"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   discountAmount?: Prisma.DecimalFilter<"OrderLinePrice"> | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -324,7 +324,7 @@ export type OrderLinePriceScalarWhereWithAggregatesInput = {
   AND?: Prisma.OrderLinePriceScalarWhereWithAggregatesInput | Prisma.OrderLinePriceScalarWhereWithAggregatesInput[]
   OR?: Prisma.OrderLinePriceScalarWhereWithAggregatesInput[]
   NOT?: Prisma.OrderLinePriceScalarWhereWithAggregatesInput | Prisma.OrderLinePriceScalarWhereWithAggregatesInput[]
-  id?: Prisma.UuidWithAggregatesFilter<"OrderLinePrice"> | string
+  id?: Prisma.StringWithAggregatesFilter<"OrderLinePrice"> | string
   currencyCode?: Prisma.StringWithAggregatesFilter<"OrderLinePrice"> | string
   unitPriceExcludingTax?: Prisma.DecimalWithAggregatesFilter<"OrderLinePrice"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   discountAmount?: Prisma.DecimalWithAggregatesFilter<"OrderLinePrice"> | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -1303,7 +1303,6 @@ export type OrderLinePriceCreateManyArgs<ExtArgs extends runtime.Types.Extension
    * The data used to create many OrderLinePrices.
    */
   data: Prisma.OrderLinePriceCreateManyInput | Prisma.OrderLinePriceCreateManyInput[]
-  skipDuplicates?: boolean
 }
 
 /**
@@ -1322,7 +1321,6 @@ export type OrderLinePriceCreateManyAndReturnArgs<ExtArgs extends runtime.Types.
    * The data used to create many OrderLinePrices.
    */
   data: Prisma.OrderLinePriceCreateManyInput | Prisma.OrderLinePriceCreateManyInput[]
-  skipDuplicates?: boolean
 }
 
 /**

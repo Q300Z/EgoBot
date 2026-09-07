@@ -174,6 +174,19 @@ export function parseStreamFields(fields: any): Record<string, string> {
 					message[String(pair[0])] = String(pair[1]);
 				}
 			}
+		} else if (
+			fields.length > 0 &&
+			typeof fields[0] === "object" &&
+			fields[0] !== null &&
+			("key" in fields[0] || "field" in fields[0])
+		) {
+			for (const item of fields) {
+				const k = item.key ?? item.field;
+				const v = item.value;
+				if (k !== undefined && v !== undefined) {
+					message[String(k)] = typeof v === "string" ? v : Buffer.isBuffer(v) ? v.toString("utf8") : String(v);
+				}
+			}
 		} else {
 			for (let i = 0; i < fields.length; i += 2) {
 				message[String(fields[i])] = String(fields[i + 1]);
@@ -181,11 +194,11 @@ export function parseStreamFields(fields: any): Record<string, string> {
 		}
 	} else if (fields instanceof Map) {
 		for (const [k, v] of fields.entries()) {
-			message[String(k)] = String(v);
+			message[String(k)] = typeof v === "string" ? v : Buffer.isBuffer(v) ? v.toString("utf8") : String(v);
 		}
 	} else if (typeof fields === "object") {
 		for (const [k, v] of Object.entries(fields)) {
-			message[k] = String(v);
+			message[k] = typeof v === "string" ? v : Buffer.isBuffer(v) ? v.toString("utf8") : String(v);
 		}
 	}
 	return message;
@@ -216,8 +229,18 @@ export function parseStreamEntries(raw: any): Array<{ id: string; message: Recor
 	const results: Array<{ id: string; message: Record<string, string> }> = [];
 	for (const item of raw) {
 		if (!item) continue;
-		if (item.id && item.message) {
-			results.push(item);
+		if (item.id && (item.message || item.fields)) {
+			results.push({
+				id: String(item.id),
+				message: parseStreamFields(item.message || item.fields),
+			});
+			continue;
+		}
+		if (item.key !== undefined && item.value !== undefined) {
+			results.push({
+				id: String(item.key),
+				message: parseStreamFields(item.value),
+			});
 			continue;
 		}
 		if (Array.isArray(item) && item.length >= 2) {
@@ -508,6 +531,67 @@ export class ValkeyClientAdapter extends EventEmitter {
 		return this.xRange(key, start, end, options);
 	}
 
+	public async xRevRange(
+		key: string,
+		end: string,
+		start: string,
+		options?: { COUNT?: number },
+	): Promise<Array<{ id: string; message: Record<string, string> }>> {
+		const client = await this.getRawClient();
+		const args = ["XREVRANGE", key, end, start];
+		if (options?.COUNT !== undefined) {
+			args.push("COUNT", String(options.COUNT));
+		}
+		const res = await client.customCommand(args);
+		return parseStreamEntries(res);
+	}
+
+	public async xrevrange(
+		key: string,
+		end: string,
+		start: string,
+		options?: { COUNT?: number },
+	): Promise<Array<{ id: string; message: Record<string, string> }>> {
+		return this.xRevRange(key, end, start, options);
+	}
+
+	public async xAutoClaim(
+		key: string,
+		group: string,
+		consumer: string,
+		minIdleTime: number,
+		start: string,
+		options?: { COUNT?: number; JUSTID?: boolean },
+	): Promise<{ nextStartId: string; messages: Array<{ id: string; message: Record<string, string> }>; deletedIds?: string[] }> {
+		const client = await this.getRawClient();
+		const args = ["XAUTOCLAIM", key, group, consumer, String(minIdleTime), start];
+		if (options?.COUNT !== undefined) {
+			args.push("COUNT", String(options.COUNT));
+		}
+		if (options?.JUSTID) {
+			args.push("JUSTID");
+		}
+		const res = await client.customCommand(args);
+		if (Array.isArray(res) && res.length >= 2) {
+			const nextStartId = String(res[0]);
+			const messages = parseStreamEntries(res[1]);
+			const deletedIds = Array.isArray(res[2]) ? res[2].map(String) : [];
+			return { nextStartId, messages, deletedIds };
+		}
+		return { nextStartId: "0-0", messages: [] };
+	}
+
+	public async xautoclaim(
+		key: string,
+		group: string,
+		consumer: string,
+		minIdleTime: number,
+		start: string,
+		options?: { COUNT?: number; JUSTID?: boolean },
+	) {
+		return this.xAutoClaim(key, group, consumer, minIdleTime, start, options);
+	}
+
 	public async xRead(
 		streams: Array<{ key: string; id: string }>,
 		options?: { COUNT?: number; BLOCK?: number },
@@ -541,6 +625,12 @@ export class ValkeyClientAdapter extends EventEmitter {
 					return {
 						name: String(streamItem[0]),
 						messages: parseStreamEntries(streamItem[1]),
+					};
+				}
+				if (streamItem?.key !== undefined && streamItem?.value !== undefined) {
+					return {
+						name: String(streamItem.key),
+						messages: parseStreamEntries(streamItem.value),
 					};
 				}
 				if (streamItem?.name && streamItem?.messages) {
@@ -605,8 +695,18 @@ export class ValkeyClientAdapter extends EventEmitter {
 	public async zRangeByScore(key: string, min: number | string, max: number | string): Promise<string[]> {
 		const client = await this.getRawClient();
 		const res = await client.customCommand(["ZRANGEBYSCORE", key, String(min), String(max)]);
-		if (!res || !Array.isArray(res)) return [];
-		return res.map((item) => (typeof item === "string" ? item : String(item)));
+		if (!res) return [];
+		const rawArr = Array.isArray(res) ? res : res instanceof Set ? Array.from(res) : [];
+		return rawArr.map((item: any) => {
+			if (typeof item === "string") return item;
+			if (Buffer.isBuffer(item)) return item.toString("utf8");
+			if (item && typeof item === "object") {
+				if (item.value !== undefined) return typeof item.value === "string" ? item.value : String(item.value);
+				if (item.member !== undefined) return typeof item.member === "string" ? item.member : String(item.member);
+				if (item.key !== undefined) return typeof item.key === "string" ? item.key : String(item.key);
+			}
+			return String(item);
+		});
 	}
 
 	public async zrangebyscore(key: string, min: number | string, max: number | string): Promise<string[]> {

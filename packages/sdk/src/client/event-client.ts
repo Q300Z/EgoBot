@@ -32,25 +32,33 @@ export function createEventStream(options: EventStreamOptions) {
       options.onOpen?.();
     };
 
-    eventSource.onmessage = (event) => {
+    const handleEvent = (event: MessageEvent) => {
       if (event.lastEventId) {
         currentLastEventId = event.lastEventId;
       }
       try {
         const payload = JSON.parse(event.data);
-        if (payload.kind === "token") {
+        if (payload.kind === "token" || event.type === "job.progress") {
           options.onProgress?.(payload, currentLastEventId || undefined);
-        } else if (payload.kind === "stats" && payload.status === "COMPLETED") {
+        } else if ((payload.kind === "stats" && payload.status === "COMPLETED") || event.type === "job.completed") {
           options.onCompleted?.(payload, currentLastEventId || undefined);
-        } else if (payload.status === "FAILED") {
+        } else if (payload.status === "FAILED" || event.type === "job.failed") {
           options.onFailedJob?.(payload, currentLastEventId || undefined);
-        } else if (payload.status === "CANCELLED") {
+        } else if (payload.status === "CANCELLED" || event.type === "job.cancelled") {
           options.onCancelled?.(payload, currentLastEventId || undefined);
         }
       } catch (err) {
         console.error("Failed to parse SSE payload", err);
       }
     };
+
+    eventSource.onmessage = handleEvent;
+    if (typeof eventSource.addEventListener === "function") {
+      eventSource.addEventListener("job.progress", handleEvent);
+      eventSource.addEventListener("job.completed", handleEvent);
+      eventSource.addEventListener("job.failed", handleEvent);
+      eventSource.addEventListener("job.cancelled", handleEvent);
+    }
 
     eventSource.onerror = (err) => {
       options.onError?.("SSE Connection error");

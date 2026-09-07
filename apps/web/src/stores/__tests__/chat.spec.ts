@@ -222,4 +222,64 @@ describe("Chat Store", () => {
     const lastMsg = chatStore.currentConversation.messages[1];
     expect(lastMsg.content).toBe(`Bonjour ! ${marker} pour vous servir.`);
   });
+
+  it("should stop streaming and clean up when stopStreaming is called", async () => {
+    const authStore = useAuthStore();
+    const chatStore = useChatStore();
+
+    const cleanupMock = vi.fn();
+    vi.spyOn(authStore.sdk, "createMessage").mockResolvedValue({ job_id: "j-stop", conversation_id: "c-stop" } as any);
+    vi.spyOn(authStore.sdk, "getConversation").mockResolvedValue({ id: "c-stop", messages: [] } as any);
+    vi.spyOn(authStore.sdk, "connectJobStream").mockReturnValue(cleanupMock as any);
+
+    await chatStore.sendMessage("Message to stop");
+    expect(chatStore.isStreaming).toBe(true);
+
+    chatStore.stopStreaming();
+
+    expect(cleanupMock).toHaveBeenCalled();
+    expect(chatStore.isStreaming).toBe(false);
+  });
+
+  it("should stop active stream when switching to a different conversation", async () => {
+    const authStore = useAuthStore();
+    const chatStore = useChatStore();
+
+    const cleanupMock = vi.fn();
+    vi.spyOn(authStore.sdk, "createMessage").mockResolvedValue({ job_id: "j-switch", conversation_id: "c-1" } as any);
+    vi.spyOn(authStore.sdk, "getConversation")
+      .mockResolvedValueOnce({ id: "c-1", messages: [] } as any)
+      .mockResolvedValueOnce({ id: "c-2", messages: [] } as any);
+    vi.spyOn(authStore.sdk, "connectJobStream").mockReturnValue(cleanupMock as any);
+
+    await chatStore.sendMessage("Message in c-1");
+    expect(chatStore.isStreaming).toBe(true);
+
+    await chatStore.loadConversation("c-2");
+
+    expect(cleanupMock).toHaveBeenCalled();
+    expect(chatStore.isStreaming).toBe(false);
+  });
+
+  it("should handle CANCELLED status by stopping stream and reloading conversation", async () => {
+    const authStore = useAuthStore();
+    const chatStore = useChatStore();
+
+    let streamCallbacks: any = null;
+    vi.spyOn(authStore.sdk, "createMessage").mockResolvedValue({ job_id: "j-cancel", conversation_id: "c-cancel" } as any);
+    vi.spyOn(authStore.sdk, "getConversation").mockResolvedValue({ id: "c-cancel", messages: [] } as any);
+    vi.spyOn(authStore.sdk, "getConversations").mockResolvedValue([] as any);
+    vi.spyOn(authStore.sdk, "connectJobStream").mockImplementation((_jobId: string, callbacks: any) => {
+      streamCallbacks = callbacks;
+      return vi.fn();
+    });
+
+    await chatStore.sendMessage("Will be cancelled");
+    expect(chatStore.isStreaming).toBe(true);
+
+    await streamCallbacks.onStatus("CANCELLED");
+
+    expect(chatStore.isStreaming).toBe(false);
+    expect(authStore.sdk.getConversation).toHaveBeenCalledWith("c-cancel");
+  });
 });

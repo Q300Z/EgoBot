@@ -244,8 +244,8 @@ export type StockItemWhereInput = {
   AND?: Prisma.StockItemWhereInput | Prisma.StockItemWhereInput[]
   OR?: Prisma.StockItemWhereInput[]
   NOT?: Prisma.StockItemWhereInput | Prisma.StockItemWhereInput[]
-  id?: Prisma.UuidFilter<"StockItem"> | string
-  productId?: Prisma.UuidFilter<"StockItem"> | string
+  id?: Prisma.StringFilter<"StockItem"> | string
+  productId?: Prisma.StringFilter<"StockItem"> | string
   locationCode?: Prisma.StringFilter<"StockItem"> | string
   onHandQuantity?: Prisma.IntFilter<"StockItem"> | number
   reservedQuantity?: Prisma.IntFilter<"StockItem"> | number
@@ -273,7 +273,7 @@ export type StockItemWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.StockItemWhereInput | Prisma.StockItemWhereInput[]
   OR?: Prisma.StockItemWhereInput[]
   NOT?: Prisma.StockItemWhereInput | Prisma.StockItemWhereInput[]
-  productId?: Prisma.UuidFilter<"StockItem"> | string
+  productId?: Prisma.StringFilter<"StockItem"> | string
   locationCode?: Prisma.StringFilter<"StockItem"> | string
   onHandQuantity?: Prisma.IntFilter<"StockItem"> | number
   reservedQuantity?: Prisma.IntFilter<"StockItem"> | number
@@ -303,8 +303,8 @@ export type StockItemScalarWhereWithAggregatesInput = {
   AND?: Prisma.StockItemScalarWhereWithAggregatesInput | Prisma.StockItemScalarWhereWithAggregatesInput[]
   OR?: Prisma.StockItemScalarWhereWithAggregatesInput[]
   NOT?: Prisma.StockItemScalarWhereWithAggregatesInput | Prisma.StockItemScalarWhereWithAggregatesInput[]
-  id?: Prisma.UuidWithAggregatesFilter<"StockItem"> | string
-  productId?: Prisma.UuidWithAggregatesFilter<"StockItem"> | string
+  id?: Prisma.StringWithAggregatesFilter<"StockItem"> | string
+  productId?: Prisma.StringWithAggregatesFilter<"StockItem"> | string
   locationCode?: Prisma.StringWithAggregatesFilter<"StockItem"> | string
   onHandQuantity?: Prisma.IntWithAggregatesFilter<"StockItem"> | number
   reservedQuantity?: Prisma.IntWithAggregatesFilter<"StockItem"> | number
@@ -520,7 +520,6 @@ export type StockItemCreateOrConnectWithoutProductInput = {
 
 export type StockItemCreateManyProductInputEnvelope = {
   data: Prisma.StockItemCreateManyProductInput | Prisma.StockItemCreateManyProductInput[]
-  skipDuplicates?: boolean
 }
 
 export type StockItemUpsertWithWhereUniqueWithoutProductInput = {
@@ -543,8 +542,8 @@ export type StockItemScalarWhereInput = {
   AND?: Prisma.StockItemScalarWhereInput | Prisma.StockItemScalarWhereInput[]
   OR?: Prisma.StockItemScalarWhereInput[]
   NOT?: Prisma.StockItemScalarWhereInput | Prisma.StockItemScalarWhereInput[]
-  id?: Prisma.UuidFilter<"StockItem"> | string
-  productId?: Prisma.UuidFilter<"StockItem"> | string
+  id?: Prisma.StringFilter<"StockItem"> | string
+  productId?: Prisma.StringFilter<"StockItem"> | string
   locationCode?: Prisma.StringFilter<"StockItem"> | string
   onHandQuantity?: Prisma.IntFilter<"StockItem"> | number
   reservedQuantity?: Prisma.IntFilter<"StockItem"> | number
@@ -1333,7 +1332,6 @@ export type StockItemCreateManyArgs<ExtArgs extends runtime.Types.Extensions.Int
    * The data used to create many StockItems.
    */
   data: Prisma.StockItemCreateManyInput | Prisma.StockItemCreateManyInput[]
-  skipDuplicates?: boolean
 }
 
 /**
@@ -1352,7 +1350,6 @@ export type StockItemCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Exten
    * The data used to create many StockItems.
    */
   data: Prisma.StockItemCreateManyInput | Prisma.StockItemCreateManyInput[]
-  skipDuplicates?: boolean
   /**
    * Choose, which related nodes to fetch as well
    */

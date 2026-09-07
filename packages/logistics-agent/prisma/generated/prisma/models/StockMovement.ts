@@ -246,8 +246,8 @@ export type StockMovementWhereInput = {
   AND?: Prisma.StockMovementWhereInput | Prisma.StockMovementWhereInput[]
   OR?: Prisma.StockMovementWhereInput[]
   NOT?: Prisma.StockMovementWhereInput | Prisma.StockMovementWhereInput[]
-  id?: Prisma.UuidFilter<"StockMovement"> | string
-  productId?: Prisma.UuidFilter<"StockMovement"> | string
+  id?: Prisma.StringFilter<"StockMovement"> | string
+  productId?: Prisma.StringFilter<"StockMovement"> | string
   locationCode?: Prisma.StringFilter<"StockMovement"> | string
   movementType?: Prisma.EnumStockMovementTypeFilter<"StockMovement"> | $Enums.StockMovementType
   quantityDelta?: Prisma.IntFilter<"StockMovement"> | number
@@ -278,7 +278,7 @@ export type StockMovementWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.StockMovementWhereInput | Prisma.StockMovementWhereInput[]
   OR?: Prisma.StockMovementWhereInput[]
   NOT?: Prisma.StockMovementWhereInput | Prisma.StockMovementWhereInput[]
-  productId?: Prisma.UuidFilter<"StockMovement"> | string
+  productId?: Prisma.StringFilter<"StockMovement"> | string
   locationCode?: Prisma.StringFilter<"StockMovement"> | string
   movementType?: Prisma.EnumStockMovementTypeFilter<"StockMovement"> | $Enums.StockMovementType
   quantityDelta?: Prisma.IntFilter<"StockMovement"> | number
@@ -312,8 +312,8 @@ export type StockMovementScalarWhereWithAggregatesInput = {
   AND?: Prisma.StockMovementScalarWhereWithAggregatesInput | Prisma.StockMovementScalarWhereWithAggregatesInput[]
   OR?: Prisma.StockMovementScalarWhereWithAggregatesInput[]
   NOT?: Prisma.StockMovementScalarWhereWithAggregatesInput | Prisma.StockMovementScalarWhereWithAggregatesInput[]
-  id?: Prisma.UuidWithAggregatesFilter<"StockMovement"> | string
-  productId?: Prisma.UuidWithAggregatesFilter<"StockMovement"> | string
+  id?: Prisma.StringWithAggregatesFilter<"StockMovement"> | string
+  productId?: Prisma.StringWithAggregatesFilter<"StockMovement"> | string
   locationCode?: Prisma.StringWithAggregatesFilter<"StockMovement"> | string
   movementType?: Prisma.EnumStockMovementTypeWithAggregatesFilter<"StockMovement"> | $Enums.StockMovementType
   quantityDelta?: Prisma.IntWithAggregatesFilter<"StockMovement"> | number
@@ -548,7 +548,6 @@ export type StockMovementCreateOrConnectWithoutProductInput = {
 
 export type StockMovementCreateManyProductInputEnvelope = {
   data: Prisma.StockMovementCreateManyProductInput | Prisma.StockMovementCreateManyProductInput[]
-  skipDuplicates?: boolean
 }
 
 export type StockMovementUpsertWithWhereUniqueWithoutProductInput = {
@@ -571,8 +570,8 @@ export type StockMovementScalarWhereInput = {
   AND?: Prisma.StockMovementScalarWhereInput | Prisma.StockMovementScalarWhereInput[]
   OR?: Prisma.StockMovementScalarWhereInput[]
   NOT?: Prisma.StockMovementScalarWhereInput | Prisma.StockMovementScalarWhereInput[]
-  id?: Prisma.UuidFilter<"StockMovement"> | string
-  productId?: Prisma.UuidFilter<"StockMovement"> | string
+  id?: Prisma.StringFilter<"StockMovement"> | string
+  productId?: Prisma.StringFilter<"StockMovement"> | string
   locationCode?: Prisma.StringFilter<"StockMovement"> | string
   movementType?: Prisma.EnumStockMovementTypeFilter<"StockMovement"> | $Enums.StockMovementType
   quantityDelta?: Prisma.IntFilter<"StockMovement"> | number
@@ -1390,7 +1389,6 @@ export type StockMovementCreateManyArgs<ExtArgs extends runtime.Types.Extensions
    * The data used to create many StockMovements.
    */
   data: Prisma.StockMovementCreateManyInput | Prisma.StockMovementCreateManyInput[]
-  skipDuplicates?: boolean
 }
 
 /**
@@ -1409,7 +1407,6 @@ export type StockMovementCreateManyAndReturnArgs<ExtArgs extends runtime.Types.E
    * The data used to create many StockMovements.
    */
   data: Prisma.StockMovementCreateManyInput | Prisma.StockMovementCreateManyInput[]
-  skipDuplicates?: boolean
   /**
    * Choose, which related nodes to fetch as well
    */

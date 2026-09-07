@@ -85,7 +85,6 @@ function buildOrderWhere(
   if (filters.query)
     where.orderNumber = {
       contains: filters.query.trim(),
-      mode: "insensitive",
     };
 
   if (filters.createdFrom || filters.createdTo) {

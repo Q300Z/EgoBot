@@ -348,11 +348,11 @@ export type OrderWhereInput = {
   AND?: Prisma.OrderWhereInput | Prisma.OrderWhereInput[]
   OR?: Prisma.OrderWhereInput[]
   NOT?: Prisma.OrderWhereInput | Prisma.OrderWhereInput[]
-  id?: Prisma.UuidFilter<"Order"> | string
+  id?: Prisma.StringFilter<"Order"> | string
   orderNumber?: Prisma.StringFilter<"Order"> | string
-  customerId?: Prisma.UuidFilter<"Order"> | string
-  billingAddressId?: Prisma.UuidFilter<"Order"> | string
-  shippingAddressId?: Prisma.UuidFilter<"Order"> | string
+  customerId?: Prisma.StringFilter<"Order"> | string
+  billingAddressId?: Prisma.StringFilter<"Order"> | string
+  shippingAddressId?: Prisma.StringFilter<"Order"> | string
   status?: Prisma.EnumOrderStatusFilter<"Order"> | $Enums.OrderStatus
   orderedAt?: Prisma.DateTimeNullableFilter<"Order"> | Date | string | null
   requestedDeliveryDate?: Prisma.DateTimeNullableFilter<"Order"> | Date | string | null
@@ -411,7 +411,7 @@ export type OrderWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.OrderWhereInput | Prisma.OrderWhereInput[]
   OR?: Prisma.OrderWhereInput[]
   NOT?: Prisma.OrderWhereInput | Prisma.OrderWhereInput[]
-  customerId?: Prisma.UuidFilter<"Order"> | string
+  customerId?: Prisma.StringFilter<"Order"> | string
   status?: Prisma.EnumOrderStatusFilter<"Order"> | $Enums.OrderStatus
   orderedAt?: Prisma.DateTimeNullableFilter<"Order"> | Date | string | null
   requestedDeliveryDate?: Prisma.DateTimeNullableFilter<"Order"> | Date | string | null
@@ -466,11 +466,11 @@ export type OrderScalarWhereWithAggregatesInput = {
   AND?: Prisma.OrderScalarWhereWithAggregatesInput | Prisma.OrderScalarWhereWithAggregatesInput[]
   OR?: Prisma.OrderScalarWhereWithAggregatesInput[]
   NOT?: Prisma.OrderScalarWhereWithAggregatesInput | Prisma.OrderScalarWhereWithAggregatesInput[]
-  id?: Prisma.UuidWithAggregatesFilter<"Order"> | string
+  id?: Prisma.StringWithAggregatesFilter<"Order"> | string
   orderNumber?: Prisma.StringWithAggregatesFilter<"Order"> | string
-  customerId?: Prisma.UuidWithAggregatesFilter<"Order"> | string
-  billingAddressId?: Prisma.UuidWithAggregatesFilter<"Order"> | string
-  shippingAddressId?: Prisma.UuidWithAggregatesFilter<"Order"> | string
+  customerId?: Prisma.StringWithAggregatesFilter<"Order"> | string
+  billingAddressId?: Prisma.StringWithAggregatesFilter<"Order"> | string
+  shippingAddressId?: Prisma.StringWithAggregatesFilter<"Order"> | string
   status?: Prisma.EnumOrderStatusWithAggregatesFilter<"Order"> | $Enums.OrderStatus
   orderedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Order"> | Date | string | null
   requestedDeliveryDate?: Prisma.DateTimeNullableWithAggregatesFilter<"Order"> | Date | string | null
@@ -968,7 +968,6 @@ export type OrderCreateOrConnectWithoutCustomerInput = {
 
 export type OrderCreateManyCustomerInputEnvelope = {
   data: Prisma.OrderCreateManyCustomerInput | Prisma.OrderCreateManyCustomerInput[]
-  skipDuplicates?: boolean
 }
 
 export type OrderUpsertWithWhereUniqueWithoutCustomerInput = {
@@ -991,11 +990,11 @@ export type OrderScalarWhereInput = {
   AND?: Prisma.OrderScalarWhereInput | Prisma.OrderScalarWhereInput[]
   OR?: Prisma.OrderScalarWhereInput[]
   NOT?: Prisma.OrderScalarWhereInput | Prisma.OrderScalarWhereInput[]
-  id?: Prisma.UuidFilter<"Order"> | string
+  id?: Prisma.StringFilter<"Order"> | string
   orderNumber?: Prisma.StringFilter<"Order"> | string
-  customerId?: Prisma.UuidFilter<"Order"> | string
-  billingAddressId?: Prisma.UuidFilter<"Order"> | string
-  shippingAddressId?: Prisma.UuidFilter<"Order"> | string
+  customerId?: Prisma.StringFilter<"Order"> | string
+  billingAddressId?: Prisma.StringFilter<"Order"> | string
+  shippingAddressId?: Prisma.StringFilter<"Order"> | string
   status?: Prisma.EnumOrderStatusFilter<"Order"> | $Enums.OrderStatus
   orderedAt?: Prisma.DateTimeNullableFilter<"Order"> | Date | string | null
   requestedDeliveryDate?: Prisma.DateTimeNullableFilter<"Order"> | Date | string | null
@@ -2435,7 +2434,6 @@ export type OrderCreateManyArgs<ExtArgs extends runtime.Types.Extensions.Interna
    * The data used to create many Orders.
    */
   data: Prisma.OrderCreateManyInput | Prisma.OrderCreateManyInput[]
-  skipDuplicates?: boolean
 }
 
 /**
@@ -2454,7 +2452,6 @@ export type OrderCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extension
    * The data used to create many Orders.
    */
   data: Prisma.OrderCreateManyInput | Prisma.OrderCreateManyInput[]
-  skipDuplicates?: boolean
   /**
    * Choose, which related nodes to fetch as well
    */
