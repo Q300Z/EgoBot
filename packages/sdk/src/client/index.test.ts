@@ -271,7 +271,7 @@ describe("LogibotClientSDK", () => {
     });
 
     it("should open EventSource at /sse/:jobId without token in URL", () => {
-      let createdEsInstance: MockEventSource | null = null;
+      let createdEsInstance: any = null;
       (globalThis as any).EventSource = class extends MockEventSource {
         constructor(url: string) {
           super(url);
@@ -285,7 +285,10 @@ describe("LogibotClientSDK", () => {
       });
 
       const unsubscribe = sdk.connectJobStream("job-123", {});
-      expect(createdEsInstance?.url).toBe("http://localhost:3000/sse/job-123");
+      if (!createdEsInstance) {
+        throw new Error("Expected EventSource to be created");
+      }
+      expect(createdEsInstance.url).toBe("http://localhost:3000/sse/job-123");
       expect(unsubscribe).toBeTypeOf("function");
       unsubscribe();
     });
@@ -299,7 +302,7 @@ describe("LogibotClientSDK", () => {
       const onUnknownEvent = vi.fn();
       const onError = vi.fn();
 
-      let createdEsInstance: MockEventSource | null = null;
+      let createdEsInstance: any = null;
       (globalThis as any).EventSource = class extends MockEventSource {
         constructor(url: string) {
           super(url);
@@ -315,8 +318,10 @@ describe("LogibotClientSDK", () => {
         onError,
       });
 
-      expect(createdEsInstance).not.toBeNull();
-      const es = createdEsInstance!;
+      if (!createdEsInstance) {
+        throw new Error("Expected EventSource to be created");
+      }
+      const es = createdEsInstance;
 
       // 1. Token event standard (type: token, payload.chunk)
       es.onmessage!({ data: JSON.stringify({ type: "token", payload: { chunk: "Hello " } }) });
@@ -357,7 +362,7 @@ describe("LogibotClientSDK", () => {
       const onToken = vi.fn();
       const onStatus = vi.fn();
 
-      let createdEsInstance: MockEventSource | null = null;
+      let createdEsInstance: any = null;
       (globalThis as any).EventSource = class extends MockEventSource {
         constructor(url: string) {
           super(url);
