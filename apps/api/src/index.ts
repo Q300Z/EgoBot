@@ -6,10 +6,7 @@ import { connectRedisClients } from "./config/redis";
 import { SseService } from "./core/sse";
 import { redisStreamBus } from "./core/stream";
 import { startJobScheduler, stopJobModule } from "./modules/job";
-
-import { startWorkerScheduler, stopWorkerModule } from "./modules/worker";
 import type { Server } from "http";
-import { startDemandeScheduler, stopDemandeModule } from "./modules/gv/demande";
 
 const logger = LoggerFactory.getLogger("App");
 let server: Server;
@@ -25,8 +22,6 @@ async function bootstrap() {
 		// 3. Démarrage des planificateurs d'arrière-plan et du bus Redis Streams
 		redisStreamBus.start();
 		startJobScheduler();
-		startWorkerScheduler();
-		startDemandeScheduler();
 
 		// 4. Lancement de l'écoute HTTP
 		server = app.listen(env.PORT, "0.0.0.0", () => {
@@ -41,8 +36,6 @@ async function bootstrap() {
 			try {
 				redisStreamBus.stop();
 				stopJobModule();
-				stopWorkerModule();
-				stopDemandeModule();
 				await prisma.$disconnect();
 				logger.info("Connexions DB, planificateurs et polling arrêtés avec succès.");
 			} catch (err) {
