@@ -48,5 +48,3 @@ Thumbs.db
 *.db-journal
 *.db-wal
 prisma/*.db
-
-packages/logistics-agent/src/generated/
