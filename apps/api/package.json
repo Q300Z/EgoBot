@@ -49,6 +49,7 @@
 	"dependencies": {
 		"@prisma/adapter-better-sqlite3": "^7.9.1",
 		"@prisma/client": "^7.9.1",
+		"@valkey/valkey-glide": "^2.5.2",
 		"compression": "^1.8.1",
 		"cors": "^2.8.6",
 		"egoroof-blowfish": "^4.0.3",
