@@ -3,36 +3,36 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js"
     },
     "./agent": {
-      "types": "./dist/agent/index.d.ts",
-      "import": "./dist/agent/index.js"
+      "types": "./dist/src/agent/index.d.ts",
+      "import": "./dist/src/agent/index.js"
     },
     "./database": {
-      "types": "./dist/database/index.d.ts",
-      "import": "./dist/database/index.js"
+      "types": "./dist/src/database/index.d.ts",
+      "import": "./dist/src/database/index.js"
     },
     "./dtos": {
-      "types": "./dist/dtos/index.d.ts",
-      "import": "./dist/dtos/index.js"
+      "types": "./dist/src/dtos/index.d.ts",
+      "import": "./dist/src/dtos/index.js"
     },
     "./runtime": {
-      "types": "./dist/runtime/index.d.ts",
-      "import": "./dist/runtime/index.js"
+      "types": "./dist/src/runtime/index.d.ts",
+      "import": "./dist/src/runtime/index.js"
     },
     "./services": {
-      "types": "./dist/services/index.d.ts",
-      "import": "./dist/services/index.js"
+      "types": "./dist/src/services/index.d.ts",
+      "import": "./dist/src/services/index.js"
     },
     "./tools": {
-      "types": "./dist/tools/index.d.ts",
-      "import": "./dist/tools/index.js"
+      "types": "./dist/src/tools/index.d.ts",
+      "import": "./dist/src/tools/index.js"
     }
   },
   "files": [
@@ -40,7 +40,8 @@
     "prisma"
   ],
   "scripts": {
-    "build": "prisma generate && tsc",
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && prisma generate && tsc",
     "dev": "tsc --watch",
     "test": "vitest run",
     "try:agent": "tsx scripts/try-agent.ts",

@@ -11,17 +11,22 @@ src/
 ├── database/    # Création explicite du client Prisma PostgreSQL
 ├── dtos/        # Contrats Zod sérialisables retournés au LLM
 ├── services/    # Requêtes Prisma filtrées et mapping vers les DTOs
-├── tools/       # Adaptateurs LangChain orientés cas d'usage
-└── generated/   # Client Prisma généré
+├── runtime/     # Résolution du client et exécution d'une requête
+└── tools/       # Adaptateurs LangChain orientés cas d'usage
 prisma/
+├── generated/   # Client Prisma généré
 ├── schema.prisma
 └── seed.ts      # Générateur du jeu de données de test
 ```
 
 Les outils disponibles sont :
 
+- `get_customer_profile`
+- `get_customer_identity`
+- `get_customer_current_address`
 - `get_order_status`
 - `get_order_details`
+- `get_last_order`
 - `get_delivery_tracking`
 - `get_product_availability`
 
@@ -29,6 +34,11 @@ L'identifiant client ne fait jamais partie des paramètres visibles par le
 LLM. Il est validé puis capturé depuis la session serveur lors de la création
 des outils. Les requêtes de commande et de livraison appliquent ce filtre
 directement dans Prisma.
+
+`CustomerService` reste limité aux lectures de l'entité `Customer` et de son
+adresse courante. `OrderService` regroupe les lectures de l'entité `Order`.
+`CustomerQueryService` a un rôle distinct : il résout l'identité fournie par
+l'application avant de construire les outils liés au client.
 
 ---
 

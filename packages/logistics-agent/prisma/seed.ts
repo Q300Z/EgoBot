@@ -30,7 +30,7 @@
  *  Frais de port : taxés à 20 %.
  */
 
-import { PrismaClient, type AddressStatus, type AddressUsage } from "../src/generated/prisma/client";
+import { PrismaClient, type AddressStatus } from "./generated/prisma/client.js";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { fakerFR as faker } from "@faker-js/faker";
 import { randomUUID } from "node:crypto";
@@ -113,7 +113,6 @@ async function purge() {
 type AddressRow = {
   id: string;
   status: AddressStatus;
-  usage: AddressUsage;
   label: string | null;
   line1: string;
   line2: string | null;
@@ -131,7 +130,6 @@ const addresses: AddressRow[] = [];
 /** Fabrique une adresse. Les adresses LOCKED sont celles gelées au moment
  *  d'une commande : elles ne doivent plus jamais être modifiées. */
 function makeAddress(opts: {
-  usage: AddressUsage;
   status?: AddressStatus;
   label?: string | null;
   when?: Date;
@@ -152,7 +150,6 @@ function makeAddress(opts: {
   const row: AddressRow = {
     id: randomUUID(),
     status,
-    usage: opts.usage,
     label: opts.label ?? null,
     line1: base.line1,
     line2: base.line2,
@@ -175,7 +172,7 @@ function makeAddress(opts: {
 
 function buildSuppliers() {
   return Array.from({ length: NB_SUPPLIERS }, (_, i) => {
-    const address = makeAddress({ usage: "SUPPLIER", label: "Siège" });
+    const address = makeAddress({ label: "Siège" });
     return {
       id: randomUUID(),
       supplierCode: `FRN-${pad(i + 1, 6)}`,
@@ -305,13 +302,7 @@ function buildCustomers(): CustomerRow[] {
     while (seenEmails.has(email)) email = `${i}.${email}`;
     seenEmails.add(email);
 
-    const address = makeAddress({ usage: "CUSTOMER", label: "Domicile", when });
-
-    // certains clients ont une ancienne adresse archivée : c'est ce que
-    // le versionnement d'adresse est censé permettre
-    if (chance(30)) {
-      makeAddress({ usage: "CUSTOMER", status: "ARCHIVED", label: "Ancienne adresse", when: addDays(when, -90) });
-    }
+    const address = makeAddress({ label: "Domicile", when });
 
     return {
       id: randomUUID(),
@@ -372,11 +363,11 @@ function buildOrders(customers: CustomerRow[], products: ProductRow[]) {
     // l'historique reste exact même si le client déménage ensuite.
     const lockedStatus = status === "DRAFT" ? "DRAFT" : "LOCKED";
     const billing = makeAddress({
-      usage: "BILLING", status: lockedStatus, label: "Facturation",
+      status: lockedStatus, label: "Facturation",
       when: createdAt, copyOf: customer.address,
     });
     const shipping = makeAddress({
-      usage: "SHIPPING", status: lockedStatus, label: "Livraison",
+      status: lockedStatus, label: "Livraison",
       when: createdAt,
       // une commande sur cinq est livrée à une adresse différente
       copyOf: chance(80) ? customer.address : undefined,
@@ -533,11 +524,18 @@ function buildOrders(customers: CustomerRow[], products: ProductRow[]) {
 
       const hasLeft = deliveryStatus !== "PLANNED" && deliveryStatus !== "PREPARING";
 
+      const deliveryAddress = makeAddress({
+        status: "LOCKED",
+        label: "Adresse de livraison",
+        when: shippedAt,
+        copyOf: shipping,
+      });
+
       deliveries.push({
         id: deliveryId,
         deliveryNumber: `LIV-2026-${pad(deliveries.length + 1, 6)}`,
         orderId,
-        addressId: shipping.id, // la livraison réutilise l'adresse gelée
+        addressId: deliveryAddress.id,
         status: deliveryStatus,
         carrierName: hasLeft ? pick(CARRIERS) : null,
         trackingNumber: hasLeft ? faker.string.alphanumeric({ length: 13, casing: "upper" }) : null,
