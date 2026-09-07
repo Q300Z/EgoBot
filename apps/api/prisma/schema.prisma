@@ -6,21 +6,19 @@ datasource db {
   provider = "sqlite"
 }
 
-enum Role {
-  USER  @map("user")
-  ADMIN @map("admin")
+model Conversation {
+  id         String    @id @default(uuid())
+  user_id    String
+  client_id  String
+  title      String
+  model      Model
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  deleted_at DateTime?
+  jobs       Job[]
+  messages   Message[]
 
-  @@map("role_enum")
-}
-
-model User {
-  id            String         @id @default(uuid())
-  email         String         @unique
-  password_hash String
-  role          Role           @default(USER)
-  created_at    DateTime       @default(now())
-  updated_at    DateTime       @updatedAt
-  conversations Conversation[]
+  @@index([user_id])
 }
 
 enum Status {
@@ -34,20 +32,42 @@ enum Status {
   @@map("status_job")
 }
 
-model Conversation {
-  id         String    @id @default(uuid())
-  user_id    String
-  user       User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  title      String
-  model      String    @default("CHATBOT")
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
-  deleted_at DateTime?
-  messages   Message[]
-  jobs       Job[]
+enum Model {
+  CHATBOT       @map("chatbot")
+  STATISTIQUE   @map("statistique")
+  OBJ_TRV_PERDU @map("obj_trv_perdu")
+
+  @@map("model_enum")
 }
 
-enum MessageRole {
+model Job {
+  id                   String @id @default(uuid())
+  conversation_id      String
+  user_prompt_id       String
+  assistant_message_id String
+
+  status Status @default(PENDING)
+  model  Model
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  started_at          DateTime?
+  ended_at            DateTime?
+  error               String?
+  generated_tokens    Int?
+  time_to_first_token Float?
+  tokens_per_second   Float?
+
+  conversation Conversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+
+  user_prompt       Message @relation("UserPrompt", fields: [user_prompt_id], references: [id], onDelete: Cascade)
+  assistant_message Message @relation("AssistantMessage", fields: [assistant_message_id], references: [id], onDelete: Cascade)
+
+  @@index([conversation_id])
+}
+
+enum Role {
   USER      @map("user")
   ASSISTANT @map("assistant")
 
@@ -55,33 +75,37 @@ enum MessageRole {
 }
 
 model Message {
-  id              String      @id @default(uuid())
+  id              String   @id @default(uuid())
   conversation_id String
-  conversation    Conversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
-  role            MessageRole
+  role            Role
   content         String
-  created_at      DateTime    @default(now())
-  updated_at      DateTime    @updatedAt
-  user_jobs       Job[]       @relation("UserPrompt")
-  assistant_jobs  Job[]       @relation("AssistantMessage")
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  user_prompt_jobs       Job[] @relation("UserPrompt")
+  assistant_message_jobs Job[] @relation("AssistantMessage")
+
+  conversation Conversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+
+  @@index([conversation_id])
 }
 
-model Job {
-  id                   String       @id @default(uuid())
-  conversation_id      String
-  conversation         Conversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
-  user_prompt_id       String
-  user_prompt          Message      @relation("UserPrompt", fields: [user_prompt_id], references: [id], onDelete: Cascade)
-  assistant_message_id String
-  assistant_message    Message      @relation("AssistantMessage", fields: [assistant_message_id], references: [id], onDelete: Cascade)
-  model                String
-  status               Status       @default(PENDING)
-  time_to_first_token  Float?
-  tokens_per_second    Float?
-  generated_tokens     Int?
-  error                String?
-  created_at           DateTime     @default(now())
-  updated_at           DateTime     @updatedAt
-  started_at           DateTime?
-  ended_at             DateTime?
+model gvDemande {
+  uid        String   @id @unique
+  dev        Boolean  @default(false)
+  status     Status   @default(PENDING)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  error      String?
 }
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  username      String?  @unique
+  password_hash String
+  role          String   @default("USER")
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+}
+
