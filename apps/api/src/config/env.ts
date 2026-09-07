@@ -27,6 +27,7 @@ const envSchema = z.object({
 	CACHE_DB_NAME: z.coerce.number().default(0),
 	CACHE_EXPIRE: z.coerce.number().default(3600),
 	WORKER_STATUS_INTERVAL_MS: z.coerce.number().default(5000),
+	VALKEY_URL: z.string().optional(),
 	REDIS_URL: z.string().default("redis://127.0.0.1:6379"),
 });
 
