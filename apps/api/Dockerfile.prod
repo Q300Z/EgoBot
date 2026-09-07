@@ -3,7 +3,7 @@ FROM node:22-alpine AS pruner
 WORKDIR /app
 RUN npm install -g turbo@2.10.5
 COPY . .
-RUN turbo prune @egobot/api --docker
+RUN turbo prune "$(node -p "require('./apps/api/package.json').name")" --docker
 
 # Stage 2: Install dependencies & compile
 FROM node:22-alpine AS installer
@@ -33,5 +33,4 @@ COPY --from=installer --chown=node:node /prod/api .
 
 EXPOSE 8000
 CMD ["node", "dist/index.js"]
-
 
