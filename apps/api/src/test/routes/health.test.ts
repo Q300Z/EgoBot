@@ -54,4 +54,52 @@ describe("Health Check Route", () => {
 			}),
 		);
 	});
+
+	it("should return 503 and recognize CircuitBreakerError when circuit breaker trips", async () => {
+		vi.spyOn(prisma as any, "$queryRawUnsafe").mockResolvedValue([{ 1: 1 }]);
+		const { CircuitBreakerError } = await import("../../config/valkey");
+		vi.spyOn(valkeyReader, "ping").mockRejectedValue(new CircuitBreakerError("Trip error"));
+
+		const resJson = vi.fn();
+		const resStatus = vi.fn().mockReturnValue({ json: resJson });
+		const mockRes = { status: resStatus, json: resJson } as unknown as Response;
+		const mockReq = {} as Request;
+
+		await healthCheckHandler(mockReq, mockRes);
+
+		expect(resStatus).toHaveBeenCalledWith(503);
+		expect(resJson).toHaveBeenCalledWith(
+			expect.objectContaining({
+				status: "error",
+				checks: expect.objectContaining({
+					database: "ok",
+					valkey: "Circuit Breaker ouvert (requêtes bloquées)",
+				}),
+			}),
+		);
+	});
+
+	it("should return 503 and recognize TimeoutError when valkey pings time out", async () => {
+		vi.spyOn(prisma as any, "$queryRawUnsafe").mockResolvedValue([{ 1: 1 }]);
+		const { TimeoutError } = await import("../../config/valkey");
+		vi.spyOn(valkeyReader, "ping").mockRejectedValue(new TimeoutError("Ping timeout"));
+
+		const resJson = vi.fn();
+		const resStatus = vi.fn().mockReturnValue({ json: resJson });
+		const mockRes = { status: resStatus, json: resJson } as unknown as Response;
+		const mockReq = {} as Request;
+
+		await healthCheckHandler(mockReq, mockRes);
+
+		expect(resStatus).toHaveBeenCalledWith(503);
+		expect(resJson).toHaveBeenCalledWith(
+			expect.objectContaining({
+				status: "error",
+				checks: expect.objectContaining({
+					database: "ok",
+					valkey: "Délai d'attente dépassé (Timeout)",
+				}),
+			}),
+		);
+	});
 });

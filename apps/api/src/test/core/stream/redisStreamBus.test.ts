@@ -125,6 +125,8 @@ describe("RedisStreamBus (TDD)", () => {
 				{
 					event: "test.completed",
 					data: JSON.stringify({ uid: "task-001", result: "success" }),
+					correlationId: "corr-1",
+					timestamp: Date.now(),
 				},
 				"100-1",
 			);
@@ -142,6 +144,8 @@ describe("RedisStreamBus (TDD)", () => {
 				{
 					event: "test.completed",
 					data: JSON.stringify({ uid: "task-001", result: "success-2" }),
+					correlationId: "corr-2",
+					timestamp: Date.now(),
 				},
 				"100-2",
 			);

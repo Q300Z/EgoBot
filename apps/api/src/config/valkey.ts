@@ -1,10 +1,59 @@
 import { EventEmitter } from "node:events";
-import { GlideClient, type GlideClientConfiguration, ProtocolVersion, Transaction } from "@valkey/valkey-glide";
+import {
+	GlideClient,
+	type GlideClientConfiguration,
+	ProtocolVersion,
+	Transaction,
+	ClientSideCache,
+	ValkeyError,
+	ClosingError,
+	RequestError,
+	TimeoutError,
+	ConnectionError,
+	ExecAbortError,
+	ConfigurationError,
+	CircuitBreakerError,
+} from "@valkey/valkey-glide";
 import { env } from "./env";
 import { LoggerFactory } from "./logger";
 import { traceStorage } from "./trace";
 
 const logger = LoggerFactory.getLogger("ValkeyClient");
+
+export {
+	GlideClient,
+	type GlideClientConfiguration,
+	ProtocolVersion,
+	Transaction,
+	ClientSideCache,
+	ValkeyError,
+	ClosingError,
+	RequestError,
+	TimeoutError,
+	ConnectionError,
+	ExecAbortError,
+	ConfigurationError,
+	CircuitBreakerError,
+};
+
+/**
+ * Fonctions de garde de types pour les erreurs Valkey GLIDE.
+ */
+export function isTimeoutError(err: unknown): err is TimeoutError {
+	return err instanceof TimeoutError;
+}
+
+export function isConnectionError(err: unknown): err is ConnectionError {
+	return err instanceof ConnectionError;
+}
+
+export function isCircuitBreakerError(err: unknown): err is CircuitBreakerError {
+	return err instanceof CircuitBreakerError;
+}
+
+export function isValkeyError(err: unknown): err is ValkeyError {
+	return err instanceof ValkeyError;
+}
 
 /**
  * Résout les paramètres de connexion à Valkey depuis l'environnement.
@@ -46,22 +95,69 @@ export function reconnectStrategy(retries: number) {
 	return base + jitter;
 }
 
+export interface GlideConfigCustomOptions {
+	protocol: ProtocolVersion;
+	enableClientSideCache?: boolean;
+	cacheSizeKb?: number;
+	cacheTtlMs?: number;
+	enableCircuitBreaker?: boolean;
+}
+
 /**
- * Génère la configuration GlideClient adaptée au protocole demandé.
+ * Génère la configuration GlideClient adaptée au protocole demandé avec support
+ * de Client-Side Cache et de Circuit Breaker.
  */
-function createGlideConfig(protocol: ProtocolVersion): GlideClientConfiguration {
-	return {
+export function createGlideConfig(options: GlideConfigCustomOptions | ProtocolVersion): GlideClientConfiguration {
+	const opts: GlideConfigCustomOptions =
+		typeof options === "number" ? { protocol: options } : options;
+
+	const isProduction = env.NODE_ENV === "production";
+	const circuitBreakerEnabled =
+		opts.enableCircuitBreaker !== undefined
+			? opts.enableCircuitBreaker
+			: env.VALKEY_ENABLE_CIRCUIT_BREAKER !== undefined
+				? env.VALKEY_ENABLE_CIRCUIT_BREAKER
+				: isProduction;
+
+	const clientSideCacheEnabled =
+		opts.enableClientSideCache !== undefined
+			? opts.enableClientSideCache
+			: env.VALKEY_ENABLE_CLIENT_CACHE;
+
+	const config: GlideClientConfiguration = {
 		addresses: [{ host: host || "127.0.0.1", port: port || 6379 }],
 		...(password ? { credentials: { password } } : {}),
 		...(database !== undefined && database !== null ? { databaseId: database } : {}),
-		protocol,
+		protocol: opts.protocol,
 		connectionBackoff: {
 			numberOfRetries: 10,
 			factor: 100,
 			exponentBase: 2,
 			jitterPercent: 20,
 		},
+		...(clientSideCacheEnabled
+			? {
+					clientSideCache: ClientSideCache.create(
+						opts.cacheSizeKb ?? env.VALKEY_CACHE_SIZE_KB,
+						opts.cacheTtlMs ?? env.VALKEY_CACHE_TTL_MS,
+					),
+				}
+			: {}),
+		...(circuitBreakerEnabled
+			? {
+					clientCircuitBreaker: {
+						windowSizeMs: 10000,
+						failureRateThreshold: 0.5,
+						minErrors: 10,
+						openTimeoutMs: 5000,
+						countTimeouts: true,
+						consecutiveSuccesses: 3,
+					},
+				}
+			: {}),
 	};
+
+	return config;
 }
 
 /**
@@ -266,7 +362,18 @@ export class ValkeyClientAdapter extends EventEmitter {
 		try {
 			this.rawClient = await GlideClient.createClient(this.config);
 			this.emit("connect");
-		} catch (err) {
+		} catch (err: unknown) {
+			if (isCircuitBreakerError(err)) {
+				logger.warn(`[ValkeyClientAdapter:${this.name}] Coupe-circuit ouvert (CircuitBreakerError) : requêtes suspendues`);
+			} else if (isTimeoutError(err)) {
+				logger.error(`[ValkeyClientAdapter:${this.name}] Délai d'expiration dépassé (TimeoutError)`);
+			} else if (isConnectionError(err)) {
+				logger.error(`[ValkeyClientAdapter:${this.name}] Échec de connexion réseau (ConnectionError)`);
+			} else if (err instanceof ConfigurationError) {
+				logger.error(`[ValkeyClientAdapter:${this.name}] Erreur de configuration (ConfigurationError)`);
+			} else {
+				logger.error(`[ValkeyClientAdapter:${this.name}] Erreur Valkey`, err);
+			}
 			this.emit("error", err);
 			throw err;
 		}
@@ -586,19 +693,42 @@ function wrapWithLogging<T extends object>(client: T, name: string): T {
 	});
 }
 
-// Client flux (RESP2) dédié à la lecture des streams Valkey.
-const rawStream = new ValkeyClientAdapter(createGlideConfig(ProtocolVersion.RESP2), "Stream");
-rawStream.on("error", (err: Error) => logger.error("Erreur sur le pool Valkey Stream", err));
+function logValkeyPoolError(poolName: string, err: unknown) {
+	if (isCircuitBreakerError(err)) {
+		logger.warn(`[Valkey:${poolName}] Coupe-circuit actif (Circuit Breaker OUVERT)`);
+	} else if (isTimeoutError(err)) {
+		logger.warn(`[Valkey:${poolName}] Délai d'attente dépassé (TimeoutError)`);
+	} else if (isConnectionError(err)) {
+		logger.error(`[Valkey:${poolName}] Rupture de connexion réseau (ConnectionError)`, err);
+	} else if (isValkeyError(err)) {
+		logger.error(`[Valkey:${poolName}] Erreur Valkey [${err.name}]: ${err.message}`);
+	} else {
+		logger.error(`[Valkey:${poolName}] Erreur non typée`, err);
+	}
+}
+
+// Client flux (RESP2) dédié à la lecture des streams Valkey (pas de cache client sur les streams)
+const rawStream = new ValkeyClientAdapter(
+	createGlideConfig({ protocol: ProtocolVersion.RESP2, enableClientSideCache: false }),
+	"Stream",
+);
+rawStream.on("error", (err: unknown) => logValkeyPoolError("Stream", err));
 export const valkeyStream = wrapWithLogging(rawStream, "Stream");
 
-// Client de lecture (RESP3) pour les données utilisateur.
-const rawReader = new ValkeyClientAdapter(createGlideConfig(ProtocolVersion.RESP3), "Reader");
-rawReader.on("error", (err: Error) => logger.error("Erreur sur le pool Valkey Reader", err));
+// Client de lecture (RESP3) avec Client-Side Caching activé pour les données utilisateur et configs
+const rawReader = new ValkeyClientAdapter(
+	createGlideConfig({ protocol: ProtocolVersion.RESP3, enableClientSideCache: true }),
+	"Reader",
+);
+rawReader.on("error", (err: unknown) => logValkeyPoolError("Reader", err));
 export const valkeyReader = wrapWithLogging(rawReader, "Reader");
 
-// Client d'écriture (RESP3) pour les signaux d'annulation, les files d'attente et le stockage des sessions.
-const rawWriter = new ValkeyClientAdapter(createGlideConfig(ProtocolVersion.RESP3), "Writer");
-rawWriter.on("error", (err: Error) => logger.error("Erreur sur le pool Valkey Writer", err));
+// Client d'écriture (RESP3) pour les signaux d'annulation, files d'attente et état
+const rawWriter = new ValkeyClientAdapter(
+	createGlideConfig({ protocol: ProtocolVersion.RESP3, enableClientSideCache: false }),
+	"Writer",
+);
+rawWriter.on("error", (err: unknown) => logValkeyPoolError("Writer", err));
 export const valkeyWriter = wrapWithLogging(rawWriter, "Writer");
 
 /**

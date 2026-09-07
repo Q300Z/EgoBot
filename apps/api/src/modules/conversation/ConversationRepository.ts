@@ -20,8 +20,25 @@ export class ConversationRepository {
 		userId: string,
 		clientId: string,
 		model: string,
+	): Promise<any[]>;
+	public static async findMany(
+		userId: string,
+		clientId: string,
+		model: string,
+		options: { page?: number; pageSize?: number; search?: string },
+	): Promise<{
+		items: any[];
+		total: number;
+		page: number;
+		pageSize: number;
+		totalPages: number;
+	}>;
+	public static async findMany(
+		userId: string,
+		clientId: string,
+		model: string,
 		options?: { page?: number; pageSize?: number; search?: string },
-	) {
+	): Promise<any> {
 		const where: any = {
 			user_id: userId,
 			client_id: clientId,

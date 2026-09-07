@@ -44,7 +44,9 @@ export const LoginRequestSchema = z.object({
 	body: LoginRequestBodySchema,
 });
 
-export const LoginRequestSchemaV1 = LoginRequestSchema;
+export const LoginRequestSchemaV1 = z.object({
+	body: LogipolConfigSchema,
+});
 
 export const LoginRequestSchemaV2 = z.object({
 	body: z.object({
@@ -87,7 +89,7 @@ export type Model = z.infer<typeof ModelEnum>;
 export type LogipolConfig = z.infer<typeof LogipolConfigSchema>;
 export type LogipolConfigV1 = LogipolConfig;
 export type ClassicLoginInput = z.infer<typeof ClassicLoginSchema>;
-export type RegisterInput = z.infer<typeof RegisterBodySchema>;
+export type RegisterInput = z.input<typeof RegisterBodySchema>;
 export type RegisterRequest = z.infer<typeof RegisterRequestSchema>;
 export type LoginRequest = z.infer<typeof LoginRequestSchema>;
 export type LoginRequestV1 = z.infer<typeof LoginRequestSchemaV1>;

@@ -1,8 +1,14 @@
 import { Router, type Request, type Response } from "express";
 import { prisma } from "../config/db";
-import { valkeyReader } from "../config/valkey";
+import {
+	valkeyReader,
+	isCircuitBreakerError,
+	isTimeoutError,
+	isConnectionError,
+	isValkeyError,
+} from "../config/valkey";
 
-export const healthRouter = Router();
+export const healthRouter: Router = Router();
 
 export async function healthCheckHandler(_req: Request, res: Response): Promise<void> {
 	let dbStatus: "ok" | string = "ok";
@@ -19,8 +25,18 @@ export async function healthCheckHandler(_req: Request, res: Response): Promise<
 		if (!pong) {
 			valkeyStatus = "Pas de réponse PING de Valkey";
 		}
-	} catch (error) {
-		valkeyStatus = error instanceof Error ? error.message : "Erreur connexion Valkey";
+	} catch (error: unknown) {
+		if (isCircuitBreakerError(error)) {
+			valkeyStatus = "Circuit Breaker ouvert (requêtes bloquées)";
+		} else if (isTimeoutError(error)) {
+			valkeyStatus = "Délai d'attente dépassé (Timeout)";
+		} else if (isConnectionError(error)) {
+			valkeyStatus = "Déconnecté du serveur Valkey";
+		} else if (isValkeyError(error)) {
+			valkeyStatus = `Erreur Valkey: ${error.message}`;
+		} else {
+			valkeyStatus = error instanceof Error ? error.message : "Erreur connexion Valkey";
+		}
 	}
 
 	const isHealthy = dbStatus === "ok" && valkeyStatus === "ok";
