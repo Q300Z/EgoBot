@@ -33,7 +33,7 @@ describe("createEventStream", () => {
     };
 
     createEventStream({
-      streamUrl: "http://localhost:3000/sse/v1/job/123",
+      streamUrl: "http://localhost:3000/sse/123",
       lastEventId: "evt-99",
     });
 
@@ -51,7 +51,7 @@ describe("createEventStream", () => {
 
     const onOpen = vi.fn();
     createEventStream({
-      streamUrl: "http://localhost:3000/sse/v1/job/123",
+      streamUrl: "http://localhost:3000/sse/123",
       onOpen,
     });
 
@@ -74,7 +74,7 @@ describe("createEventStream", () => {
     const onCancelled = vi.fn();
 
     createEventStream({
-      streamUrl: "http://localhost:3000/sse/v1/job/123",
+      streamUrl: "http://localhost:3000/sse/123",
       onProgress,
       onCompleted,
       onFailedJob,
@@ -131,7 +131,7 @@ describe("createEventStream", () => {
     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     createEventStream({
-      streamUrl: "http://localhost:3000/sse/v1/job/123",
+      streamUrl: "http://localhost:3000/sse/123",
     });
 
     expect(() => {
@@ -155,7 +155,7 @@ describe("createEventStream", () => {
     const onFailed = vi.fn();
 
     const stream = createEventStream({
-      streamUrl: "http://localhost:3000/sse/v1/job/123",
+      streamUrl: "http://localhost:3000/sse/123",
       onError,
       onFailed,
     });

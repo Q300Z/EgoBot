@@ -120,16 +120,25 @@ describe("Chat Store", () => {
     const authStore = useAuthStore();
     const chatStore = useChatStore();
 
-    const previousCleanup = vi.fn();
-    (chatStore as any).activeStreamCleanup = previousCleanup;
+    // activeStreamCleanup est interne au store : l'affecter depuis l'exterieur
+    // n'atteint pas la ref. On ouvre donc un vrai premier flux.
+    const firstCleanup = vi.fn();
+    const secondCleanup = vi.fn();
 
     vi.spyOn(authStore.sdk, "createMessage").mockResolvedValue({ job_id: "j2", conversation_id: "c2" } as any);
     vi.spyOn(authStore.sdk, "getConversation").mockResolvedValue({ id: "c2", messages: [] } as any);
-    vi.spyOn(authStore.sdk, "connectJobStream").mockReturnValue(vi.fn());
+    vi.spyOn(authStore.sdk, "getConversations").mockResolvedValue([] as any);
+    vi.spyOn(authStore.sdk, "connectJobStream")
+      .mockReturnValueOnce(firstCleanup as any)
+      .mockReturnValueOnce(secondCleanup as any);
 
+    await chatStore.sendMessage("First message");
+    expect(firstCleanup).not.toHaveBeenCalled();
+
+    // Le second envoi doit fermer le flux precedent avant d'en ouvrir un nouveau.
     await chatStore.sendMessage("Second message");
 
-    expect(previousCleanup).toHaveBeenCalled();
+    expect(firstCleanup).toHaveBeenCalled();
   });
 
   it("should handle error in streaming callback", async () => {
@@ -139,6 +148,7 @@ describe("Chat Store", () => {
     let streamCallbacks: any = null;
     vi.spyOn(authStore.sdk, "createMessage").mockResolvedValue({ job_id: "j3", conversation_id: "c3" } as any);
     vi.spyOn(authStore.sdk, "getConversation").mockResolvedValue({ id: "c3", messages: [] } as any);
+    vi.spyOn(authStore.sdk, "getConversations").mockResolvedValue([] as any);
     vi.spyOn(authStore.sdk, "connectJobStream").mockImplementation((jobId: string, callbacks: any) => {
       streamCallbacks = callbacks;
       return vi.fn();
@@ -151,7 +161,7 @@ describe("Chat Store", () => {
     expect(chatStore.isStreaming).toBe(false);
   });
 
-  it("should trigger fallback HTTP polling after 6 seconds of inactivity", async () => {
+  it("should trigger fallback HTTP polling after 20 seconds of inactivity", async () => {
     vi.useFakeTimers();
     const authStore = useAuthStore();
     const chatStore = useChatStore();
@@ -159,13 +169,14 @@ describe("Chat Store", () => {
     const mockJobResult = { job_id: "job-timeout", conversation_id: "conv-timeout" };
     vi.spyOn(authStore.sdk, "createMessage").mockResolvedValue(mockJobResult as any);
     vi.spyOn(authStore.sdk, "getConversation").mockResolvedValue({ id: "conv-timeout", messages: [] } as any);
+    vi.spyOn(authStore.sdk, "getConversations").mockResolvedValue([] as any);
     vi.spyOn(authStore.sdk, "connectJobStream").mockReturnValue(vi.fn());
 
     await chatStore.sendMessage("Slow stream message");
     expect(chatStore.isStreaming).toBe(true);
 
-    // Fast forward 6 seconds
-    await vi.advanceTimersByTimeAsync(6500);
+    // Le delai de repli du store est de 20 s (commit fcb51e2).
+    await vi.advanceTimersByTimeAsync(20500);
 
     expect(chatStore.isStreaming).toBe(false);
     expect(authStore.sdk.getConversation).toHaveBeenCalledWith("conv-timeout");

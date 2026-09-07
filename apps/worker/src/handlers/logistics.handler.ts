@@ -1,6 +1,6 @@
 import { createLogisticsAgent } from "@egobot/logistics-agent/agent";
 import type { LogisticsPrismaClient } from "@egobot/logistics-agent/database";
-import type { AuthenticatedCustomer } from "@egobot/logistics-agent/dtos";
+import { CustomerQueryService } from "@egobot/logistics-agent/services";
 import type { TaskHandler } from "@egobot/sdk/worker";
 import { buildRichContentBlock } from "../rich-content/build-rich-content-block.js";
 
@@ -24,27 +24,17 @@ export function createLogisticsHandler({
   return async (payload, ctx) => {
     const prisma = getPrisma();
     const email: string | undefined = payload?.customer?.email;
-    if (!email) {
-      await ctx.sendToken(
-        "Impossible d'identifier votre compte client logistique (email manquant). Contactez le support.",
-      );
+
+    // Résolution centralisée (identité manquante, client introuvable ou
+    // inactif) : messages dédiés par cas, cohérents avec le reste de
+    // l'écosystème logistics-agent.
+    const resolution = await new CustomerQueryService(prisma).resolve({ email });
+    if (!resolution.resolved) {
+      await ctx.sendToken(resolution.message);
       return;
     }
 
-    const customer = await prisma.customer.findUnique({ where: { email } });
-    if (!customer) {
-      await ctx.sendToken(
-        "Je ne trouve pas de fiche client associée à votre compte pour accéder à vos commandes et livraisons. Contactez le support pour faire le lien avec votre compte client.",
-      );
-      return;
-    }
-
-    const authenticatedCustomer: AuthenticatedCustomer = {
-      customerId: customer.id,
-      email: customer.email,
-    };
-
-    const agent = createAgent({ customer: authenticatedCustomer, prisma });
+    const agent = createAgent({ customer: resolution.customer, prisma });
 
     const run = await agent.streamEvents(
       { messages: [{ role: "user", content: payload.prompt }] },

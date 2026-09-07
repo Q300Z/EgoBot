@@ -70,7 +70,7 @@ export class JobService {
     return {
       job_id: jobId,
       conversation_id: convId,
-      stream_url: `http://localhost:8000/sse/v1/job/${jobId}`,
+      stream_url: `http://localhost:8000/sse/${jobId}`,
     };
   }
 

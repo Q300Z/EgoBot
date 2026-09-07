@@ -17,6 +17,7 @@ describe("LogibotClientSDK", () => {
       },
       post: vi.fn(),
       get: vi.fn(),
+      put: vi.fn(),
       delete: vi.fn(),
     };
     (axios.create as any).mockReturnValue(mockAxiosInstance);
@@ -183,6 +184,51 @@ describe("LogibotClientSDK", () => {
       expect(mockAxiosInstance.delete).toHaveBeenCalledWith("/api/v1/admin/users/u2");
       expect(res).toEqual({ success: true });
     });
+
+    it("should update user details and handle password reset response", async () => {
+      const sdk = new LogibotClientSDK({ baseUrl: "http://localhost:3000" });
+      mockAxiosInstance.put.mockResolvedValueOnce({
+        data: { id: "u2", email: "updated@test.com", role: "USER", generatedPassword: "abc" },
+      });
+
+      const res = await sdk.updateUser("u2", { email: "updated@test.com", resetPassword: true });
+      expect(mockAxiosInstance.put).toHaveBeenCalledWith("/api/v1/admin/users/u2", {
+        email: "updated@test.com",
+        resetPassword: true,
+      });
+      expect(res).toEqual({ id: "u2", email: "updated@test.com", role: "USER", generatedPassword: "abc" });
+    });
+
+    it("should fetch admin conversations list and single conversation", async () => {
+      const sdk = new LogibotClientSDK({ baseUrl: "http://localhost:3000" });
+      mockAxiosInstance.get.mockResolvedValueOnce({
+        data: [{ id: "conv-1", title: "Conv 1" }],
+      });
+
+      const resList = await sdk.getAdminConversations("u1");
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith("/api/v1/admin/conversations", {
+        params: { userId: "u1" },
+      });
+      expect(resList).toEqual([{ id: "conv-1", title: "Conv 1" }]);
+
+      mockAxiosInstance.get.mockResolvedValueOnce({
+        data: { id: "conv-1", title: "Conv 1", messages: [] },
+      });
+      const resSingle = await sdk.getAdminConversation("conv-1");
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith("/api/v1/admin/conversations/conv-1");
+      expect(resSingle).toEqual({ id: "conv-1", title: "Conv 1", messages: [] });
+    });
+
+    it("should fetch user conversations via getUserConversations", async () => {
+      const sdk = new LogibotClientSDK({ baseUrl: "http://localhost:3000" });
+      mockAxiosInstance.get.mockResolvedValueOnce({
+        data: [{ id: "conv-user-1", title: "User Conv 1", _count: { messages: 2 } }],
+      });
+
+      const res = await sdk.getUserConversations("u123");
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith("/api/v1/admin/users/u123/conversations");
+      expect(res).toEqual([{ id: "conv-user-1", title: "User Conv 1", _count: { messages: 2 } }]);
+    });
   });
 
   describe("connectJobStream (SSE)", () => {
@@ -191,9 +237,28 @@ describe("LogibotClientSDK", () => {
       onmessage: ((event: any) => void) | null = null;
       onerror: ((err: any) => void) | null = null;
       closed = false;
+      listeners: Map<string, Array<(event: any) => void>> = new Map();
 
       constructor(url: string) {
         this.url = url;
+      }
+
+      addEventListener(type: string, listener: (event: any) => void) {
+        if (!this.listeners.has(type)) {
+          this.listeners.set(type, []);
+        }
+        this.listeners.get(type)!.push(listener);
+      }
+
+      emit(type: string, data: any) {
+        const event = { data: typeof data === "string" ? data : JSON.stringify(data) };
+        if (this.onmessage) {
+          this.onmessage(event);
+        }
+        const callbacks = this.listeners.get(type) || [];
+        for (const cb of callbacks) {
+          cb(event);
+        }
       }
 
       close() {
@@ -205,13 +270,22 @@ describe("LogibotClientSDK", () => {
       (globalThis as any).EventSource = MockEventSource;
     });
 
-    it("should open EventSource with token in URL if set", () => {
+    it("should open EventSource at /sse/:jobId without token in URL", () => {
+      let createdEsInstance: MockEventSource | null = null;
+      (globalThis as any).EventSource = class extends MockEventSource {
+        constructor(url: string) {
+          super(url);
+          createdEsInstance = this;
+        }
+      };
+
       const sdk = new LogibotClientSDK({
         baseUrl: "http://localhost:3000",
         token: "my-token",
       });
 
       const unsubscribe = sdk.connectJobStream("job-123", {});
+      expect(createdEsInstance!.url).toBe("http://localhost:3000/sse/job-123");
       expect(unsubscribe).toBeTypeOf("function");
       unsubscribe();
     });
@@ -278,10 +352,10 @@ describe("LogibotClientSDK", () => {
       unsubscribe();
     });
 
-    it("should dispatch onStatus for a worker completion envelope (kind: stats) even though it matches no switch case", () => {
+    it("should dispatch onStatus for a worker completion envelope (kind: stats)", () => {
       const sdk = new LogibotClientSDK({ baseUrl: "http://localhost:3000" });
       const onStatus = vi.fn();
-      const onUnknownEvent = vi.fn();
+      const onStatistics = vi.fn();
 
       let createdEsInstance: MockEventSource | null = null;
       (globalThis as any).EventSource = class extends MockEventSource {
@@ -291,7 +365,7 @@ describe("LogibotClientSDK", () => {
         }
       };
 
-      const unsubscribe = sdk.connectJobStream("job-stats", { onStatus, onUnknownEvent });
+      const unsubscribe = sdk.connectJobStream("job-stats", { onStatus, onStatistics });
       const es = createdEsInstance!;
 
       es.onmessage!({
@@ -303,13 +377,39 @@ describe("LogibotClientSDK", () => {
         }),
       });
 
+      // Un événement portant à la fois un statut et des statistiques est
+      // classé en priorité comme changement de statut (isStatus avant
+      // isStats) : c'est le signal le plus actionnable pour l'appelant.
       expect(onStatus).toHaveBeenCalledWith("COMPLETED", undefined);
-      // eventType résolu à "stats" (data.kind), qui ne matche aucun case du
-      // switch ("token"/"status"/"statistics") : sans le dispatch
-      // indépendant, onStatus ne serait jamais appelé ici.
-      expect(onUnknownEvent).toHaveBeenCalledWith("stats", expect.objectContaining({ status: "COMPLETED" }));
+      expect(onStatistics).not.toHaveBeenCalled();
 
       unsubscribe();
+    });
+
+    it("should connect to admin conversation SSE stream and emit tokens/status", () => {
+      const sdk = new LogibotClientSDK({ baseUrl: "http://localhost:3000", token: "admin-jwt" });
+      const onToken = vi.fn();
+      const onStatus = vi.fn();
+
+      let createdEsInstance: MockEventSource | null = null;
+      (globalThis as any).EventSource = class extends MockEventSource {
+        constructor(url: string) {
+          super(url);
+          createdEsInstance = this;
+        }
+      };
+
+      const unsubscribe = sdk.connectAdminConversationStream("conv-777", { onToken, onStatus });
+      expect(createdEsInstance!.url).toBe("http://localhost:3000/sse/v1/admin/conversations/conv-777?token=admin-jwt");
+
+      createdEsInstance!.emit("job.progress", { type: "job.progress", payload: { kind: "token", chunk: "Admin live token " } });
+      expect(onToken).toHaveBeenCalledWith("Admin live token ");
+
+      createdEsInstance!.emit("job.completed", { type: "job.completed", payload: { status: "COMPLETED" } });
+      expect(onStatus).toHaveBeenCalledWith("COMPLETED");
+
+      unsubscribe();
+      expect(createdEsInstance!.closed).toBe(true);
     });
   });
 });

@@ -16,7 +16,7 @@ export default defineConfig({
       exclude: [
         "**/node_modules/**",
         "**/dist/**",
-        "packages/logistics-agent/src/generated/**",
+        "packages/logistics-agent/prisma/generated/**",
         "**/*.test.ts",
         "**/*.spec.ts"
       ],

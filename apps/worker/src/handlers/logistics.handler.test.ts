@@ -50,7 +50,7 @@ describe("createLogisticsHandler", () => {
 
     assert.strictEqual(findUniqueCalled, false);
     assert.strictEqual(tokens.length, 1);
-    assert.match(tokens[0]!, /email manquant/i);
+    assert.match(tokens[0]!, /identifier/i);
   });
 
   it("devrait envoyer un message clair si aucun customer ne correspond à l'email", async () => {
@@ -66,7 +66,7 @@ describe("createLogisticsHandler", () => {
     await handler({ prompt: "Où est ma commande ?", customer: { email: "inconnu@test.com" } }, ctx as any);
 
     assert.strictEqual(tokens.length, 1);
-    assert.match(tokens[0]!, /fiche client/i);
+    assert.match(tokens[0]!, /aucun compte client/i);
   });
 
   it("devrait streamer le texte et injecter un bloc chart déterministe depuis le tool call", async () => {
@@ -74,7 +74,7 @@ describe("createLogisticsHandler", () => {
       customer: {
         findUnique: async ({ where }: any) => {
           assert.strictEqual(where.email, "client@test.com");
-          return { id: "cust-1", email: "client@test.com" };
+          return { id: "11111111-1111-4111-8111-111111111111", email: "client@test.com", isActive: true };
         },
       },
     };
@@ -108,7 +108,10 @@ describe("createLogisticsHandler", () => {
       ctx as any,
     );
 
-    assert.deepStrictEqual(receivedAgentOptions.customer, { customerId: "cust-1", email: "client@test.com" });
+    assert.deepStrictEqual(receivedAgentOptions.customer, {
+      customerId: "11111111-1111-4111-8111-111111111111",
+      email: "client@test.com",
+    });
 
     const fullContent = tokens.join("");
     assert.match(fullContent, /Le produit est disponible\./);
@@ -117,7 +120,15 @@ describe("createLogisticsHandler", () => {
   });
 
   it("devrait arrêter le streaming de texte si l'annulation est détectée", async () => {
-    const prisma: any = { customer: { findUnique: async () => ({ id: "cust-1", email: "client@test.com" }) } };
+    const prisma: any = {
+      customer: {
+        findUnique: async () => ({
+          id: "11111111-1111-4111-8111-111111111111",
+          email: "client@test.com",
+          isActive: true,
+        }),
+      },
+    };
     const createAgent = () => fakeAgentStream(["A", "B", "C"], []);
 
     const handler = createLogisticsHandler({ getPrisma: () => prisma, createAgent: createAgent as any });

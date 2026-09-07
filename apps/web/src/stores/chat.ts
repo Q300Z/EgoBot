@@ -7,14 +7,26 @@ export const useChatStore = defineStore("chat", () => {
   const conversations = ref<any[]>([]);
   const currentConversation = ref<any | null>(null);
   const isStreaming = ref(false);
+  const isLoadingConversations = ref(false);
+  const isLoadingConversation = ref(false);
   const activeStreamCleanup = ref<(() => void) | null>(null);
 
   async function loadConversations() {
-    conversations.value = await authStore.sdk.getConversations();
+    isLoadingConversations.value = true;
+    try {
+      conversations.value = await authStore.sdk.getConversations();
+    } finally {
+      isLoadingConversations.value = false;
+    }
   }
 
   async function loadConversation(id: string) {
-    currentConversation.value = await authStore.sdk.getConversation(id);
+    isLoadingConversation.value = true;
+    try {
+      currentConversation.value = await authStore.sdk.getConversation(id);
+    } finally {
+      isLoadingConversation.value = false;
+    }
   }
 
   async function sendMessage(prompt: string, model: string = "CHATBOT") {
@@ -30,7 +42,6 @@ export const useChatStore = defineStore("chat", () => {
 
     if (!currentConversation.value) {
       await loadConversation(jobResult.conversation_id);
-      // Mise à jour de la sidebar : la nouvelle conversation doit apparaître dans la liste
       await loadConversations();
     } else {
       currentConversation.value.messages.push({ role: "USER", content: prompt });
@@ -41,15 +52,14 @@ export const useChatStore = defineStore("chat", () => {
     let receivedAnyToken = false;
     let fallbackTimer: any = null;
 
-    // Timer de Fallback SSE (6s d'inactivité)
     fallbackTimer = setTimeout(async () => {
       if (!receivedAnyToken) {
-        console.warn("[ChatStore] Fallback SSE activé -> Passage en Batch HTTP Polling");
+        console.warn("[ChatStore] Fallback SSE activé -> Passage en Batch HTTP Polling (aucun token reçu après 20s)");
         if (activeStreamCleanup.value) activeStreamCleanup.value();
         isStreaming.value = false;
         await loadConversation(jobResult.conversation_id);
       }
-    }, 6000);
+    }, 20000);
 
     const cleanup = authStore.sdk.connectJobStream(jobResult.job_id, {
       onToken: (chunk) => {
@@ -82,6 +92,8 @@ export const useChatStore = defineStore("chat", () => {
     conversations,
     currentConversation,
     isStreaming,
+    isLoadingConversations,
+    isLoadingConversation,
     loadConversations,
     loadConversation,
     sendMessage,

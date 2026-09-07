@@ -3,38 +3,43 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "default": "./dist/index.js"
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js",
+      "default": "./dist/src/index.js"
     },
     "./agent": {
-      "types": "./dist/agent/index.d.ts",
-      "import": "./dist/agent/index.js",
-      "default": "./dist/agent/index.js"
+      "types": "./dist/src/agent/index.d.ts",
+      "import": "./dist/src/agent/index.js",
+      "default": "./dist/src/agent/index.js"
     },
     "./database": {
-      "types": "./dist/database/index.d.ts",
-      "import": "./dist/database/index.js",
-      "default": "./dist/database/index.js"
+      "types": "./dist/src/database/index.d.ts",
+      "import": "./dist/src/database/index.js",
+      "default": "./dist/src/database/index.js"
     },
     "./dtos": {
-      "types": "./dist/dtos/index.d.ts",
-      "import": "./dist/dtos/index.js",
-      "default": "./dist/dtos/index.js"
+      "types": "./dist/src/dtos/index.d.ts",
+      "import": "./dist/src/dtos/index.js",
+      "default": "./dist/src/dtos/index.js"
+    },
+    "./runtime": {
+      "types": "./dist/src/runtime/index.d.ts",
+      "import": "./dist/src/runtime/index.js",
+      "default": "./dist/src/runtime/index.js"
     },
     "./services": {
-      "types": "./dist/services/index.d.ts",
-      "import": "./dist/services/index.js",
-      "default": "./dist/services/index.js"
+      "types": "./dist/src/services/index.d.ts",
+      "import": "./dist/src/services/index.js",
+      "default": "./dist/src/services/index.js"
     },
     "./tools": {
-      "types": "./dist/tools/index.d.ts",
-      "import": "./dist/tools/index.js",
-      "default": "./dist/tools/index.js"
+      "types": "./dist/src/tools/index.d.ts",
+      "import": "./dist/src/tools/index.js",
+      "default": "./dist/src/tools/index.js"
     }
   },
   "files": [
@@ -42,9 +47,11 @@
     "prisma"
   ],
   "scripts": {
-    "build": "prisma generate && tsc",
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && prisma generate && tsc",
     "dev": "tsc --watch",
     "test": "vitest run",
+    "try:agent": "tsx scripts/try-agent.ts",
     "prisma:format": "prisma format",
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate",
@@ -63,10 +70,12 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@faker-js/faker": "^10.5.0",
     "@types/node": "^26.1.1",
     "@types/pg": "^8.15.6",
+    "dotenv": "^17.4.2",
     "prisma": "^7.9.0",
-    "tsx": "^4.19.2",
+    "tsx": "^4.23.1",
     "typescript": "^7.0.2",
     "vitest": "^3.2.4"
   }

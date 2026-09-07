@@ -10,8 +10,11 @@
 // customerId, supplierId, orderId ou deliveryId dans la table Address.
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider               = "prisma-client"
+  output                 = "./generated/prisma"
+  generatedFileExtension = "ts"
+  importFileExtension    = "js"
+  moduleFormat           = "esm"
 }
 
 datasource db {
@@ -49,15 +52,6 @@ enum AddressStatus {
   ARCHIVED
 }
 
-/// Usage fonctionnel d'une adresse.
-enum AddressUsage {
-  CUSTOMER
-  SUPPLIER
-  BILLING
-  SHIPPING
-  DELIVERY
-}
-
 /// Nature d'un mouvement de stock.
 enum StockMovementType {
   RECEIPT
@@ -80,7 +74,7 @@ model Customer {
   email     String  @unique
   phone     String?
 
-  currentAddressId String? @db.Uuid
+  currentAddressId String? @unique @db.Uuid
   /// Adresse courante du client.
   /// Les adresses utilisées par une commande sont des lignes Address distinctes,
   /// généralement verrouillées pour conserver l'historique.
@@ -97,15 +91,15 @@ model Customer {
   @@index([lastName, firstName])
 }
 
-/// Adresse centralisée.
+/// Adresse unique et centralisée.
 ///
-/// Elle peut représenter une adresse courante ou une adresse figée utilisée
-/// pour une commande ou une livraison.
+/// Le même modèle est utilisé pour un client, un fournisseur, une commande
+/// ou une livraison. Son rôle est déduit de ses relations et n'est donc pas
+/// stocké dans un champ discriminant supplémentaire.
 model Address {
   id String @id @default(uuid()) @db.Uuid
 
   status AddressStatus @default(ACTIVE)
-  usage  AddressUsage
 
   label String?
   /// Libellé libre : domicile, bureau, entrepôt, etc.
@@ -126,16 +120,16 @@ model Address {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Champs inverses exigés par Prisma.
-  // Ils ne créent aucune clé étrangère dans la table Address.
-  currentForCustomers Customer[] @relation("CustomerCurrentAddress")
-  currentForSuppliers Supplier[] @relation("SupplierCurrentAddress")
+  // Relations inverses 1–1 exigées par Prisma.
+  // Elles ne créent aucune clé étrangère dans la table Address.
+  currentForCustomer Customer? @relation("CustomerCurrentAddress")
+  currentForSupplier Supplier? @relation("SupplierCurrentAddress")
 
-  billingOrders  Order[]    @relation("OrderBillingAddress")
-  shippingOrders Order[]    @relation("OrderShippingAddress")
-  deliveries     Delivery[]
+  billingOrder  Order?    @relation("OrderBillingAddress")
+  shippingOrder Order?    @relation("OrderShippingAddress")
+  delivery      Delivery? @relation("DeliveryAddress")
 
-  @@index([status, usage])
+  @@index([status])
   @@index([postalCode, city])
 }
 
@@ -149,10 +143,10 @@ model Order {
   customerId String   @db.Uuid
   customer   Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
 
-  billingAddressId String  @db.Uuid
+  billingAddressId String  @unique @db.Uuid
   billingAddress   Address @relation("OrderBillingAddress", fields: [billingAddressId], references: [id], onDelete: Restrict)
 
-  shippingAddressId String  @db.Uuid
+  shippingAddressId String  @unique @db.Uuid
   shippingAddress   Address @relation("OrderShippingAddress", fields: [shippingAddressId], references: [id], onDelete: Restrict)
 
   status OrderStatus @default(DRAFT)
@@ -254,8 +248,8 @@ model Delivery {
   orderId String @db.Uuid
   order   Order  @relation(fields: [orderId], references: [id], onDelete: Restrict)
 
-  addressId String  @db.Uuid
-  address   Address @relation(fields: [addressId], references: [id], onDelete: Restrict)
+  addressId String  @unique @db.Uuid
+  address   Address @relation("DeliveryAddress", fields: [addressId], references: [id], onDelete: Restrict)
 
   status DeliveryStatus @default(PLANNED)
 
@@ -308,7 +302,7 @@ model Supplier {
   contactEmail String?
   phone        String?
 
-  currentAddressId String?  @db.Uuid
+  currentAddressId String?  @unique @db.Uuid
   currentAddress   Address? @relation("SupplierCurrentAddress", fields: [currentAddressId], references: [id], onDelete: SetNull)
 
   isActive Boolean @default(true)
