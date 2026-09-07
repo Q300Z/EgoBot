@@ -13,7 +13,7 @@ const worker = new WorkerApplication({
 worker.registerTask("CHATBOT", async (payload, ctx) => {
   console.log(`[Worker TS] Prompt reçu pour le job ${ctx.jobId} : "${payload.prompt}"`);
 
-  const words = [
+  const firstPart = [
     "Bonjour",
     " !",
     " Je",
@@ -21,14 +21,42 @@ worker.registerTask("CHATBOT", async (payload, ctx) => {
     " un",
     " worker",
     " d'inférence",
-    " écrit",
-    " en",
-    " Pure",
-    " TypeScript",
-    " !",
+    " basé",
+    " sur",
+    " la",
+    " documentation",
+    " officielle",
+    " ",
   ];
 
-  for (const word of words) {
+  for (const word of firstPart) {
+    if (await ctx.checkCancellation()) {
+      console.warn(`[Worker TS] Annulation du job ${ctx.jobId} détectée !`);
+      return;
+    }
+    await ctx.sendToken(word);
+    await new Promise((r) => setTimeout(r, 120));
+  }
+
+  // Émission d'une source de données au milieu de la réponse
+  await ctx.sendSource({
+    title: "Manuel Logistique v2",
+    url: "https://example.com/doc",
+    type: "doc",
+  });
+
+  const secondPart = [
+    " ",
+    "pour",
+    " répondre",
+    " précisément",
+    " à",
+    " votre",
+    " demande",
+    ".",
+  ];
+
+  for (const word of secondPart) {
     if (await ctx.checkCancellation()) {
       console.warn(`[Worker TS] Annulation du job ${ctx.jobId} détectée !`);
       return;
