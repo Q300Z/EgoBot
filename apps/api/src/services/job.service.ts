@@ -1,4 +1,4 @@
-import { valkeyStream, valkeyWriter } from "../config/valkey.js";
+import { valkeyStream, valkeyWriter, scanKeys } from "../config/valkey.js";
 import { eventBus } from "../events/eventBus.js";
 import { JobRepository } from "../repositories/job.repository.js";
 import { ConversationRepository } from "../repositories/conversation.repository.js";
@@ -81,7 +81,7 @@ export class JobService {
   private static async pollSseStreams() {
     while (this.isRunning) {
       try {
-        const keys = await valkeyStream.keys(`jobs:sse:${STREAM_ENV}:*`);
+        const keys = await scanKeys(valkeyStream, `jobs:sse:${STREAM_ENV}:*`);
         for (const key of keys) {
           const parts = key.split(":");
           const jobId = parts[parts.length - 1];
