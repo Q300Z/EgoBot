@@ -64,17 +64,36 @@ export class WorkerApplication {
     }
   }
 
-  private async pollQueues() {
-    const commonGroupName = `group:llm-workers:${this.env}`;
-
+  /**
+   * Crée le groupe de consommateurs sur la file de chaque modèle.
+   *
+   * MKSTREAM crée aussi le stream s'il n'existe pas encore : le worker peut
+   * donc démarrer avant que le moindre job ait été publié. Une erreur
+   * BUSYGROUP signifie simplement que le groupe est déjà là — c'est le cas
+   * nominal à chaque redémarrage.
+   *
+   * `startId` distingue deux situations :
+   *  - "$" au démarrage : ne consommer que les jobs à venir, sans rejouer tout
+   *    l'historique du stream à chaque redémarrage du worker ;
+   *  - "0" après une perte de groupe : l'état du groupe ayant disparu, aucun
+   *    message présent dans le stream n'a été acquitté. Repartir de "$"
+   *    perdrait définitivement les jobs déjà en file.
+   */
+  private async ensureConsumerGroups(groupName: string, startId: "$" | "0" = "$") {
     for (const model of this.models) {
       const streamQueueKey = `jobs:queue:${this.env}:${model}`;
       try {
-        await this.redisReader.xgroup("CREATE", streamQueueKey, commonGroupName, "$", "MKSTREAM");
+        await this.redisReader.xgroup("CREATE", streamQueueKey, groupName, startId, "MKSTREAM");
       } catch (e) {
         // Ignorer si le groupe existe déjà
       }
     }
+  }
+
+  private async pollQueues() {
+    const commonGroupName = `group:llm-workers:${this.env}`;
+
+    await this.ensureConsumerGroups(commonGroupName);
 
     this.startPelRecoveryLoop(commonGroupName);
 
@@ -110,6 +129,21 @@ export class WorkerApplication {
           await this.sleep(10);
         }
       } catch (err) {
+        // NOGROUP : le stream ou son groupe de consommateurs a disparu — clé
+        // supprimée, expirée, ou instance Valkey réinitialisée. Le groupe
+        // n'était créé qu'au démarrage : sans recréation, le worker bouclait
+        // sur cette erreur indéfiniment et ne traitait plus aucun job jusqu'à
+        // un redémarrage manuel. Les jobs publiés entre-temps étaient perdus.
+        if (err instanceof Error && err.message.includes("NOGROUP")) {
+          console.warn("[Worker SDK] Groupe de consommateurs absent, recréation en cours...");
+          // "0" et non "$" : les jobs deja publies dans le stream n'ont ete
+          // acquittes par personne, puisque le groupe qui aurait pu le faire
+          // n'existe plus. Repartir de la fin les perdrait silencieusement.
+          await this.ensureConsumerGroups(commonGroupName, "0");
+          await this.sleep(100);
+          continue;
+        }
+
         console.error("[Worker SDK] Erreur lors du polling Redis Streams", err);
         await this.sleep(1000);
       }
