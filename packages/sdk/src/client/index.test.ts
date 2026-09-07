@@ -285,7 +285,7 @@ describe("LogibotClientSDK", () => {
       });
 
       const unsubscribe = sdk.connectJobStream("job-123", {});
-      expect(createdEsInstance?.url).toBe("http://localhost:3000/sse/job-123");
+      expect(createdEsInstance!.url).toBe("http://localhost:3000/sse/job-123");
       expect(unsubscribe).toBeTypeOf("function");
       unsubscribe();
     });

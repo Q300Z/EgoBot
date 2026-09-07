@@ -1,0 +1,413 @@
+// Schéma Prisma généré à partir du MCD Egobot.
+//
+// Base ciblée : PostgreSQL.
+// Les identifiants techniques sont des UUID.
+// Les montants utilisent Decimal afin d'éviter les erreurs d'arrondi.
+//
+// Remarque Prisma :
+// les relations doivent être déclarées dans les deux modèles.
+// Les collections inverses présentes dans Address ne créent aucune colonne
+// customerId, supplierId, orderId ou deliveryId dans la table Address.
+
+generator client {
+  provider               = "prisma-client"
+  output                 = "./generated/prisma"
+  generatedFileExtension = "ts"
+  importFileExtension    = "js"
+  moduleFormat           = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Statut global d'une commande.
+enum OrderStatus {
+  DRAFT
+  CONFIRMED
+  PROCESSING
+  PARTIALLY_SHIPPED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+/// Statut opérationnel d'une livraison.
+enum DeliveryStatus {
+  PLANNED
+  PREPARING
+  READY
+  IN_TRANSIT
+  DELIVERED
+  FAILED
+  RETURNED
+  CANCELLED
+}
+
+/// Statut de cycle de vie d'une adresse.
+enum AddressStatus {
+  DRAFT
+  ACTIVE
+  LOCKED
+  ARCHIVED
+}
+
+/// Nature d'un mouvement de stock.
+enum StockMovementType {
+  RECEIPT
+  RESERVATION
+  RELEASE
+  SHIPMENT
+  ADJUSTMENT
+  RETURN
+}
+
+/// Client passant des commandes.
+model Customer {
+  id String @id @default(uuid()) @db.Uuid
+
+  customerNumber String @unique
+  /// Référence métier lisible du client.
+
+  firstName String
+  lastName  String
+  email     String  @unique
+  phone     String?
+
+  currentAddressId String? @unique @db.Uuid
+  /// Adresse courante du client.
+  /// Les adresses utilisées par une commande sont des lignes Address distinctes,
+  /// généralement verrouillées pour conserver l'historique.
+
+  currentAddress Address? @relation("CustomerCurrentAddress", fields: [currentAddressId], references: [id], onDelete: SetNull)
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders Order[]
+
+  @@index([lastName, firstName])
+}
+
+/// Adresse unique et centralisée.
+///
+/// Le même modèle est utilisé pour un client, un fournisseur, une commande
+/// ou une livraison. Son rôle est déduit de ses relations et n'est donc pas
+/// stocké dans un champ discriminant supplémentaire.
+model Address {
+  id String @id @default(uuid()) @db.Uuid
+
+  status AddressStatus @default(ACTIVE)
+
+  label String?
+  /// Libellé libre : domicile, bureau, entrepôt, etc.
+
+  line1 String
+  line2 String?
+
+  postalCode      String
+  city            String
+  stateOrProvince String?
+
+  countryCode String @db.VarChar(2)
+  /// Code pays ISO 3166-1 alpha-2, par exemple FR ou BE.
+
+  lockedAt DateTime?
+  /// Date de verrouillage lorsque l'adresse ne doit plus être modifiée.
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations inverses 1–1 exigées par Prisma.
+  // Elles ne créent aucune clé étrangère dans la table Address.
+  currentForCustomer Customer? @relation("CustomerCurrentAddress")
+  currentForSupplier Supplier? @relation("SupplierCurrentAddress")
+
+  billingOrder  Order?    @relation("OrderBillingAddress")
+  shippingOrder Order?    @relation("OrderShippingAddress")
+  delivery      Delivery? @relation("DeliveryAddress")
+
+  @@index([status])
+  @@index([postalCode, city])
+}
+
+/// Commande passée par un client.
+model Order {
+  id String @id @default(uuid()) @db.Uuid
+
+  orderNumber String @unique
+  /// Référence métier de la commande.
+
+  customerId String   @db.Uuid
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+
+  billingAddressId String  @unique @db.Uuid
+  billingAddress   Address @relation("OrderBillingAddress", fields: [billingAddressId], references: [id], onDelete: Restrict)
+
+  shippingAddressId String  @unique @db.Uuid
+  shippingAddress   Address @relation("OrderShippingAddress", fields: [shippingAddressId], references: [id], onDelete: Restrict)
+
+  status OrderStatus @default(DRAFT)
+
+  orderedAt             DateTime?
+  requestedDeliveryDate DateTime?
+
+  currencyCode String @default("EUR") @db.VarChar(3)
+  /// Code ISO 4217 de la devise.
+
+  subtotalAmount Decimal @db.Decimal(12, 2)
+  discountAmount Decimal @default(0) @db.Decimal(12, 2)
+  shippingAmount Decimal @default(0) @db.Decimal(12, 2)
+  taxAmount      Decimal @default(0) @db.Decimal(12, 2)
+
+  totalExcludingTax Decimal @db.Decimal(12, 2)
+  totalIncludingTax Decimal @db.Decimal(12, 2)
+
+  paidAmount     Decimal @default(0) @db.Decimal(12, 2)
+  refundedAmount Decimal @default(0) @db.Decimal(12, 2)
+  amountDue      Decimal @default(0) @db.Decimal(12, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lines      OrderLine[]
+  deliveries Delivery[]
+
+  @@index([customerId, createdAt])
+  @@index([status, createdAt])
+  @@index([requestedDeliveryDate])
+}
+
+/// Prix figé d'une ligne de commande.
+///
+/// Cette entité conserve les montants tels qu'ils étaient au moment
+/// de la commande, même si le prix catalogue de l'article évolue ensuite.
+model OrderLinePrice {
+  id String @id @default(uuid()) @db.Uuid
+
+  currencyCode String @default("EUR") @db.VarChar(3)
+
+  unitPriceExcludingTax Decimal @db.Decimal(12, 2)
+  discountAmount        Decimal @default(0) @db.Decimal(12, 2)
+
+  taxRate Decimal @db.Decimal(5, 2)
+  /// Pourcentage de taxe, par exemple 20.00 pour 20 %.
+
+  taxAmount Decimal @default(0) @db.Decimal(12, 2)
+
+  lineTotalExcludingTax Decimal @db.Decimal(12, 2)
+  lineTotalIncludingTax Decimal @db.Decimal(12, 2)
+
+  frozenAt DateTime @default(now())
+
+  orderLine OrderLine?
+}
+
+/// Ligne d'une commande.
+///
+/// Elle contient l'article et la quantité commandée.
+/// Les informations financières sont isolées dans OrderLinePrice.
+model OrderLine {
+  id String @id @default(uuid()) @db.Uuid
+
+  orderId String @db.Uuid
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  priceId String         @unique @db.Uuid
+  price   OrderLinePrice @relation(fields: [priceId], references: [id], onDelete: Restrict)
+  /// Relation 1–1 vers le prix figé de cette ligne.
+
+  productId String  @db.Uuid
+  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  lineNumber Int
+
+  skuSnapshot  String
+  nameSnapshot String
+  /// Copie du SKU et du nom au moment de la commande.
+
+  orderedQuantity Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deliveryLines DeliveryLine[]
+
+  @@unique([orderId, lineNumber])
+  @@index([productId])
+}
+
+/// Livraison rattachée à une commande.
+model Delivery {
+  id String @id @default(uuid()) @db.Uuid
+
+  deliveryNumber String @unique
+
+  orderId String @db.Uuid
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  addressId String  @unique @db.Uuid
+  address   Address @relation("DeliveryAddress", fields: [addressId], references: [id], onDelete: Restrict)
+
+  status DeliveryStatus @default(PLANNED)
+
+  carrierName    String?
+  trackingNumber String?
+  trackingUrl    String?
+
+  plannedShipmentAt   DateTime?
+  shippedAt           DateTime?
+  estimatedDeliveryAt DateTime?
+  deliveredAt         DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lines DeliveryLine[]
+
+  @@index([orderId, createdAt])
+  @@index([status, estimatedDeliveryAt])
+  @@index([trackingNumber])
+}
+
+/// Répartition d'une ligne de commande dans une livraison.
+///
+/// Cette table permet notamment les livraisons partielles : une même
+/// OrderLine peut être répartie entre plusieurs Delivery.
+model DeliveryLine {
+  id String @id @default(uuid()) @db.Uuid
+
+  deliveryId String   @db.Uuid
+  delivery   Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+
+  orderLineId String    @db.Uuid
+  orderLine   OrderLine @relation(fields: [orderLineId], references: [id], onDelete: Restrict)
+
+  shippedQuantity Int
+  createdAt       DateTime @default(now())
+
+  @@unique([deliveryId, orderLineId])
+  @@index([orderLineId])
+}
+
+/// Fournisseur d'articles.
+model Supplier {
+  id String @id @default(uuid()) @db.Uuid
+
+  supplierCode String @unique
+  name         String
+
+  contactEmail String?
+  phone        String?
+
+  currentAddressId String?  @unique @db.Uuid
+  currentAddress   Address? @relation("SupplierCurrentAddress", fields: [currentAddressId], references: [id], onDelete: SetNull)
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products SupplierProduct[]
+
+  @@index([name])
+}
+
+/// Conditions d'approvisionnement d'un article auprès d'un fournisseur.
+model SupplierProduct {
+  id String @id @default(uuid()) @db.Uuid
+
+  supplierId String   @db.Uuid
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  productId String  @db.Uuid
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  supplierSku String?
+
+  purchasePrice Decimal @db.Decimal(12, 2)
+  currencyCode  String  @default("EUR") @db.VarChar(3)
+
+  leadTimeDays         Int?
+  minimumOrderQuantity Int  @default(1)
+
+  isPreferred Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([supplierId, productId])
+  @@index([productId, isPreferred])
+}
+
+/// Article vendu et suivi en stock.
+model Product {
+  id String @id @default(uuid()) @db.Uuid
+
+  sku         String  @unique
+  name        String
+  description String?
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  suppliers      SupplierProduct[]
+  orderLines     OrderLine[]
+  stockItems     StockItem[]
+  stockMovements StockMovement[]
+
+  @@index([name])
+}
+
+/// Position de stock courante pour un article et un emplacement.
+model StockItem {
+  id String @id @default(uuid()) @db.Uuid
+
+  productId String  @db.Uuid
+  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  locationCode String
+
+  onHandQuantity      Int @default(0)
+  reservedQuantity    Int @default(0)
+  availableQuantity   Int @default(0)
+  safetyStockQuantity Int @default(0)
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId, locationCode])
+  @@index([locationCode])
+  @@index([availableQuantity])
+}
+
+/// Historique des variations de stock.
+model StockMovement {
+  id String @id @default(uuid()) @db.Uuid
+
+  productId String  @db.Uuid
+  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  locationCode String
+
+  movementType  StockMovementType
+  quantityDelta Int
+  /// Quantité signée : positive pour une entrée, négative pour une sortie.
+
+  referenceType String?
+  referenceId   String?
+  /// Référence fonctionnelle facultative vers la commande,
+  /// la livraison ou une autre origine du mouvement.
+
+  reason     String?
+  occurredAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+
+  @@index([productId, occurredAt])
+  @@index([locationCode, occurredAt])
+  @@index([referenceType, referenceId])
+}
