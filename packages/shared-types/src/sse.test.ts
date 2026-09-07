@@ -113,18 +113,20 @@ describe("SSE Schemas", () => {
       expect(SourceDataSchema.parse(source)).toEqual(source);
     });
 
-    it("should parse source data with only title", () => {
-      const source = {
-        title: "Manuel Logistique",
-      };
-      expect(SourceDataSchema.parse(source)).toEqual({
-        title: "Manuel Logistique",
-        type: "doc",
-      });
+    it("should reject source without title", () => {
+      expect(() => SourceDataSchema.parse({ type: "doc", url: "https://example.com" })).toThrow();
     });
 
-    it("should reject source without title", () => {
-      expect(() => SourceDataSchema.parse({ url: "https://example.com" })).toThrow();
+    it("should reject source with empty title", () => {
+      expect(() => SourceDataSchema.parse({ title: "", type: "doc" })).toThrow();
+    });
+
+    it("should reject source without type", () => {
+      expect(() => SourceDataSchema.parse({ title: "Manuel Logistique" })).toThrow();
+    });
+
+    it("should reject source with invalid type", () => {
+      expect(() => SourceDataSchema.parse({ title: "Manuel", type: "invalid_type" })).toThrow();
     });
   });
 

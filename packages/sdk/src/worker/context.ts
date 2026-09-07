@@ -1,14 +1,12 @@
 import Redis from "ioredis";
-import type { SourceType, SourceData } from "@egobot/shared-types";
+import { type SourceType, type SourceData, SourceDataSchema } from "@egobot/shared-types";
 
 export interface WorkerTaskContext {
   jobId: string;
   conversationId: string;
   sendToken: (chunk: string) => Promise<void>;
   sendSource: (
-    source:
-      | { title: string; url?: string; id?: string; type?: SourceType | string }
-      | string
+    source: { title: string; type: SourceType; url?: string; id?: string } | SourceData
   ) => Promise<void>;
   deferJob: (targetModel: string) => Promise<void>;
   checkCancellation: () => Promise<boolean>;
@@ -50,14 +48,9 @@ export function createWorkerContext(
       await redisWriter.expire(streamKey, 3600);
     },
     sendSource: async (
-      source:
-        | { title: string; url?: string; id?: string; type?: SourceType | string }
-        | string
+      source: { title: string; type: SourceType; url?: string; id?: string } | SourceData
     ) => {
-      const sourceObj =
-        typeof source === "string"
-          ? { title: source, type: "doc" }
-          : { type: "doc", ...source };
+      const sourceObj = SourceDataSchema.parse(source);
       const marker = `[[source:${JSON.stringify(sourceObj)}]]`;
       const envelope = {
         event: "source",

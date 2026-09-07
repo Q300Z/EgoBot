@@ -43,9 +43,9 @@ export type SourceType = z.infer<typeof SourceTypeEnum>;
 // Schéma pour les sources de données
 export const SourceDataSchema = z.object({
   id: z.string().optional(),
-  title: z.string(),
+  title: z.string().min(1, "Le titre de la source est obligatoire"),
+  type: SourceTypeEnum,
   url: z.string().optional(),
-  type: SourceTypeEnum.optional().default("doc"),
 });
 export type SourceData = z.infer<typeof SourceDataSchema>;
 

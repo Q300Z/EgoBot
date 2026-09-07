@@ -81,10 +81,10 @@ describe("createWorkerContext", () => {
         status: "IN_PROGRESS",
         job_id: "job-123",
         conversation_id: "conv-456",
-        chunk: '[[source:{"type":"doc","title":"Manuel Logistique v2","url":"https://example.com/doc"}]]',
+        chunk: '[[source:{"title":"Manuel Logistique v2","type":"doc","url":"https://example.com/doc"}]]',
         source: {
-          type: "doc",
           title: "Manuel Logistique v2",
+          type: "doc",
           url: "https://example.com/doc",
         },
       },
@@ -93,15 +93,17 @@ describe("createWorkerContext", () => {
     expect(mockRedisWriter.expire).toHaveBeenCalledWith("jobs:sse:production:job-123", 3600);
   });
 
-  it("should send source string to redis sse stream", async () => {
+  it("should reject source when title or type is missing", async () => {
     const ctx = createWorkerContext("job-123", "conv-456", "dev", mockRedisWriter);
 
-    await ctx.sendSource("Guide Utilisateur");
+    // @ts-expect-error: missing type
+    await expect(ctx.sendSource({ title: "Guide" })).rejects.toThrow();
 
-    const dataString = mockRedisWriter.xadd.mock.calls[0][8];
-    const parsed = JSON.parse(dataString);
-    expect(parsed.data.source).toEqual({ title: "Guide Utilisateur", type: "doc" });
-    expect(parsed.data.chunk).toBe('[[source:{"title":"Guide Utilisateur","type":"doc"}]]');
+    // @ts-expect-error: missing title
+    await expect(ctx.sendSource({ type: "doc" })).rejects.toThrow();
+
+    // empty title
+    await expect(ctx.sendSource({ title: "", type: "doc" })).rejects.toThrow();
   });
 
   it("should handle deferJob by publishing defer token pattern", async () => {
