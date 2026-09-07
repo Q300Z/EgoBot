@@ -23,6 +23,18 @@ services:
     depends_on:
       - valkey
 
+  postgres:
+    image: postgres:16-alpine
+    container_name: scaffold_postgres_dev
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=egobot
+      - POSTGRES_PASSWORD=egobot
+      - POSTGRES_DB=egobot
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+
   worker:
     build:
       context: .
@@ -32,8 +44,10 @@ services:
       - NODE_ENV=development
       - VALKEY_URL=redis://valkey:6379
       - REDIS_URL=redis://valkey:6379
+      - DATABASE_URL=postgresql://egobot:egobot@postgres:5432/egobot
     depends_on:
       - valkey
+      - postgres
 
   web:
     build:
@@ -44,3 +58,6 @@ services:
       - "3000:3000"
     depends_on:
       - api
+
+volumes:
+  postgres_dev_data:

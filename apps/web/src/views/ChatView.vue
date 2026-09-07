@@ -131,6 +131,17 @@
 
       <!-- Zone de Saisie avec v-textarea multi-lignes auto-extensible -->
       <div class="border-t pa-3 bg-surface">
+        <v-btn-toggle
+          v-if="!chatStore.currentConversation"
+          v-model="selectedModel"
+          color="primary"
+          density="compact"
+          mandatory
+          class="mb-2"
+        >
+          <v-btn value="CHATBOT" size="small">Assistant général</v-btn>
+          <v-btn value="LOGISTICS" size="small">Suivi commandes</v-btn>
+        </v-btn-toggle>
         <div class="d-flex align-center">
           <v-textarea
             v-model="promptInput"
@@ -180,6 +191,7 @@ const authStore = useAuthStore();
 const uiStore = useUiStore();
 
 const promptInput = ref("");
+const selectedModel = ref<"CHATBOT" | "LOGISTICS">("CHATBOT");
 const chatBoxRef = ref<HTMLElement | null>(null);
 
 async function selectConversation(id: string) {
@@ -202,7 +214,7 @@ async function handleSend() {
   const text = promptInput.value;
   promptInput.value = "";
   try {
-    await chatStore.sendMessage(text);
+    await chatStore.sendMessage(text, chatStore.currentConversation?.model || selectedModel.value);
     await scrollToBottom();
   } catch (err: any) {
     if (err.response?.status === 401) {

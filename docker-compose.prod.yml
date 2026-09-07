@@ -1,62 +1,125 @@
-version: '3.8'
+# Stack de production EgoBot.
+#
+# Les secrets ne sont plus ecrits en dur : la syntaxe ${VAR:?message} fait
+# echouer `docker compose up` immediatement si la variable est absente, plutot
+# que de demarrer avec une valeur par defaut publique. Voir .env.example.
+#
+#   docker compose -f docker-compose.prod.yml up -d --build
 
 services:
   valkey:
     image: valkey/valkey:8-alpine
-    container_name: scaffold_valkey_prod
-    ports:
-      - "6379:6379"
+    container_name: egobot_valkey_prod
     command: valkey-server --appendonly yes
+    volumes:
+      - valkey_prod_data:/data
     healthcheck:
       test: ["CMD", "valkey-cli", "ping"]
       interval: 10s
       timeout: 3s
-      retries: 3
+      retries: 5
+    restart: always
+
+  # Base de l'agent logistique. Absente jusqu'ici de la production alors que le
+  # worker en depend depuis l'ajout de la tache LOGISTICS.
+  postgres:
+    image: postgres:16-alpine
+    container_name: egobot_postgres_prod
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-egobot}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD est requis}
+      - POSTGRES_DB=${POSTGRES_DB:-egobot}
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-egobot} -d ${POSTGRES_DB:-egobot}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: always
 
   api:
     build:
       context: .
       dockerfile: apps/api/Dockerfile.prod
-    container_name: scaffold_api_prod
+    container_name: egobot_api_prod
     ports:
       - "8000:8000"
     environment:
       - PORT=8000
       - NODE_ENV=production
       - VALKEY_URL=redis://valkey:6379
+      - REDIS_URL=redis://valkey:6379
       - SECRET_KEY=${SECRET_KEY:-${JWT_SECRET}}
+      - JWT_SECRET=${JWT_SECRET:-${SECRET_KEY}}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+      - DATABASE_URL=/app/prisma/prod.db
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8000/health"]
       interval: 15s
       timeout: 5s
       retries: 3
       start_period: 10s
+    volumes:
+      - api_prod_data:/app/prisma
     depends_on:
       valkey:
         condition: service_healthy
     restart: always
 
+  # Conteneur ephemere : applique les migrations PostgreSQL puis s'arrete.
+  # Le worker attend sa sortie en succes avant de demarrer, ce qui garantit que
+  # le schema existe avant le premier job LOGISTICS.
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile.prod
+      target: migrator
+    container_name: egobot_migrate_prod
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-egobot}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD est requis}@postgres:5432/${POSTGRES_DB:-egobot}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
   worker:
     build:
       context: .
       dockerfile: apps/worker/Dockerfile.prod
-    container_name: scaffold_worker_prod
+    container_name: egobot_worker_prod
     environment:
       - NODE_ENV=production
       - VALKEY_URL=redis://valkey:6379
       - REDIS_URL=redis://valkey:6379
+      # Ici DATABASE_URL est bien une chaine de connexion PostgreSQL, consommee
+      # par createPrismaClient de @egobot/logistics-agent.
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-egobot}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD est requis}@postgres:5432/${POSTGRES_DB:-egobot}
+      # Requise par createLogisticsAgent (ChatOpenAI). Sans elle, tout job
+      # LOGISTICS echoue a l'instanciation du modele.
+      - OPENAI_API_KEY=${OPENAI_API_KEY:?OPENAI_API_KEY est requis}
+      - LOGISTICS_MODEL=${LOGISTICS_MODEL:-gpt-5}
     depends_on:
-      - valkey
+      valkey:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     restart: always
 
   web:
     build:
       context: .
       dockerfile: apps/web/Dockerfile.prod
-    container_name: scaffold_web_prod
+    container_name: egobot_web_prod
     ports:
       - "80:80"
     depends_on:
       - api
     restart: always
+
+volumes:
+  valkey_prod_data:
+  postgres_prod_data:
+  api_prod_data:

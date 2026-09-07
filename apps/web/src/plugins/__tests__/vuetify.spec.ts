@@ -8,13 +8,16 @@ describe("Vuetify Plugin", () => {
   });
 
   it("should define both dark and light themes", () => {
-    const themeDefinitions = (vuetify.theme as any).themes?.value || (vuetify.theme as any).definitions;
-    expect(themeDefinitions.dark).toBeDefined();
-    expect(themeDefinitions.light).toBeDefined();
+    // L'instance de thème expose `themes` (ref), pas `definitions`.
+    const themes = (vuetify.theme as any).themes.value;
+    expect(themes.dark).toBeDefined();
+    expect(themes.light).toBeDefined();
   });
 
   it("should use either dark or light as default theme", () => {
-    const defaultTheme = (vuetify.theme as any).name?.value || (vuetify.theme as any).defaultTheme;
-    expect(["dark", "light"]).toContain(defaultTheme);
+    // Le thème actif est lu via `name` (ref) ; `defaultTheme` est une option
+    // de création, non réexposée sur l'instance.
+    const activeTheme = (vuetify.theme as any).name.value;
+    expect(["dark", "light"]).toContain(activeTheme);
   });
 });

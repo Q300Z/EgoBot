@@ -78,11 +78,12 @@ describe("EgobotClientSDK", () => {
         data: { token: "jwt-token-456", user: { id: "u2" } },
       });
 
-      const res = await sdk.register("test@test.com", "password123", "ADMIN");
+      const res = await sdk.register("test@test.com", "password123");
+      // Aucun champ role : l'inscription publique ne permet pas de choisir
+      // son niveau de privilege.
       expect(mockAxiosInstance.post).toHaveBeenCalledWith("/api/v1/auth/register", {
         email: "test@test.com",
         password: "password123",
-        role: "ADMIN",
       });
       expect(res).toEqual({ token: "jwt-token-456", user: { id: "u2" } });
       expect(mockAxiosInstance.defaults.headers.common["Authorization"]).toBe("Bearer jwt-token-456");
@@ -270,7 +271,7 @@ describe("EgobotClientSDK", () => {
       (globalThis as any).EventSource = MockEventSource;
     });
 
-    it("should open EventSource at /sse/:jobId without token in URL", () => {
+    it("should open EventSource at /sse/:jobId", () => {
       let createdEsInstance: any = null;
       (globalThis as any).EventSource = class extends MockEventSource {
         constructor(url: string) {
@@ -285,7 +286,7 @@ describe("EgobotClientSDK", () => {
       });
 
       const unsubscribe = sdk.connectJobStream("job-123", {});
-      expect((createdEsInstance as any)?.url).toBe("http://localhost:3000/sse/job-123");
+      expect((createdEsInstance as any)?.url).toBe("http://localhost:3000/sse/job-123?token=my-token");
       expect(unsubscribe).toBeTypeOf("function");
       unsubscribe();
     });
@@ -349,6 +350,40 @@ describe("EgobotClientSDK", () => {
       expect(es.closed).toBe(true);
 
       // 8. Call unsubscribe
+      unsubscribe();
+    });
+
+    it("should dispatch onStatus for a worker completion envelope (kind: stats)", () => {
+      const sdk = new EgobotClientSDK({ baseUrl: "http://localhost:3000" });
+      const onStatus = vi.fn();
+      const onStatistics = vi.fn();
+
+      let createdEsInstance: MockEventSource | null = null;
+      (globalThis as any).EventSource = class extends MockEventSource {
+        constructor(url: string) {
+          super(url);
+          createdEsInstance = this;
+        }
+      };
+
+      const unsubscribe = sdk.connectJobStream("job-stats", { onStatus, onStatistics });
+      const es = createdEsInstance!;
+
+      es.onmessage!({
+        data: JSON.stringify({
+          kind: "stats",
+          status: "COMPLETED",
+          job_id: "job-stats",
+          statistics: { generated_tokens: 10 },
+        }),
+      });
+
+      // Un événement portant à la fois un statut et des statistiques est
+      // classé en priorité comme changement de statut (isStatus avant
+      // isStats) : c'est le signal le plus actionnable pour l'appelant.
+      expect(onStatus).toHaveBeenCalledWith("COMPLETED", undefined);
+      expect(onStatistics).not.toHaveBeenCalled();
+
       unsubscribe();
     });
 

@@ -9,6 +9,7 @@
     "test": "node --import tsx --test --experimental-test-coverage src/__tests__/run-all-tests.ts"
   },
   "dependencies": {
+    "@egobot/logistics-agent": "workspace:*",
     "@egobot/sdk": "workspace:*",
     "@egobot/shared-types": "workspace:*",
     "dotenv": "^17.4.2"

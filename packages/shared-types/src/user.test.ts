@@ -96,13 +96,20 @@ describe("User Schemas", () => {
       expect(RegisterRequestSchema.parse(payload)).toEqual(payload);
     });
 
-    it("should validate registration with role", () => {
-      const payload = {
+    it("should strip any role sent by the client", () => {
+      // L'inscription est publique : accepter un role depuis le client
+      // permettrait de se creer un compte administrateur. Le schema ne le
+      // declare plus, Zod le retire donc silencieusement du resultat.
+      const parsed = RegisterRequestSchema.parse({
         email: "adminuser@domain.com",
         password: "securepassword",
-        role: "ADMIN" as const,
-      };
-      expect(RegisterRequestSchema.parse(payload)).toEqual(payload);
+        role: "ADMIN",
+      });
+      expect(parsed).toEqual({
+        email: "adminuser@domain.com",
+        password: "securepassword",
+      });
+      expect(parsed).not.toHaveProperty("role");
     });
 
     it("should reject invalid registration payload", () => {

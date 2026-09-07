@@ -388,4 +388,42 @@ describe("WorkerApplication", () => {
     );
     consoleErrorSpy.mockRestore();
   });
+
+  it("should recreate the consumer group when Redis answers NOGROUP", async () => {
+    const app = new WorkerApplication({
+      workerId: "w1",
+      models: ["model-a"],
+      env: "test",
+    });
+
+    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    // Le groupe est cree une premiere fois au demarrage. On simule ensuite sa
+    // disparition : sans recreation, le worker bouclerait sur cette erreur
+    // sans plus jamais consommer de job.
+    mockRedisReader.xreadgroup.mockRejectedValueOnce(
+      new Error("NOGROUP No such key 'jobs:queue:test:model-a' or consumer group 'group:llm-workers:test'")
+    );
+
+    const startPromise = app.start();
+    await new Promise((r) => setTimeout(r, 120));
+    app.stop();
+    await startPromise;
+
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("Groupe de consommateurs absent"),
+    );
+
+    const creations = mockRedisReader.xgroup.mock.calls.filter(
+      (c: any[]) => c[0] === "CREATE" && c[1] === "jobs:queue:test:model-a",
+    );
+    // Une creation au demarrage, une seconde apres le NOGROUP.
+    expect(creations.length).toBeGreaterThanOrEqual(2);
+    // Au demarrage : "$", pour ne pas rejouer tout l'historique.
+    expect(creations[0][3]).toBe("$");
+    // Apres perte du groupe : "0", sinon les jobs deja en file sont perdus.
+    expect(creations[creations.length - 1][3]).toBe("0");
+
+    consoleWarnSpy.mockRestore();
+  });
 });

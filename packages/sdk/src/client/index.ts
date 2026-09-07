@@ -231,7 +231,10 @@ export class EgobotClientSDK {
       onError?: (err: any) => void;
     }
   ): () => void {
-    const streamUrl = `${this.api.defaults.baseURL}/sse/${jobId}`;
+    // EventSource n'accepte pas d'en-tête : le jeton passe par la query string,
+    // comme pour connectAdminConversationStream. Sans lui, l'API répond 401 —
+    // le flux d'un job n'est plus accessible du seul fait d'en connaître l'id.
+    const streamUrl = `${this.api.defaults.baseURL}/sse/${jobId}${this.token ? `?token=${encodeURIComponent(this.token)}` : ""}`;
     const eventSource = new EventSource(streamUrl);
 
     const handleEvent = (event: MessageEvent) => {
