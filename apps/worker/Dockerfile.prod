@@ -23,7 +23,23 @@ COPY --from=pruner /app/out/full/ .
 RUN pnpm build
 RUN pnpm --filter @egobot/worker deploy /prod/worker --prod --legacy
 
-# Stage 3: Minimal Production Runner (Dive Minimal Layer Image)
+# Stage 3: Migrateur (cible optionnelle, jamais construite par defaut)
+#
+# Le CLI Prisma est une devDependency de @egobot/logistics-agent : `pnpm deploy
+# --prod` l'exclut, l'image de production ne peut donc pas appliquer les
+# migrations. Cette cible repart de l'etage installer, ou les devDependencies
+# sont presentes, et sert de conteneur ephemere lance avant le worker.
+#
+# Construite uniquement via `target: migrator` (voir docker-compose.prod.yml) :
+# la CI qui build ce Dockerfile sans cible produit toujours l'etage runner.
+FROM node:22-alpine AS migrator
+WORKDIR /app
+RUN npm install -g pnpm@11.9.0
+COPY --from=installer /app .
+WORKDIR /app/packages/logistics-agent
+CMD ["pnpm", "exec", "prisma", "migrate", "deploy"]
+
+# Stage 4: Minimal Production Runner (Dive Minimal Layer Image)
 FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
