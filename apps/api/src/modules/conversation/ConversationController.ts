@@ -25,6 +25,11 @@ export class ConversationController {
 		const correlationId = req.correlationId;
 		try {
 			const user = req.user;
+			const query = (req.query || {}) as Record<string, string | undefined>;
+			const page = query.page ? Number(query.page) : (query.offset && query.limit ? Math.floor(Number(query.offset) / Number(query.limit)) + 1 : undefined);
+			const pageSize = query.pageSize ? Number(query.pageSize) : (query.limit ? Number(query.limit) : undefined);
+			const search = typeof query.search === "string" ? query.search : undefined;
+
 			logger.info(`Récupération des listes pour l'utilisateur ${user.email}`, { correlationId, userId: user.id });
 
 			const config = await eventBus.request(AuthCommands.getUserConfig, { userId: user.id });
@@ -32,12 +37,26 @@ export class ConversationController {
 				throw new BadRequestError("Configuration client (Logipol) manquante ou expirée.");
 			}
 
-			const conversations = await eventBus.request(ConversationCommands.list, {
+			const result = await eventBus.request(ConversationCommands.list, {
 				userId: user.id,
 				clientId: user.client_id,
 				model: config.model,
+				page,
+				pageSize,
+				search,
 			});
 
+			if (result && !Array.isArray(result) && "items" in result) {
+				logger.info(`${result.items.length}/${result.total} conversation(s) trouvée(s).`, { correlationId, userId: user.id });
+				ApiResponseFactory.paginated(res, result.items, {
+					page: result.page,
+					limit: result.pageSize,
+					total: result.total,
+				});
+				return;
+			}
+
+			const conversations = Array.isArray(result) ? result : [];
 			logger.info(`${conversations.length} conversation(s) trouvée(s).`, { correlationId, userId: user.id });
 			ApiResponseFactory.success(res, conversations);
 		} catch (error: unknown) {

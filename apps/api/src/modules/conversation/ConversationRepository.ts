@@ -12,17 +12,55 @@ import { JobEvents } from "../job/job.events";
 export class ConversationRepository {
 	// ============================================================================
 	/**
-	 * Récupère les conversations actives d'un utilisateur pour un modèle donné.
+	 * Récupère les conversations actives d'un utilisateur pour un modèle donné,
+	 * avec support optionnel de la pagination et de la recherche par titre.
 	 */
 	// ============================================================================
-	public static async findMany(userId: string, clientId: string, model: string) {
+	public static async findMany(
+		userId: string,
+		clientId: string,
+		model: string,
+		options?: { page?: number; pageSize?: number; search?: string },
+	) {
+		const where: any = {
+			user_id: userId,
+			client_id: clientId,
+			model: model as Model,
+			deleted_at: null,
+		};
+
+		if (options?.search) {
+			where.title = { contains: options.search };
+		}
+
+		if (options?.page !== undefined || options?.pageSize !== undefined) {
+			const page = Math.max(1, options.page ?? 1);
+			const pageSize = Math.max(1, Math.min(100, options.pageSize ?? 20));
+			const skip = (page - 1) * pageSize;
+
+			const [items, total] = await Promise.all([
+				prisma.conversation.findMany({
+					where,
+					orderBy: {
+						updated_at: "desc",
+					},
+					skip,
+					take: pageSize,
+				}),
+				prisma.conversation.count({ where }),
+			]);
+
+			return {
+				items,
+				total,
+				page,
+				pageSize,
+				totalPages: Math.ceil(total / pageSize),
+			};
+		}
+
 		return prisma.conversation.findMany({
-			where: {
-				user_id: userId,
-				client_id: clientId,
-				model: model as Model,
-				deleted_at: null,
-			},
+			where,
 			orderBy: {
 				updated_at: "desc",
 			},
@@ -126,15 +164,16 @@ export class ConversationRepository {
 
 	// ============================================================================
 	/**
-	 * Supprime logiquement les conversations anciennes de plus de 30 jours.
+	 * Suppression logique des conversations inactives depuis plus de 15 jours.
 	 */
 	// ============================================================================
-	public static async cleanupOld(): Promise<number> {
-		const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+	public static async softDeleteInactiveOlderThan(days: number = 15): Promise<number> {
+		const threshold = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
 		const result = await prisma.conversation.updateMany({
 			where: {
-				deleted_at: { lt: thirtyDaysAgo },
+				deleted_at: null,
+				updated_at: { lt: threshold },
 			},
 			data: {
 				deleted_at: new Date(),
@@ -142,5 +181,44 @@ export class ConversationRepository {
 		});
 
 		return result.count;
+	}
+
+	// ============================================================================
+	/**
+	 * Purge physique (définitive) des conversations supprimées logiquement depuis plus de 6 mois (180 jours).
+	 */
+	// ============================================================================
+	public static async purgeDeletedOlderThan(days: number = 180): Promise<number> {
+		const threshold = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+		const toPurge = await prisma.conversation.findMany({
+			where: {
+				deleted_at: { lte: threshold },
+			},
+			select: { id: true },
+		});
+
+		if (toPurge.length === 0) {
+			return 0;
+		}
+
+		const ids = toPurge.map((c) => c.id);
+
+		await prisma.$transaction([
+			prisma.job.deleteMany({ where: { conversation_id: { in: ids } } }),
+			prisma.message.deleteMany({ where: { conversation_id: { in: ids } } }),
+			prisma.conversation.deleteMany({ where: { id: { in: ids } } }),
+		]);
+
+		return ids.length;
+	}
+
+	// ============================================================================
+	/**
+	 * Rétrocompatibilité : nettoie les conversations inactives de plus de 15 jours.
+	 */
+	// ============================================================================
+	public static async cleanupOld(): Promise<number> {
+		return this.softDeleteInactiveOlderThan(15);
 	}
 }

@@ -3,6 +3,14 @@ import { defineCommand } from "../../core/bus/bus.types";
 import { ModelEnum } from "../auth/auth.schema";
 import { ConversationSchema, ConversationResponseSchema, ConversationsResponseSchema } from "./conversation.schema";
 
+export const PaginatedConversationsResponseSchema = z.object({
+	items: ConversationsResponseSchema,
+	total: z.number(),
+	page: z.number(),
+	pageSize: z.number(),
+	totalPages: z.number(),
+});
+
 export const ConversationCommands = {
 	list: defineCommand(
 		"conversation.list",
@@ -10,8 +18,11 @@ export const ConversationCommands = {
 			userId: z.string(),
 			clientId: z.string(),
 			model: ModelEnum,
+			page: z.number().optional(),
+			pageSize: z.number().optional(),
+			search: z.string().optional(),
 		}),
-		ConversationsResponseSchema,
+		z.union([ConversationsResponseSchema, PaginatedConversationsResponseSchema]),
 	),
 	getById: defineCommand(
 		"conversation.get_by_id",
@@ -43,7 +54,12 @@ export const ConversationCommands = {
 	),
 	cleanupOld: defineCommand(
 		"conversation.cleanup_old",
-		z.object({}).optional().default({}),
+		z.object({ days: z.number().optional().default(15) }).optional().default({ days: 15 }),
 		z.object({ cleanedCount: z.number() }),
+	),
+	purgeDeleted: defineCommand(
+		"conversation.purge_deleted",
+		z.object({ days: z.number().optional().default(180) }).optional().default({ days: 180 }),
+		z.object({ purgedCount: z.number() }),
 	),
 };

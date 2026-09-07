@@ -38,8 +38,11 @@ export const ConversationDetailsSchema = ConversationResponseSchema;
 export const GetConversationsQuerySchema = z.object({
 	query: z
 		.object({
-			limit: z.coerce.number().int().positive().default(20),
-			offset: z.coerce.number().int().nonnegative().default(0),
+			page: z.coerce.number().int().positive().optional(),
+			pageSize: z.coerce.number().int().positive().max(100).optional(),
+			limit: z.coerce.number().int().positive().optional(),
+			offset: z.coerce.number().int().nonnegative().optional(),
+			search: z.string().trim().optional(),
 		})
 		.optional(),
 });

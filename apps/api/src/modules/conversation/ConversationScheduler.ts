@@ -22,21 +22,32 @@ export class ConversationScheduler {
 		if (this.tasks.length > 0) return;
 
 		this.tasks = [
-			// 1. Cron : Nettoyage des conversations anciennes de plus de 30 jours (toutes les 15 minutes)
+			// 1. Cron : Suppression logique des conversations inactives depuis plus de 15 jours (toutes les 15 minutes)
 			createSafeInterval(
 				async () => {
-					await eventBus.request(ConversationCommands.cleanupOld, {});
+					await eventBus.request(ConversationCommands.cleanupOld, { days: 15 });
 				},
 				{
-					name: "Nettoyeur de conversations de plus de 30 jours",
+					name: "Suppression logique conversations inactives (15j)",
 					intervalMs: 15 * 60 * 1000,
+					runImmediately: false,
+				},
+			),
+			// 2. Cron : Purge physique définitive des conversations supprimées depuis plus de 6 mois (toutes les heures)
+			createSafeInterval(
+				async () => {
+					await eventBus.request(ConversationCommands.purgeDeleted, { days: 180 });
+				},
+				{
+					name: "Purge définitive conversations supprimées (6 mois)",
+					intervalMs: 60 * 60 * 1000,
 					runImmediately: false,
 				},
 			),
 		];
 
 		this.tasks.forEach((task) => task.start());
-		logger.info(`ConversationScheduler démarré avec ${this.tasks.length} cron sécurisé.`);
+		logger.info(`ConversationScheduler démarré avec ${this.tasks.length} crons sécurisés.`);
 	}
 
 	// ============================================================================

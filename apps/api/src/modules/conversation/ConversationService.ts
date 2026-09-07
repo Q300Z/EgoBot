@@ -24,8 +24,8 @@ export class ConversationService {
 		if (this.initialized) return;
 		this.initialized = true;
 
-		eventBus.registerHandler(ConversationCommands.list, async ({ userId, clientId, model }) => {
-			const res = await ConversationRepository.findMany(userId, clientId, model);
+		eventBus.registerHandler(ConversationCommands.list, async ({ userId, clientId, model, page, pageSize, search }) => {
+			const res = await ConversationRepository.findMany(userId, clientId, model, { page, pageSize, search });
 			return res as any;
 		});
 
@@ -61,9 +61,16 @@ export class ConversationService {
 			return { success: true };
 		});
 
-		eventBus.registerHandler(ConversationCommands.cleanupOld, async () => {
-			const cleanedCount = await ConversationRepository.cleanupOld();
+		eventBus.registerHandler(ConversationCommands.cleanupOld, async (payload) => {
+			const days = payload?.days ?? 15;
+			const cleanedCount = await ConversationRepository.softDeleteInactiveOlderThan(days);
 			return { cleanedCount };
+		});
+
+		eventBus.registerHandler(ConversationCommands.purgeDeleted, async (payload) => {
+			const days = payload?.days ?? 180;
+			const purgedCount = await ConversationRepository.purgeDeletedOlderThan(days);
+			return { purgedCount };
 		});
 
 		logger.info("ConversationService initialisé avec ses handlers.");
