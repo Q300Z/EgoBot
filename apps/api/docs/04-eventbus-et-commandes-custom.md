@@ -191,7 +191,7 @@ export class UserActivitySubscriber {
 
 		// Abonnement dans AuthService : révocation des sessions actives
 		const unsubscribeAuth = eventBus.on(UserBannedEvent, async ({ userId }) => {
-			await AuthRepository.deleteLogipolConfig(userId);
+			await AuthRepository.deleteEgobotConfig(userId);
 		});
 
 		// Renvoie une fonction de nettoyage pour les tests ou le rechargement

@@ -34,7 +34,7 @@ export class ConversationController {
 
 			const config = await eventBus.request(AuthCommands.getUserConfig, { userId: user.id });
 			if (!config) {
-				throw new BadRequestError("Configuration client (Logipol) manquante ou expirée.");
+				throw new BadRequestError("Configuration client (Egobot) manquante ou expirée.");
 			}
 
 			const result = await eventBus.request(ConversationCommands.list, {

@@ -10,38 +10,39 @@ describe("AuthModule (TDD)", () => {
 		initAuthModule();
 	});
 
-	it("should authenticate via loginV1 command and store session in Redis", async () => {
-		const saveSpy = vi.spyOn(AuthRepository, "saveLogipolConfig").mockResolvedValue();
+	it("should authenticate via loginClassic command and return a signed JWT", async () => {
+		const { PasswordService } = await import("../../../modules/auth/AuthService");
+		const hash = await PasswordService.hash("password123");
 
-		const payload = {
-			url: "https://logipol.example.com",
-			model: "CHATBOT" as const,
+		vi.spyOn(AuthRepository, "findUserByIdentifier").mockResolvedValue({
+			id: "user-123",
 			email: "user@agelid.com",
-			user: "user-123",
-			client: "client-456",
-			db_key: "key-789",
-			dev: "true",
-		};
-
-		const result = await eventBus.request(AuthCommands.loginV1, payload);
-
-		expect(saveSpy).toHaveBeenCalledWith("user-123", payload);
-		expect(result.user).toEqual({
-			email: "user@agelid.com",
-			dev: "true",
+			username: "user123",
+			password_hash: hash,
+			role: "ADMIN",
+			created_at: new Date(),
+			updated_at: new Date(),
 		});
+		vi.spyOn(AuthRepository, "saveEgobotConfig").mockResolvedValue();
+
+		const result = await eventBus.request(AuthCommands.loginClassic, {
+			emailOrUsername: "user@agelid.com",
+			password: "password123",
+		});
+
+		expect(result.user.email).toBe("user@agelid.com");
 		expect(result.token).toBeDefined();
 
 		const secret = new TextEncoder().encode(env.SECRET_KEY);
 		const { payload: decoded } = await jwtVerify(result.token, secret);
 		expect(decoded.id).toBe("user-123");
 		expect(decoded.email).toBe("user@agelid.com");
-		expect(decoded.role).toBe("ADMIN"); // @agelid.com + dev === "true"
+		expect(decoded.role).toBe("ADMIN");
 	});
 
 	it("should get and delete user config via commands", async () => {
 		const mockConfig = {
-			url: "https://logipol.example.com",
+			url: "https://Egobot.example.com",
 			model: "CHATBOT" as const,
 			email: "user@test.com",
 			user: "user-123",
@@ -50,8 +51,8 @@ describe("AuthModule (TDD)", () => {
 			dev: "false",
 		};
 
-		vi.spyOn(AuthRepository, "getLogipolConfig").mockResolvedValue(mockConfig);
-		vi.spyOn(AuthRepository, "deleteLogipolConfig").mockResolvedValue();
+		vi.spyOn(AuthRepository, "getEgobotConfig").mockResolvedValue(mockConfig);
+		vi.spyOn(AuthRepository, "deleteEgobotConfig").mockResolvedValue();
 
 		const config = await eventBus.request(AuthCommands.getUserConfig, { userId: "user-123" });
 		expect(config).toEqual(mockConfig);

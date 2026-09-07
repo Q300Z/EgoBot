@@ -1,7 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { AuthService, AuthController, AuthRepository } from "../../../modules/auth";
-import { encodeBlowfish } from "../../../utils/crypto";
-import { redisReader, redisWriter } from "../../../config/redis";
 import type { Request, Response } from "express";
 
 describe("AuthModule Full Coverage", () => {
@@ -10,37 +8,7 @@ describe("AuthModule Full Coverage", () => {
 		AuthService.init();
 	});
 
-	it("AuthService - should process loginV2 with Blowfish payload", async () => {
-		const clearPayload = "email=dev@agelid.com|user=user-v2|client=client-v2|db_key=db-v2|dev=true";
-		const encryptedData = encodeBlowfish("IA@gelid2026", "", clearPayload);
-
-		vi.spyOn(AuthRepository, "getLogipolConfig").mockResolvedValue(null);
-		vi.spyOn(AuthRepository, "saveLogipolConfig").mockResolvedValue();
-
-		const result = await AuthService.loginV2({
-			url: "https://logipol.example.com",
-			model: "CHATBOT",
-			data: encryptedData,
-		});
-
-		expect(result.user.email).toBe("dev@agelid.com");
-		expect(result.token).toBeDefined();
-	});
-
-	it("AuthService - should throw when Blowfish payload misses required fields", async () => {
-		const invalidPayload = "foo=bar";
-		const encryptedData = encodeBlowfish("IA@gelid2026", "", invalidPayload);
-
-		await expect(
-			AuthService.loginV2({
-				url: "https://logipol.example.com",
-				model: "CHATBOT",
-				data: encryptedData,
-			}),
-		).rejects.toThrow();
-	});
-
-	it("AuthRepository - getLogipolConfig, saveLogipolConfig, deleteLogipolConfig", async () => {
+	it("AuthRepository - getEgobotConfig, saveEgobotConfig, deleteEgobotConfig", async () => {
 		const mockConfig = {
 			url: "https://api.agelid.com",
 			model: "CHATBOT" as const,
@@ -51,61 +19,43 @@ describe("AuthModule Full Coverage", () => {
 			dev: "true",
 		};
 
-		vi.spyOn(AuthRepository, "getLogipolConfig").mockResolvedValue(mockConfig);
-		vi.spyOn(AuthRepository, "saveLogipolConfig").mockResolvedValue();
-		vi.spyOn(AuthRepository, "deleteLogipolConfig").mockResolvedValue();
-		vi.spyOn(AuthRepository, "existsLogipolConfig").mockResolvedValue(true);
+		vi.spyOn(AuthRepository, "getEgobotConfig").mockResolvedValue(mockConfig);
+		vi.spyOn(AuthRepository, "saveEgobotConfig").mockResolvedValue();
+		vi.spyOn(AuthRepository, "deleteEgobotConfig").mockResolvedValue();
+		vi.spyOn(AuthRepository, "existsEgobotConfig").mockResolvedValue(true);
 
-		const retrieved = await AuthRepository.getLogipolConfig("u1");
+		const retrieved = await AuthRepository.getEgobotConfig("u1");
 		expect(retrieved).toEqual(mockConfig);
 
-		await AuthRepository.saveLogipolConfig("u1", mockConfig);
-		expect(AuthRepository.saveLogipolConfig).toHaveBeenCalled();
+		await AuthRepository.saveEgobotConfig("u1", mockConfig);
+		expect(AuthRepository.saveEgobotConfig).toHaveBeenCalled();
 
-		const exists = await AuthRepository.existsLogipolConfig("u1");
+		const exists = await AuthRepository.existsEgobotConfig("u1");
 		expect(exists).toBe(true);
 
-		await AuthRepository.deleteLogipolConfig("u1");
-		expect(AuthRepository.deleteLogipolConfig).toHaveBeenCalled();
+		await AuthRepository.deleteEgobotConfig("u1");
+		expect(AuthRepository.deleteEgobotConfig).toHaveBeenCalled();
 	});
 
-	it("AuthController - should handle loginV1 and loginV2 requests", async () => {
-		const loginRes = { token: "tok123", user: { email: "u@agelid.com", dev: "true" } };
-		vi.spyOn(AuthService, "loginV1").mockResolvedValue(loginRes);
-		vi.spyOn(AuthService, "loginV2").mockResolvedValue(loginRes);
+	it("AuthController - should handle login (classic) request", async () => {
+		const loginRes = { token: "tok123", user: { id: "u1", email: "u@example.com", role: "USER", dev: "false" } };
+		vi.spyOn(AuthService, "loginClassic").mockResolvedValue(loginRes);
 
 		const resJson = vi.fn();
 		const resStatus = vi.fn().mockReturnValue({ json: resJson });
 		const mockRes = { status: resStatus, json: resJson } as unknown as Response;
 
-		const mockReqV1 = {
+		const mockReq = {
+			correlationId: "corr-1",
 			validatedData: {
 				body: {
-					url: "https://logipol.com",
-					model: "CHATBOT",
-					email: "u@agelid.com",
-					user: "u1",
-					client: "c1",
-					db_key: "k1",
-					dev: "true",
+					email: "u@example.com",
+					password: "password123",
 				},
 			},
 		} as unknown as Request;
 
-		await AuthController.loginV1(mockReqV1, mockRes);
-		expect(resStatus).toHaveBeenCalledWith(200);
-
-		const mockReqV2 = {
-			validatedData: {
-				body: {
-					url: "https://logipol.com",
-					model: "CHATBOT",
-					data: "some-encrypted-data",
-				},
-			},
-		} as unknown as Request;
-
-		await AuthController.loginV2(mockReqV2, mockRes);
+		await AuthController.login(mockReq, mockRes);
 		expect(resStatus).toHaveBeenCalledWith(200);
 	});
 
@@ -213,7 +163,7 @@ describe("AuthModule Full Coverage", () => {
 		).rejects.toThrow("Identifiants incorrects.");
 	});
 
-	it("AuthService - should getMe for classic user and fallback for logipol", async () => {
+	it("AuthService - should getMe for classic user and fallback for Egobot", async () => {
 		const mockUser = {
 			id: "user-uuid-3",
 			email: "charlie@example.com",
@@ -229,21 +179,21 @@ describe("AuthModule Full Coverage", () => {
 		expect(meUser.email).toBe("charlie@example.com");
 		expect((meUser as any).password_hash).toBeUndefined();
 
-		// Fallback for Logipol
+		// Fallback for Egobot
 		vi.spyOn(AuthRepository, "findUserById").mockResolvedValueOnce(null);
-		vi.spyOn(AuthRepository, "getLogipolConfig").mockResolvedValueOnce({
-			url: "https://logipol.com",
+		vi.spyOn(AuthRepository, "getEgobotConfig").mockResolvedValueOnce({
+			url: "https://Egobot.com",
 			model: "CHATBOT",
-			email: "logipol@agelid.com",
-			user: "logipol-user",
+			email: "Egobot@agelid.com",
+			user: "Egobot-user",
 			client: "client-1",
 			db_key: "db-1",
 			dev: "true",
 		});
 
-		const meLogipol = await AuthService.getMe("logipol-user");
-		expect(meLogipol.email).toBe("logipol@agelid.com");
-		expect(meLogipol.role).toBe("ADMIN");
+		const meEgobot = await AuthService.getMe("Egobot-user");
+		expect(meEgobot.email).toBe("Egobot@agelid.com");
+		expect(meEgobot.role).toBe("ADMIN");
 	});
 
 	it("AuthController - should handle register and getMe handlers", async () => {

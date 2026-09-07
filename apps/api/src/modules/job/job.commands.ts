@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { defineCommand } from "../../core/bus/bus.types";
-import { LogipolConfigSchema } from "../auth/auth.schema";
+import { EgobotConfigSchema } from "../auth/auth.schema";
 
 // ============================================================================
 /**
@@ -15,7 +15,7 @@ export const JobCreateRequestSchema = z
 		userEmail: z.email(),
 		userClientId: z.string(),
 		prompt: z.string().min(1),
-		logipolConfig: LogipolConfigSchema,
+		EgobotConfig: EgobotConfigSchema,
 		correlationId: z.string().optional(),
 		executeAt: z.string().datetime().optional(),
 	})

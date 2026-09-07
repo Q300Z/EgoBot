@@ -20,6 +20,7 @@ router.use("/v2", apiV2Router);
 
 // Versioning routes SSE (Flux)
 router.use("/sse/v1", sseV1Router);
+router.use("/sse", sseV1Router);
 router.use("/v1", sseV1Router); // app.get("/v1/job/:jobId") et app.get("/v1/status")
 
 router.use("/sse/v2", sseV2Router);

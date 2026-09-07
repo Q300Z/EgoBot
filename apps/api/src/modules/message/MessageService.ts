@@ -48,11 +48,11 @@ export class MessageService {
 	}): Promise<MessageResponse> {
 		const { conversation_id, prompt, execute_at, userId, userEmail, userClientId, correlationId } = input;
 
-		// 1. Récupération et validation de la configuration Logipol via l'EventBus (découplage Repo Auth)
-		const logipolConfig = await eventBus.request(AuthCommands.getUserConfig, { userId });
-		if (!logipolConfig) {
-			logger.warn(`Session Logipol expirée pour l'utilisateur ${userId}`, { correlationId });
-			throw new UnauthorizedError("Session Logipol expirée");
+		// 1. Récupération et validation de la configuration Egobot via l'EventBus (découplage Repo Auth)
+		const EgobotConfig = await eventBus.request(AuthCommands.getUserConfig, { userId });
+		if (!EgobotConfig) {
+			logger.warn(`Session Egobot expirée pour l'utilisateur ${userId}`, { correlationId });
+			throw new UnauthorizedError("Session Egobot expirée");
 		}
 
 		const jobId = crypto.randomUUID();
@@ -66,7 +66,7 @@ export class MessageService {
 			userEmail,
 			userClientId,
 			prompt,
-			logipolConfig,
+			EgobotConfig,
 			correlationId,
 			executeAt: execute_at,
 		});

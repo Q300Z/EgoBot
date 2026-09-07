@@ -64,8 +64,8 @@ describe("JobModule (TDD)", () => {
 			userEmail: "test@example.com",
 			userClientId: "client-1",
 			prompt: "Bonjour !",
-			logipolConfig: {
-				url: "http://logipol",
+			EgobotConfig: {
+				url: "http://Egobot",
 				model: "CHATBOT" as const,
 				email: "test@example.com",
 				user: "user-1",

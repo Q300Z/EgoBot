@@ -129,7 +129,7 @@ async function main() {
 		console.log("✅ Authentification réussie.");
 
 		// Debug Redis write check
-		const debugVal = await redisReader.get("logipol:test-user-id");
+		const debugVal = await redisReader.get("Egobot:test-user-id");
 		console.log(`🔍 [DEBUG] Lecture directe depuis redisReader : "${debugVal}"`);
 
 		// 5. Verify the constraint: Max 1 active job per conversation

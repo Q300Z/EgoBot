@@ -8,13 +8,13 @@ describe("Vuetify Plugin", () => {
   });
 
   it("should define both dark and light themes", () => {
-    const themeDefinitions = (vuetify.theme as any).definitions;
+    const themeDefinitions = (vuetify.theme as any).themes?.value || (vuetify.theme as any).definitions;
     expect(themeDefinitions.dark).toBeDefined();
     expect(themeDefinitions.light).toBeDefined();
   });
 
   it("should use either dark or light as default theme", () => {
-    const defaultTheme = (vuetify.theme as any).defaultTheme;
+    const defaultTheme = (vuetify.theme as any).name?.value || (vuetify.theme as any).defaultTheme;
     expect(["dark", "light"]).toContain(defaultTheme);
   });
 });

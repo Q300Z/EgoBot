@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AuthController, loginV1 as login } from "../../modules/auth";
+import { AuthController, login } from "../../modules/auth";
 import { ConversationController } from "../../modules/conversation";
 import { LoggerFactory } from "../../config/logger";
 import { getValidatedData } from "../../middlewares/validation.middleware";
@@ -78,10 +78,21 @@ describe("Controller Logging Integration", () => {
 	});
 
 	it("AuthController.login should log with correlationId", async () => {
+		const { AuthService } = await import("../../modules/auth/AuthService");
+		vi.spyOn(AuthService, "loginClassic").mockResolvedValueOnce({
+			token: "tok-123",
+			user: { id: "user-1", email: "test@example.com", role: "USER", dev: "false" },
+		});
+
+		vi.mocked(getValidatedData).mockReturnValue({
+			body: { email: "test@example.com", password: "pass123" },
+			params: { id: "conv-1" },
+		} as any);
+
 		await login(req as Request, res as Response);
 
 		expect(mockLoggerInstance.info).toHaveBeenCalledWith(
-			expect.stringContaining("Session Logipol initialisée"),
+			expect.stringContaining("Authentification réussie"),
 			expect.objectContaining({ correlationId: "req-123" }),
 		);
 	});

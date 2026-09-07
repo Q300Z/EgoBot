@@ -28,7 +28,7 @@ flowchart TB
         StreamKeys[("Streams de Réponses<br>jobs:sse:<env>:<id>")]
         QueueKeys[("Files de Workers<br>jobs:queue:<env>:<workerType>")]
         DeferredKeys[("Sorted Set Différé<br>jobs:deferred")]
-        SessionKeys[("Sessions Logipol<br>logipol:<userId>")]
+        SessionKeys[("Sessions Egobot<br>Egobot:<userId>")]
     end
 
     Observer -->|xRead en chunk| StreamPool
@@ -69,7 +69,7 @@ flowchart TB
 - **Protocole** : `RESP3` (support complet des types de données avancés).
 - **Consommateurs** : `AuthRepository`, `JobStreamHandler`, contrôleurs.
 - **Opérations** : Lectures ponctuelles et non-bloquantes :
-  - `get("logipol:<userId>")` : Vérification des sessions et configurations utilisateur.
+  - `get("Egobot:<userId>")` : Vérification des sessions et configurations utilisateur.
   - `exists("job:cancel:<jobId>")` : Contrôle des signaux d'annulation de tâches.
   - `zRangeByScore("jobs:deferred", 0, now)` : Récupération des tâches différées échues.
 

@@ -15,7 +15,7 @@ describe("MessageModule (TDD)", () => {
 	it("should post message and request job creation via EventBus", async () => {
 		// Mock Auth command response
 		eventBus.registerHandler(AuthCommands.getUserConfig, async () => ({
-			url: "http://logipol",
+			url: "http://Egobot",
 			model: "CHATBOT" as const,
 			email: "user@test.com",
 			user: "user-1",
@@ -52,6 +52,6 @@ describe("MessageModule (TDD)", () => {
 				userEmail: "unknown@test.com",
 				userClientId: "client-1",
 			}),
-		).rejects.toThrow("Session Logipol expirée");
+		).rejects.toThrow("Session Egobot expirée");
 	});
 });

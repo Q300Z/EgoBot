@@ -1,10 +1,8 @@
 import { Router } from "express";
-import { validate } from "../../../middlewares";
-import { AuthController, LoginRequestSchemaV2 } from "../../../modules/auth";
 
 const router: Router = Router();
 
-// Auth V2
-router.post("/auth/login", validate(LoginRequestSchemaV2), AuthController.loginV2);
+// L'authentification Logipol V2 (Blowfish) a été supprimée.
+// Ce router est conservé vide pour ne pas casser les imports.
 
 export default router;

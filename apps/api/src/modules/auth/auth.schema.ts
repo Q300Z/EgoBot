@@ -2,16 +2,16 @@ import { z } from "zod";
 
 // --- Enums & Schémas de base ---
 export const ModelEnum = z.enum(["CHATBOT", "STATISTIQUE", "OBJ_TRV_PERDU"], {
-	message: "Le modèle Logipol est invalide",
+	message: "Le modèle Egobot est invalide",
 });
 
-export const LogipolConfigSchema = z.object({
-	url: z.string({ message: "L'URL de Logipol est invalide" }).trim(),
+export const EgobotConfigSchema = z.object({
+	url: z.string({ message: "L'URL de Egobot est invalide" }).trim(),
 	model: ModelEnum,
 	email: z.email({ message: "L'email de l'utilisateur est requis" }).trim(),
 	user: z.string({ message: "Le user_id de l'utilisateur est requis" }).trim(),
 	client: z.string({ message: "Le client_id de l'utilisateur est requis" }).trim(),
-	db_key: z.string({ message: "La clé de base de données Logipol est requise" }).trim(),
+	db_key: z.string({ message: "La clé de base de données Egobot est requise" }).trim(),
 	dev: z.string({ message: "Le mode développement est requis" }).trim(),
 	token: z.string().optional(),
 });
@@ -38,22 +38,10 @@ export const RegisterRequestSchema = z.object({
 	body: RegisterBodySchema,
 });
 
-export const LoginRequestBodySchema = z.union([LogipolConfigSchema, ClassicLoginSchema]);
+export const LoginRequestBodySchema = ClassicLoginSchema;
 
 export const LoginRequestSchema = z.object({
 	body: LoginRequestBodySchema,
-});
-
-export const LoginRequestSchemaV1 = z.object({
-	body: LogipolConfigSchema,
-});
-
-export const LoginRequestSchemaV2 = z.object({
-	body: z.object({
-		url: z.string({ message: "L'URL de Logipol est invalide" }).trim(),
-		model: ModelEnum,
-		data: z.string({ message: "Le payload de l'utilisateur est requis" }).trim(),
-	}),
 });
 
 export const UserProfileSchema = z.object({
@@ -86,14 +74,11 @@ export const UserPayloadSchema = z.object({
 
 // Types TypeScript inférés
 export type Model = z.infer<typeof ModelEnum>;
-export type LogipolConfig = z.infer<typeof LogipolConfigSchema>;
-export type LogipolConfigV1 = LogipolConfig;
+export type EgobotConfig = z.infer<typeof EgobotConfigSchema>;
 export type ClassicLoginInput = z.infer<typeof ClassicLoginSchema>;
 export type RegisterInput = z.input<typeof RegisterBodySchema>;
 export type RegisterRequest = z.infer<typeof RegisterRequestSchema>;
 export type LoginRequest = z.infer<typeof LoginRequestSchema>;
-export type LoginRequestV1 = z.infer<typeof LoginRequestSchemaV1>;
-export type LoginRequestV2 = z.infer<typeof LoginRequestSchemaV2>;
 export type LoginResponse = z.infer<typeof LoginResponseSchema>;
 export type UserProfile = z.infer<typeof UserProfileSchema>;
 export type UserPayload = z.infer<typeof UserPayloadSchema>;

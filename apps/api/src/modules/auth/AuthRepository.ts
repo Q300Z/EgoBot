@@ -1,5 +1,5 @@
 import { redisReader, redisWriter } from "../../config/redis";
-import { LogipolConfigSchema, type LogipolConfig } from "./auth.schema";
+import { EgobotConfigSchema, type EgobotConfig } from "./auth.schema";
 import { LoggerFactory } from "../../config/logger";
 
 const logger = LoggerFactory.getLogger("AuthRepository");
@@ -18,7 +18,7 @@ export interface UserModel {
 
 // ============================================================================
 /**
- * Référentiel d'accès aux sessions, configurations Logipol dans Redis et utilisateurs dans SQLite.
+ * Référentiel d'accès aux sessions, configurations Egobot dans Redis et utilisateurs dans SQLite.
  */
 // ============================================================================
 export class AuthRepository {
@@ -94,50 +94,50 @@ export class AuthRepository {
 	 * Récupère la configuration d'un utilisateur stockée dans Redis.
 	 */
 	// ============================================================================
-	public static async getLogipolConfig(userId: string): Promise<LogipolConfig | null> {
+	public static async getEgobotConfig(userId: string): Promise<EgobotConfig | null> {
 		try {
-			const rawConfig = await redisReader.get(`logipol:${userId}`);
+			const rawConfig = await redisReader.get(`Egobot:${userId}`);
 			if (!rawConfig) return null;
 
 			const configStr = typeof rawConfig === "string" ? rawConfig : String(rawConfig);
 
-			const parsed = LogipolConfigSchema.safeParse(JSON.parse(configStr));
+			const parsed = EgobotConfigSchema.safeParse(JSON.parse(configStr));
 			if (!parsed.success) {
-				logger.error(`Structure de configuration Logipol invalide dans Redis pour ${userId}`);
+				logger.error(`Structure de configuration Egobot invalide dans Redis pour ${userId}`);
 				return null;
 			}
 			return parsed.data;
 		} catch (error) {
-			logger.error(`Erreur lors de la récupération de la configuration Logipol pour ${userId}`, error);
+			logger.error(`Erreur lors de la récupération de la configuration Egobot pour ${userId}`, error);
 			return null;
 		}
 	}
 
 	// ============================================================================
 	/**
-	 * Sauvegarde la configuration Logipol dans Redis avec une expiration d'une heure.
+	 * Sauvegarde la configuration Egobot dans Redis avec une expiration d'une heure.
 	 */
 	// ============================================================================
-	public static async saveLogipolConfig(userId: string, config: LogipolConfig): Promise<void> {
-		await redisWriter.set(`logipol:${userId}`, JSON.stringify(config), { EX: 3600 });
+	public static async saveEgobotConfig(userId: string, config: EgobotConfig): Promise<void> {
+		await redisWriter.set(`Egobot:${userId}`, JSON.stringify(config), { EX: 3600 });
 	}
 
 	// ============================================================================
 	/**
-	 * Vérifie la présence de la configuration Logipol dans Redis.
+	 * Vérifie la présence de la configuration Egobot dans Redis.
 	 */
 	// ============================================================================
-	public static async existsLogipolConfig(userId: string): Promise<boolean> {
-		const exists = await redisReader.exists(`logipol:${userId}`);
+	public static async existsEgobotConfig(userId: string): Promise<boolean> {
+		const exists = await redisReader.exists(`Egobot:${userId}`);
 		return Number(exists) > 0;
 	}
 
 	// ============================================================================
 	/**
-	 * Supprime la configuration Logipol de l'utilisateur dans Redis.
+	 * Supprime la configuration Egobot de l'utilisateur dans Redis.
 	 */
 	// ============================================================================
-	public static async deleteLogipolConfig(userId: string): Promise<void> {
-		await redisWriter.del(`logipol:${userId}`);
+	public static async deleteEgobotConfig(userId: string): Promise<void> {
+		await redisWriter.del(`Egobot:${userId}`);
 	}
 }

@@ -10,14 +10,14 @@ L'API AGELID implémente un système d'authentification double flux prenant en c
 flowchart TD
     subgraph Flux_V1 ["Authentification V1 (JSON Clair)"]
         Req1[POST /api/v1/auth/login<br>Payload JSON clair] --> AuthSrv1[AuthService.loginV1]
-        AuthSrv1 --> SaveRedis1[Stockage config Logipol dans Redis<br>TTL 1h]
+        AuthSrv1 --> SaveRedis1[Stockage config Egobot dans Redis<br>TTL 1h]
         AuthSrv1 --> GenJWT1[Signature Token JWT HS256<br>jose 1h]
     end
 
     subgraph Flux_V2 ["Authentification V2 (Chiffrement Blowfish)"]
         Req2[POST /api/v2/auth/login<br>Payload chiffré Blowfish Base64] --> Decrypt[Déchiffrement Blowfish ECB PKCS5<br>egoroof-blowfish]
         Decrypt --> ParsePipe[Parsing clé=valeur avec séparateur pipe |]
-        ParsePipe --> SaveRedis2[Stockage config Logipol dans Redis<br>TTL 1h]
+        ParsePipe --> SaveRedis2[Stockage config Egobot dans Redis<br>TTL 1h]
         SaveRedis2 --> GenJWT2[Signature Token JWT HS256<br>jose 1h]
     end
 ```
@@ -26,7 +26,7 @@ flowchart TD
 
 ## 🗝️ L'Algorithme de Chiffrement Blowfish V2 (`src/utils/crypto.ts`)
 
-Pour communiquer avec les clients applicatifs Logipol existants, la V2 utilise le chiffrement par bloc **Blowfish** :
+Pour communiquer avec les clients applicatifs Egobot existants, la V2 utilise le chiffrement par bloc **Blowfish** :
 
 - **Mode** : `ECB` (_Electronic Codebook_).
 - **Padding** : `PKCS5` (compatible blocs de 8 octets).
@@ -38,7 +38,7 @@ Pour communiquer avec les clients applicatifs Logipol existants, la V2 utilise l
 Le texte déchiffré est une chaîne au format clé=valeur séparée par des barres verticales (`|`) :
 
 ```
-email=user@agelid.com|user=usr_123|client=cli_456|db_key=logipol_db_key|dev=false
+email=user@agelid.com|user=usr_123|client=cli_456|db_key=Egobot_db_key|dev=false
 ```
 
 ### Méthodes Utilitaires Disponibles :
@@ -91,8 +91,8 @@ req.user = payload as UserPayload;
 
 ---
 
-## 💾 Persistance des Sessions Logipol dans Redis
+## 💾 Persistance des Sessions Egobot dans Redis
 
-Lors de chaque authentification réussie, la configuration de base de données Logipol (`db_key`, `url`, `email`) est mise en cache dans Redis sous la clé `logipol:{userId}` avec un TTL strict de **3 600 secondes (1 heure)**.
+Lors de chaque authentification réussie, la configuration de base de données Egobot (`db_key`, `url`, `email`) est mise en cache dans Redis sous la clé `Egobot:{userId}` avec un TTL strict de **3 600 secondes (1 heure)**.
 
 Lorsqu'un message est posté, le `MessageService` récupère instantanément cette configuration depuis Redis pour l'attacher au job d'inférence sans réinterroger la base SQL.

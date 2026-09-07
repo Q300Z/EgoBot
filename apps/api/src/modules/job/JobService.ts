@@ -111,10 +111,10 @@ export class JobService {
 	 */
 	// ============================================================================
 	public static async createJob(payload: any): Promise<{ jobId: string; conversationId: string }> {
-		const { jobId, conversationId, userId, userClientId, prompt, logipolConfig, correlationId, executeAt } =
+		const { jobId, conversationId, userId, userClientId, prompt, EgobotConfig, correlationId, executeAt } =
 			payload || {};
 
-		if (!jobId || !conversationId || !userId || !prompt || !logipolConfig) {
+		if (!jobId || !conversationId || !userId || !prompt || !EgobotConfig) {
 			logger.warn("Paramètres invalides pour la création de job.");
 			return { jobId: jobId || "", conversationId: conversationId || "" };
 		}
@@ -144,7 +144,7 @@ export class JobService {
 							user_id: userId,
 							client_id: userClientId,
 							title: prompt.substring(0, 40) || "Nouvelle discussion",
-							model: logipolConfig.model as Model,
+							model: EgobotConfig.model as Model,
 						},
 						include: { messages: true },
 					});
@@ -185,7 +185,7 @@ export class JobService {
 						conversation_id: conversationId,
 						user_prompt_id: userMessage.id,
 						assistant_message_id: assistantMessage.id,
-						model: logipolConfig.model as Model,
+						model: EgobotConfig.model as Model,
 						status: executeAt ? Status.DEFERRED : Status.PENDING,
 					},
 					tx,
@@ -208,18 +208,18 @@ export class JobService {
 				status: executeAt ? ("DEFERRED" as const) : ("PENDING" as const),
 				job_id: jobId,
 				conversation_id: conversationId,
-				dev: logipolConfig.dev,
+				dev: EgobotConfig.dev,
 				data: {
-					email: logipolConfig.email,
-					url: logipolConfig.url,
-					key_db: logipolConfig.db_key,
+					email: EgobotConfig.email,
+					url: EgobotConfig.url,
+					key_db: EgobotConfig.db_key,
 					prompt,
 					history: result.conversation.messages || [],
 				},
 			},
 		};
 
-		const envFlag = logipolConfig.dev === "true" ? "dev" : "prod";
+		const envFlag = EgobotConfig.dev === "true" ? "dev" : "prod";
 
 		// Publication dans le stream SSE
 		await JobStreamHandler.publishToSseStream(envFlag, result.createdJob.id, eventPayload);
@@ -229,22 +229,22 @@ export class JobService {
 			const score = new Date(executeAt).getTime();
 			await JobStreamHandler.scheduleDeferred(score, {
 				jobId,
-				dev: logipolConfig.dev,
-				model: logipolConfig.model,
-				queueKey: `jobs:queue:${envFlag}:${logipolConfig.model}`,
+				dev: EgobotConfig.dev,
+				model: EgobotConfig.model,
+				queueKey: `jobs:queue:${envFlag}:${EgobotConfig.model}`,
 				envelope: eventPayload,
 			});
 			logger.info(`Job ${jobId} planifié de manière différée (score: ${score}).`);
 		} else {
-			await JobStreamHandler.publishToInferenceQueue(envFlag, logipolConfig.model, eventPayload);
+			await JobStreamHandler.publishToInferenceQueue(envFlag, EgobotConfig.model, eventPayload);
 			logger.info(`Job ${jobId} enfilé dans la file active.`);
 		}
 
 		eventBus.emit(JobEvents.createdDone, {
 			jobId: result.createdJob.id,
 			conversationId,
-			dev: logipolConfig.dev,
-			model: logipolConfig.model,
+			dev: EgobotConfig.dev,
+			model: EgobotConfig.model,
 			correlationId,
 			executeAt,
 		});
@@ -309,10 +309,10 @@ export class JobService {
 		});
 		if (!conversation) return { success: false };
 
-		const userConfigStr = await AuthRepository.getLogipolConfig(conversation.user_id);
+		const userConfigStr = await AuthRepository.getEgobotConfig(conversation.user_id);
 		if (!userConfigStr) return { success: false };
 
-		const newLogipolConfig = {
+		const newEgobotConfig = {
 			...userConfigStr,
 			model: targetModel as Model,
 			dev: dev ?? userConfigStr.dev ?? "false",
@@ -353,7 +353,7 @@ export class JobService {
 			});
 		});
 
-		const newDevEnv = newLogipolConfig.dev === "true" ? "dev" : "prod";
+		const newDevEnv = newEgobotConfig.dev === "true" ? "dev" : "prod";
 		const newEventPayload = {
 			event: "job.created" as const,
 			data: {
@@ -361,11 +361,11 @@ export class JobService {
 				status: "PENDING" as const,
 				job_id: newJob.id,
 				conversation_id: oldJob.conversation_id,
-				dev: newLogipolConfig.dev,
+				dev: newEgobotConfig.dev,
 				data: {
-					email: newLogipolConfig.email,
-					url: newLogipolConfig.url,
-					key_db: newLogipolConfig.db_key,
+					email: newEgobotConfig.email,
+					url: newEgobotConfig.url,
+					key_db: newEgobotConfig.db_key,
 					prompt: (await prisma.message.findUnique({ where: { id: oldJob.user_prompt_id } }))?.content || "",
 					history: [],
 				},
@@ -378,7 +378,7 @@ export class JobService {
 		eventBus.emit(JobEvents.createdDone, {
 			jobId: newJob.id,
 			conversationId: oldJob.conversation_id,
-			dev: newLogipolConfig.dev,
+			dev: newEgobotConfig.dev,
 			model: targetModel,
 		});
 

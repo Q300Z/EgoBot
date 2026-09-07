@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { LogipolConfigSchema } from "../auth/auth.schema";
+import { EgobotConfigSchema } from "../auth/auth.schema";
 
 export const RoleEnum = z.enum(["USER", "ASSISTANT", "SYSTEM"]);
 

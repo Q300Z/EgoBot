@@ -201,15 +201,33 @@ async function handleSend() {
   if (!promptInput.value.trim() || chatStore.isStreaming) return;
   const text = promptInput.value;
   promptInput.value = "";
-  await chatStore.sendMessage(text);
-  await scrollToBottom();
+  try {
+    await chatStore.sendMessage(text);
+    await scrollToBottom();
+  } catch (err: any) {
+    if (err.response?.status === 401) {
+      authStore.logout();
+      router.push("/auth");
+    } else {
+      console.error("Erreur lors de l'envoi du message:", err);
+    }
+  }
 }
 
 async function handleDeleteConversation(id: string) {
-  await authStore.sdk.deleteConversation(id);
-  await chatStore.loadConversations();
-  if (chatStore.currentConversation?.id === id) {
-    chatStore.currentConversation = null;
+  try {
+    await authStore.sdk.deleteConversation(id);
+    await chatStore.loadConversations();
+    if (chatStore.currentConversation?.id === id) {
+      chatStore.currentConversation = null;
+    }
+  } catch (err: any) {
+    if (err.response?.status === 401) {
+      authStore.logout();
+      router.push("/auth");
+    } else {
+      console.error("Erreur lors de la suppression de la conversation:", err);
+    }
   }
 }
 

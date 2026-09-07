@@ -1,9 +1,12 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
 import { useAuthStore } from "./auth.js";
+import { useNotificationStore } from "./notification.js";
 
 export const useChatStore = defineStore("chat", () => {
   const authStore = useAuthStore();
+  const notificationStore = useNotificationStore();
+
   const conversations = ref<any[]>([]);
   const currentConversation = ref<any | null>(null);
   const isStreaming = ref(false);
@@ -15,6 +18,13 @@ export const useChatStore = defineStore("chat", () => {
     isLoadingConversations.value = true;
     try {
       conversations.value = await authStore.sdk.getConversations();
+    } catch (err: any) {
+      if (err.response?.status !== 401) {
+        notificationStore.showError(err, {
+          text: "Réessayer",
+          callback: () => loadConversations(),
+        });
+      }
     } finally {
       isLoadingConversations.value = false;
     }
@@ -24,6 +34,13 @@ export const useChatStore = defineStore("chat", () => {
     isLoadingConversation.value = true;
     try {
       currentConversation.value = await authStore.sdk.getConversation(id);
+    } catch (err: any) {
+      if (err.response?.status !== 401) {
+        notificationStore.showError(err, {
+          text: "Réessayer",
+          callback: () => loadConversation(id),
+        });
+      }
     } finally {
       isLoadingConversation.value = false;
     }
@@ -34,11 +51,20 @@ export const useChatStore = defineStore("chat", () => {
       activeStreamCleanup.value();
     }
 
-    const jobResult = await authStore.sdk.createMessage(
-      prompt,
-      currentConversation.value?.id,
-      model
-    );
+    let jobResult: any;
+    try {
+      jobResult = await authStore.sdk.createMessage(
+        prompt,
+        currentConversation.value?.id,
+        model
+      );
+    } catch (err: any) {
+      notificationStore.showError(err, {
+        text: "Réessayer",
+        callback: () => sendMessage(prompt, model),
+      });
+      throw err;
+    }
 
     if (!currentConversation.value) {
       await loadConversation(jobResult.conversation_id);
@@ -62,7 +88,7 @@ export const useChatStore = defineStore("chat", () => {
     }, 20000);
 
     const cleanup = authStore.sdk.connectJobStream(jobResult.job_id, {
-      onToken: (chunk) => {
+      onToken: (chunk: string) => {
         receivedAnyToken = true;
         if (fallbackTimer) clearTimeout(fallbackTimer);
 
@@ -71,14 +97,19 @@ export const useChatStore = defineStore("chat", () => {
           lastMsg.content += chunk;
         }
       },
-      onSource: (_source) => {
+      onSource: (_source: any) => {
         receivedAnyToken = true;
         if (fallbackTimer) clearTimeout(fallbackTimer);
       },
-      onStatus: async (status) => {
+      onStatus: async (status: string) => {
         if (status === "COMPLETED" || status === "FAILED" || status === "CANCELLED") {
           if (fallbackTimer) clearTimeout(fallbackTimer);
           isStreaming.value = false;
+          if (status === "FAILED") {
+            notificationStore.showError(
+              new Error("Le modèle d'intelligence artificielle a rencontré une erreur lors de la génération de la réponse.")
+            );
+          }
           await loadConversation(jobResult.conversation_id);
           await loadConversations();
         }
@@ -86,6 +117,10 @@ export const useChatStore = defineStore("chat", () => {
       onError: async () => {
         if (fallbackTimer) clearTimeout(fallbackTimer);
         isStreaming.value = false;
+        notificationStore.showWarning(
+          "Flux temps réel interrompu",
+          "La connexion de streaming a été coupée. Nous basculons sur la récupération des données en arrière-plan."
+        );
       },
     });
 
