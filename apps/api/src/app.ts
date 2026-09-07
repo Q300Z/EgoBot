@@ -1,43 +1,59 @@
 import express from "express";
-import cors from "cors";
 import helmet from "helmet";
-import { AuthController } from "./controllers/auth.controller.js";
-import { MessageController } from "./controllers/message.controller.js";
-import { AdminController } from "./controllers/admin.controller.js";
-import { authMiddleware, requireAdmin, sseAuthMiddleware } from "./middlewares/auth.middleware.js";
+import cors from "cors";
+import compression from "compression";
 
-export const app = express();
+// Middlewares
+import { logger as requestLogger, globalErrorHandler } from "./middlewares";
 
-const corsOrigin = process.env.CORS_ORIGIN || "*";
-app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
-app.use(cors({ origin: corsOrigin }));
-app.use(express.json());
+// Modules métier
+import { initAuthModule } from "./modules/auth";
+import { initConversationModule } from "./modules/conversation";
+import { initMessageModule } from "./modules/message";
+import { initJobModule } from "./modules/job";
 
-// Auth publiques
-app.post("/api/v1/auth/login", AuthController.login);
-app.post("/api/v1/auth/register", AuthController.register);
+// Routes versionnées
+import routes from "./routes";
 
-// SSE Client & Debug Live EventBus
-app.get("/sse/:jobId", MessageController.streamJobEvents);
-app.get("/sse/v1/admin/conversations/:id", sseAuthMiddleware as any, requireAdmin as any, AdminController.streamAdminConversation);
+// Initialisation des modules métier
+initAuthModule();
+initConversationModule();
+initMessageModule();
+initJobModule();
 
-// Route de debug — uniquement disponible en environnement de développement
-if (["dev", "development"].includes(process.env.NODE_ENV ?? "dev")) {
-  app.get("/sse/v1/debug/eventbus", sseAuthMiddleware as any, requireAdmin as any, AdminController.streamEventBusDebug);
-}
+const app: express.Application = express();
 
-// Routes protégées Utilisateur
-app.get("/api/v1/auth/me", authMiddleware as any, AuthController.me);
-app.post("/api/v1/messages", authMiddleware as any, MessageController.createMessage);
-app.get("/api/v1/conversations", authMiddleware as any, MessageController.getConversations);
-app.get("/api/v1/conversations/:id", authMiddleware as any, MessageController.getConversation);
-app.delete("/api/v1/conversations/:id", authMiddleware as any, MessageController.deleteConversation);
+// Configuration des Intergiciels généraux
+app.use(express.json({ limit: "10mb" }));
+app.use(helmet());
+app.set("trust proxy", true);
+app.use(cors());
+app.use(
+	compression({
+		filter: (req, res) => {
+			if (
+				req.headers.accept?.includes("text/event-stream") ||
+				req.originalUrl?.includes("/sse") ||
+				req.url?.includes("/sse") ||
+				req.path?.includes("/sse")
+			) {
+				return false;
+			}
+			return compression.filter(req, res);
+		},
+	}),
+);
+app.use(requestLogger); // Traçage et log HTTP intégrés
 
-// Routes d'administration Backoffice
-app.get("/api/v1/admin/users", authMiddleware as any, requireAdmin as any, AdminController.getUsers);
-app.post("/api/v1/admin/users", authMiddleware as any, requireAdmin as any, AdminController.createUser);
-app.put("/api/v1/admin/users/:id", authMiddleware as any, requireAdmin as any, AdminController.updateUser);
-app.delete("/api/v1/admin/users/:id", authMiddleware as any, requireAdmin as any, AdminController.deleteUser);
-app.get("/api/v1/admin/conversations", authMiddleware as any, requireAdmin as any, AdminController.getConversations);
-app.get("/api/v1/admin/conversations/:id", authMiddleware as any, requireAdmin as any, AdminController.getConversation);
-app.get("/api/v1/admin/users/:userId/conversations", authMiddleware as any, requireAdmin as any, AdminController.getUserConversations);
+// Vérification de santé (Liveness/Readiness)
+app.get("/", (_req, res) => {
+	res.send("Egobot API est opérationnelle.");
+});
+
+// Branchement des routes versionnées (REST & SSE)
+app.use("/", routes);
+
+// Gestionnaire d'erreurs global (doit être positionné à la fin)
+app.use(globalErrorHandler);
+
+export default app;

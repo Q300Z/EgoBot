@@ -1,101 +1,94 @@
-# ⚡ `@my-llm/api` (Backend Express API)
+# 🚀 AGELID Backend Framework
 
-Application backend Express 100% TypeScript gérant l'authentification (JWT), l'accès BDD (Prisma SQLite WAL), l'EventBus événementiel local et l'orchestration Valkey Streams.
-
----
-
-## 🏗️ Architecture des Fichiers
-
-```text
-apps/api/
-├── prisma/
-│   └── schema.prisma        # Schéma BDD Prisma SQLite
-├── src/
-│   ├── config/              # env.ts, db.ts, valkey.ts, logger.ts
-│   ├── events/              # EventBus local
-│   ├── repositories/        # Abstraction BDD Prisma (UserRepository, JobRepository, etc.)
-│   ├── services/            # Logique métier (JobService, SseService, TacheService)
-│   ├── controllers/         # Contrôleurs HTTP (AuthController, MessageController, AdminController)
-│   ├── middlewares/         # authMiddleware, errorMiddleware
-│   ├── app.ts               # Configuration Express & Routage
-│   └── index.ts             # Démarrage du serveur et des services background
-```
+API backend haute performance pour l'orchestration de modèles de langage (LLM) et le streaming d'inférence en temps réel, basée sur une architecture **Domain-Driven Design (DDD)** et **Event-Driven Architecture (EDA)**.
 
 ---
 
-## 🛠️ How-To : Ajouter une Fonctionnalité Métier Complète (Ex: `Article`)
+## ⚡ Caractéristiques Principales
 
-Pour ajouter une entité `Article` et ses endpoints API :
-
-### 1. Ajouter le Modèle Prisma BDD (`prisma/schema.prisma`)
-```prisma
-model Article {
-  id         String   @id @default(uuid())
-  title      String
-  content    String
-  user_id    String
-  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-}
-```
-Exécuter la migration BDD : `pnpm --filter api exec prisma migrate dev`.
-
-### 2. Créer le Repository (`src/repositories/article.repository.ts`)
-```typescript
-import { prisma } from "../config/db.js";
-
-export class ArticleRepository {
-  static async create(data: { title: string; content: string; user_id: string }) {
-    return prisma.article.create({ data });
-  }
-
-  static async findByUserId(userId: string) {
-    return prisma.article.findMany({ where: { user_id: userId } });
-  }
-}
-```
-
-### 3. Créer le Service Métier (`src/services/article.service.ts`)
-```typescript
-import { ArticleRepository } from "../repositories/article.repository.js";
-import { eventBus } from "../events/eventBus.js";
-
-export class ArticleService {
-  static async createArticle(userId: string, title: string, content: string) {
-    const article = await ArticleRepository.create({ title, content, user_id: userId });
-    eventBus.publish("article.created", { articleId: article.id });
-    return article;
-  }
-}
-```
-
-### 4. Créer le Contrôleur HTTP (`src/controllers/article.controller.ts`)
-```typescript
-import type { Response } from "express";
-import { ArticleService } from "../services/article.service.js";
-import type { AuthRequest } from "../middlewares/auth.middleware.js";
-
-export class ArticleController {
-  static async createArticle(req: AuthRequest, res: Response) {
-    const { title, content } = req.body;
-    const article = await ArticleService.createArticle(req.user!.id, title, content);
-    return res.status(201).json({ success: true, data: article });
-  }
-}
-```
-
-### 5. Brancher la Route API dans `src/app.ts`
-```typescript
-import { ArticleController } from "./controllers/article.controller.js";
-
-app.post("/api/v1/articles", authMiddleware as any, ArticleController.createArticle);
-```
+- **Architecture Événementielle Typée (`TypedEventBus`)** : Découplage strict entre domaines métier avec validation Zod synchrone/asynchrone.
+- **Streaming Temps Réel Server-Sent Events (SSE)** : Diffusion de tokens d'inférence avec bufferisation et relecture automatique depuis les **Redis Streams (`XRANGE`)**.
+- **Persistance SQLite Haute Performance** : Moteur SQLite 3 natif en mode **WAL (Write-Ahead Logging)** via `better-sqlite3` et Prisma 7.
+- **Schedulers Résilients (`SafeInterval`)** : Tâches d'arrière-plan avec verrous anti-chevauchement (_anti-overlapping_) et auto-récupération d'erreurs.
+- **Authentification Hybride V1 / V2** : Prise en charge native du déchiffrement symétrique **Blowfish ECB PKCS5** (`egoroof-blowfish`) et tokens JWT signés avec **`jose`** (HS256).
+- **Traçabilité Distribuée** : Propagation transparente du `correlationId` et des métadonnées utilisateur via `AsyncLocalStorage` dans des logs structurés **Pino**.
+- **Build Ultra-Rapide** : Compilation et packaging de production en ~4ms avec **`esbuild`**.
 
 ---
 
-## 🚀 Lancement Individuel
+## 📋 Prérequis
+
+- **Node.js** : `>= 20.6.0` (support natif de `process.loadEnvFile()` et modules ESM).
+- **pnpm** : `>= 9.0.0`
+- **Redis** : `>= 6.2.0` (pour le support des Streams Redis et groupes de consommateurs).
+
+---
+
+## 🚀 Démarrage Rapide
+
+### 1. Installation des dépendances
 
 ```bash
-pnpm --filter api dev
+pnpm install
 ```
+
+### 2. Configuration de l'environnement
+
+Créez un fichier `.env` à la racine :
+
+```env
+PORT=3000
+NODE_ENV=development
+SECRET_KEY=votre_cle_secrete_jwt_tres_longue_et_aleatoire
+REDIS_URL=redis://localhost:6379
+DATABASE_URL="file:./dev.db"
+```
+
+### 3. Initialisation de la base de données
+
+```bash
+pnpm prisma:push
+pnpm prisma:generate
+```
+
+### 4. Lancement en mode développement
+
+```bash
+pnpm dev
+```
+
+---
+
+## 🛠️ Scripts Disponibles
+
+| Commande                 | Description                                                                                     |
+| :----------------------- | :---------------------------------------------------------------------------------------------- |
+| **`pnpm dev`**           | Démarre le serveur en mode watch interactif via `tsx`.                                          |
+| **`pnpm build`**         | Génère le client Prisma et compile le bundle de production dans `dist/index.js` avec `esbuild`. |
+| **`pnpm start`**         | Démarre l'API de production compilée (`node dist/index.js`).                                    |
+| **`pnpm test`**          | Exécute les tests unitaires et d'intégration Vitest (113 tests).                                |
+| **`pnpm test:coverage`** | Génère le rapport de couverture de code v8.                                                     |
+| **`pnpm test:load`**     | Lance le banc de test de charge simulant les workers IA avec rapport HTML.                      |
+| **`pnpm check-types`**   | Vérifie le typage strict TypeScript sans émettre de fichiers.                                   |
+| **`pnpm lint`**          | Analyse le code avec ESLint Flat Config.                                                        |
+| **`pnpm prisma:studio`** | Ouvre l'interface graphique de consultation de la base SQLite.                                  |
+
+---
+
+## 📚 Documentation Technique
+
+La documentation exhaustive et les guides d'architecture sont disponibles dans le dossier [`docs/`](./docs/) :
+
+- [**01. Architecture Globale**](./docs/01-architecture-globale.md)
+- [**02. Anatomie d'un Module**](./docs/02-anatomie-d-un-module.md)
+- [**03. Guide : Créer un Module**](./docs/03-guide-creation-nouveau-module.md)
+- [**04. TypedEventBus & Commandes**](./docs/04-eventbus-et-commandes-custom.md)
+- [**05. Streaming Temps Réel SSE**](./docs/05-streaming-temps-reel-sse.md)
+- [**06. Schedulers & Crons Sécurisés**](./docs/06-schedulers-et-taches-de-fond.md)
+- [**07. Base SQLite & Mode WAL**](./docs/07-base-de-donnees-sqlite-et-wal.md)
+- [**08. Infrastructure Pools Redis**](./docs/08-infrastructure-pools-redis.md)
+- [**09. Logs & Traçabilité Distribuée**](./docs/09-logs-et-tracabilite-distribuee.md)
+- [**10. Authentification & Blowfish V2**](./docs/10-authentification-et-chiffrement-blowfish.md)
+- [**11. Réponses HTTP & Validation Zod**](./docs/11-reponses-http-erreurs-et-validation.md)
+- [**12. Uploads de Fichiers (Multer)**](./docs/12-gestion-uploads-multer.md)
+- [**13. Tests & Banc d'Essai de Charge**](./docs/13-tests-qualite-et-banc-de-charge.md)
