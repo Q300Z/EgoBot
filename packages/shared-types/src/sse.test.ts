@@ -3,6 +3,8 @@ import {
   SseTokenEventSchema,
   SseStatusEventSchema,
   SseStatisticsEventSchema,
+  SseSourceEventSchema,
+  SourceDataSchema,
   SseGenericEventSchema,
 } from "./sse.js";
 
@@ -100,24 +102,61 @@ describe("SSE Schemas", () => {
     });
   });
 
-  describe("SseGenericEventSchema", () => {
-    it("should parse custom or future unknown events", () => {
+  describe("SourceDataSchema", () => {
+    it("should parse valid source data", () => {
+      const source = {
+        title: "Manuel Logistique v2",
+        url: "https://example.com/doc",
+        type: "doc",
+        id: "source-1",
+      };
+      expect(SourceDataSchema.parse(source)).toEqual(source);
+    });
+
+    it("should parse source data with only title", () => {
+      const source = {
+        title: "Manuel Logistique",
+      };
+      expect(SourceDataSchema.parse(source)).toEqual({
+        title: "Manuel Logistique",
+        type: "doc",
+      });
+    });
+
+    it("should reject source without title", () => {
+      expect(() => SourceDataSchema.parse({ url: "https://example.com" })).toThrow();
+    });
+  });
+
+  describe("SseSourceEventSchema", () => {
+    it("should parse valid source event", () => {
       const event = {
-        type: "custom_event",
+        type: "source" as const,
         payload: {
-          foo: "bar",
-          count: 10,
+          job_id: "job-123",
+          source: {
+            title: "Manuel Logistique v2",
+            url: "https://example.com/doc",
+            type: "doc",
+          },
+          chunk: '[[source:{"title":"Manuel Logistique v2"}]]',
         },
         timestamp: "2026-07-23T10:00:00.000Z",
       };
-      expect(SseGenericEventSchema.parse(event)).toEqual(event);
+      expect(SseSourceEventSchema.parse(event)).toEqual(event);
     });
 
-    it("should parse generic event without payload", () => {
-      const event = {
-        type: "ping",
-      };
-      expect(SseGenericEventSchema.parse(event)).toEqual(event);
+    it("should reject source event with wrong type", () => {
+      expect(() =>
+        SseSourceEventSchema.parse({
+          type: "token",
+          payload: {
+            job_id: "job-123",
+            source: { title: "Doc" },
+          },
+        })
+      ).toThrow();
     });
   });
 });
+

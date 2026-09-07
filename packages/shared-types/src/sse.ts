@@ -36,6 +36,31 @@ export const SseStatisticsEventSchema = z.object({
 });
 export type SseStatisticsEvent = z.infer<typeof SseStatisticsEventSchema>;
 
+// Types prédéfinis pour les sources de données
+export const SourceTypeEnum = z.enum(["doc", "sql", "api", "web", "file", "database", "other"]);
+export type SourceType = z.infer<typeof SourceTypeEnum>;
+
+// Schéma pour les sources de données
+export const SourceDataSchema = z.object({
+  id: z.string().optional(),
+  title: z.string(),
+  url: z.string().optional(),
+  type: SourceTypeEnum.optional().default("doc"),
+});
+export type SourceData = z.infer<typeof SourceDataSchema>;
+
+// Événement Source
+export const SseSourceEventSchema = z.object({
+  type: z.literal("source"),
+  payload: z.object({
+    job_id: z.string(),
+    source: SourceDataSchema,
+    chunk: z.string().optional(),
+  }),
+  timestamp: z.string().optional(),
+});
+export type SseSourceEvent = z.infer<typeof SseSourceEventSchema>;
+
 // Événement Inconnu / Générique pour Tolérance SDK
 export const SseGenericEventSchema = z.object({
   type: z.string(),
@@ -44,4 +69,9 @@ export const SseGenericEventSchema = z.object({
 });
 export type SseGenericEvent = z.infer<typeof SseGenericEventSchema>;
 
-export type SseEvent = SseTokenEvent | SseStatusEvent | SseStatisticsEvent | SseGenericEvent;
+export type SseEvent =
+  | SseTokenEvent
+  | SseStatusEvent
+  | SseStatisticsEvent
+  | SseSourceEvent
+  | SseGenericEvent;
