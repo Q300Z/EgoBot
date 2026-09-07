@@ -68,22 +68,22 @@ export class EgobotClientSDK {
       conversation_id: conversationId,
       model,
     });
-    return res.data; // { job_id, conversation_id, stream_url }
+    return res.data?.data ?? res.data; // { job_id, conversation_id, stream_url }
   }
 
   async getConversations() {
     const res = await this.api.get("/api/v1/conversations");
-    return res.data; // array [ conversation1, conversation2 ]
+    return res.data?.data ?? res.data; // array [ conversation1, conversation2 ]
   }
 
   async getConversation(id: string) {
     const res = await this.api.get(`/api/v1/conversations/${id}`);
-    return res.data; // conversation object
+    return res.data?.data ?? res.data; // conversation object
   }
 
   async deleteConversation(id: string) {
     const res = await this.api.delete(`/api/v1/conversations/${id}`);
-    return res.data;
+    return res.data?.data ?? res.data;
   }
 
   // Admin REST Direct Standard
