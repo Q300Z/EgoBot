@@ -9,6 +9,12 @@ const logger = LoggerFactory.getLogger("JobService");
 
 export class JobService {
   private static isRunning = false;
+  // Curseur de lecture par stream (dernier eventId déjà publié) : évite de
+  // relire et republier tout l'historique du stream à chaque cycle de poll.
+  private static lastReadEventId = new Map<string, string>();
+  // Contenu accumulé par stream, incrémenté au fil des cycles puisque
+  // `xrange` ne renvoie plus que les nouveaux événements depuis le curseur.
+  private static accumulatedContent = new Map<string, string>();
 
   static init() {
     if (this.isRunning) return;
@@ -19,6 +25,8 @@ export class JobService {
 
   static stop() {
     this.isRunning = false;
+    this.lastReadEventId.clear();
+    this.accumulatedContent.clear();
   }
 
   static async createJob(
@@ -74,12 +82,19 @@ export class JobService {
           const parts = key.split(":");
           const jobId = parts[parts.length - 1];
 
-          const events = await valkeyStream.xrange(key, "-", "+");
-          let fullContent = "";
+          // Ne lire que les événements strictement postérieurs au dernier
+          // eventId déjà publié pour ce stream (curseur exclusif "(id").
+          const lastId = this.lastReadEventId.get(key);
+          const startId = lastId ? `(${lastId}` : "-";
+          const events = await valkeyStream.xrange(key, startId, "+");
+          if (events.length === 0) continue;
+
           let isCompleted = false;
           let completedData: any = null;
+          let newestEventId = lastId;
 
           for (const [eventId, fields] of events) {
+            newestEventId = eventId;
             let eventName = "token";
             let eventData = "";
 
@@ -101,7 +116,8 @@ export class JobService {
               eventBus.publish("job.token_emitted", { jobId, eventId, envelope: normalizedPayload });
 
               if ((eventName === "token" || parsed.data?.kind === "token") && (parsed.data?.chunk || parsed.chunk)) {
-                fullContent += parsed.data?.chunk || parsed.chunk;
+                const chunk = parsed.data?.chunk || parsed.chunk;
+                this.accumulatedContent.set(key, (this.accumulatedContent.get(key) || "") + chunk);
               }
 
               if (parsed.data?.status === "COMPLETED" || parsed.status === "COMPLETED") {
@@ -111,10 +127,14 @@ export class JobService {
             }
           }
 
+          if (newestEventId) {
+            this.lastReadEventId.set(key, newestEventId);
+          }
+
           if (isCompleted) {
             const job = await JobRepository.findById(jobId);
             if (job) {
-              const finalContent = completedData?.full_content || fullContent;
+              const finalContent = completedData?.full_content || this.accumulatedContent.get(key) || "";
               if (finalContent) {
                 await ConversationRepository.updateMessageContent(job.assistant_message_id, finalContent);
               }
@@ -127,6 +147,8 @@ export class JobService {
               });
             }
             await valkeyWriter.del(key);
+            this.lastReadEventId.delete(key);
+            this.accumulatedContent.delete(key);
           }
         }
       } catch (err) {
