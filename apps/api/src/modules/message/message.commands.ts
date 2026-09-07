@@ -20,7 +20,7 @@ export const MessageCommands = {
 		"message.cancel",
 		z.object({
 			jobId: z.string(),
-			dev: z.string(),
+			
 			correlationId: z.string().optional(),
 		}),
 		z.object({

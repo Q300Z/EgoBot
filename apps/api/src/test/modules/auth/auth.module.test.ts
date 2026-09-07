@@ -46,9 +46,6 @@ describe("AuthModule (TDD)", () => {
 			model: "CHATBOT" as const,
 			email: "user@test.com",
 			user: "user-123",
-			client: "client-456",
-			db_key: "key-789",
-			dev: "false",
 		};
 
 		vi.spyOn(AuthRepository, "getEgobotConfig").mockResolvedValue(mockConfig);

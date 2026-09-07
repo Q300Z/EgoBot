@@ -186,9 +186,6 @@ describe("AuthModule Full Coverage", () => {
 			model: "CHATBOT",
 			email: "Egobot@agelid.com",
 			user: "Egobot-user",
-			client: "client-1",
-			db_key: "db-1",
-			dev: "true",
 		});
 
 		const meEgobot = await AuthService.getMe("Egobot-user");

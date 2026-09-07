@@ -5,16 +5,18 @@ export const ModelEnum = z.enum(["CHATBOT", "STATISTIQUE", "OBJ_TRV_PERDU"], {
 	message: "Le modèle Egobot est invalide",
 });
 
-export const EgobotConfigSchema = z.object({
-	url: z.string({ message: "L'URL de Egobot est invalide" }).trim(),
-	model: ModelEnum,
-	email: z.email({ message: "L'email de l'utilisateur est requis" }).trim(),
-	user: z.string({ message: "Le user_id de l'utilisateur est requis" }).trim(),
-	client: z.string({ message: "Le client_id de l'utilisateur est requis" }).trim(),
-	db_key: z.string({ message: "La clé de base de données Egobot est requise" }).trim(),
-	dev: z.string({ message: "Le mode développement est requis" }).trim(),
-	token: z.string().optional(),
-});
+export const EgobotConfigSchema = z
+	.object({
+		url: z.string({ message: "L'URL de Egobot est invalide" }).trim(),
+		model: ModelEnum,
+		email: z.string({ message: "L'email de l'utilisateur est requis" }).email({ message: "L'email de l'utilisateur est invalide" }).trim(),
+		user: z.string({ message: "Le user_id de l'utilisateur est requis" }).trim(),
+		client: z.string().optional(),
+		db_key: z.string().optional(),
+		dev: z.string().optional(),
+		token: z.string().optional(),
+	})
+	.passthrough();
 
 export const ClassicLoginSchema = z
 	.object({
@@ -23,14 +25,34 @@ export const ClassicLoginSchema = z
 		emailOrUsername: z.string().trim().optional(),
 		password: z.string().min(1, { message: "Le mot de passe est requis" }),
 	})
-	.refine((data) => Boolean(data.email || data.username || data.emailOrUsername), {
-		message: "L'identifiant (email ou nom d'utilisateur) est requis",
-	});
+	.refine(
+		(data) => {
+			const emailVal = data.email?.trim();
+			const userVal = data.username?.trim();
+			const euVal = data.emailOrUsername?.trim();
+			return Boolean(emailVal || userVal || euVal);
+		},
+		{
+			message: "L'identifiant (email ou nom d'utilisateur) est requis",
+		},
+	);
 
 export const RegisterBodySchema = z.object({
-	email: z.string().email({ message: "L'adresse email est invalide" }).trim(),
-	password: z.string().min(6, { message: "Le mot de passe doit comporter au moins 6 caractères" }),
-	username: z.string().trim().min(2, { message: "Le nom d'utilisateur doit comporter au moins 2 caractères" }).optional(),
+	email: z
+		.string({ message: "L'adresse email est requise" })
+		.email({ message: "L'adresse email est invalide" })
+		.trim()
+		.toLowerCase(),
+	password: z
+		.string({ message: "Le mot de passe est requis" })
+		.min(6, { message: "Le mot de passe doit comporter au moins 6 caractères" })
+		.max(128, { message: "Le mot de passe ne peut pas dépasser 128 caractères" }),
+	username: z
+		.string()
+		.trim()
+		.min(2, { message: "Le nom d'utilisateur doit comporter au moins 2 caractères" })
+		.max(50, { message: "Le nom d'utilisateur ne peut pas dépasser 50 caractères" })
+		.optional(),
 	role: z.enum(["USER", "ADMIN"]).or(z.string()).optional().default("USER"),
 });
 
@@ -69,7 +91,7 @@ export const UserPayloadSchema = z.object({
 	client_id: z.string().optional().default("default"),
 	email: z.string(),
 	role: z.enum(["USER", "ADMIN"]).or(z.string()).default("USER"),
-	dev: z.string().optional().default("false"),
+	dev: z.string().optional(),
 });
 
 // Types TypeScript inférés
@@ -82,4 +104,3 @@ export type LoginRequest = z.infer<typeof LoginRequestSchema>;
 export type LoginResponse = z.infer<typeof LoginResponseSchema>;
 export type UserProfile = z.infer<typeof UserProfileSchema>;
 export type UserPayload = z.infer<typeof UserPayloadSchema>;
-

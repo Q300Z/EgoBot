@@ -45,7 +45,7 @@ export class ConversationService {
 			return res as any;
 		});
 
-		eventBus.registerHandler(ConversationCommands.deleteLogical, async ({ id, userId, dev }) => {
+		eventBus.registerHandler(ConversationCommands.deleteLogical, async ({ id, userId }) => {
 			const deleted = await ConversationRepository.deleteLogical(id, userId);
 			if (!deleted) {
 				return { success: false };
@@ -55,7 +55,6 @@ export class ConversationService {
 			eventBus.emit(ConversationEvents.deleted, {
 				conversationId: id,
 				userId,
-				dev,
 			});
 
 			return { success: true };

@@ -7,7 +7,6 @@ export const ConversationEvents = {
 		z.object({
 			conversationId: z.string(),
 			userId: z.string(),
-			dev: z.string(),
 		}),
 	),
 };

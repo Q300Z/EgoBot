@@ -2,6 +2,7 @@ import type { z } from "zod";
 import { redisWriter } from "../../config/redis";
 import { LoggerFactory } from "../../config/logger";
 import { traceStorage } from "../../config/trace";
+import { getAppEnv } from "../../config/env";
 import { StreamKeys } from "./streamKeys";
 import { streamObserver, StreamObserver } from "./StreamObserver";
 import type { RedisWireMessage, StreamEventContract, WorkerQueueContract } from "./stream.types";
@@ -53,7 +54,7 @@ export class RedisStreamBus {
 			timeoutMs?: number;
 		},
 	): Promise<void> {
-		const env = options?.env ?? (process.env.NODE_ENV === "production" ? "prod" : "dev");
+		const env = options?.env ?? getAppEnv();
 		const validatedPayload = queue.requestSchema.parse(rawPayload);
 		const correlationId = traceStorage.getStore()?.correlationId ?? "no-trace";
 
@@ -101,7 +102,7 @@ export class RedisStreamBus {
 		rawPayload: z.infer<TPayload>,
 		options?: { env?: "dev" | "prod" | string },
 	): Promise<void> {
-		const env = options?.env ?? (process.env.NODE_ENV === "production" ? "prod" : "dev");
+		const env = options?.env ?? getAppEnv();
 		const validatedPayload = event.payloadSchema.parse(rawPayload);
 		const streamKey = StreamKeys.sse(env, entityId);
 		const correlationId = traceStorage.getStore()?.correlationId;

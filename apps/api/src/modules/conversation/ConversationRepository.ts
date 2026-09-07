@@ -3,6 +3,8 @@ import { redisWriter } from "../../config/redis";
 import type { Model } from "@prisma/client";
 import { eventBus } from "../../core/bus/eventBus";
 import { JobEvents } from "../job/job.events";
+import { getAppEnv } from "../../config/env";
+import { StreamKeys } from "../../core/stream";
 
 // ============================================================================
 /**
@@ -149,7 +151,7 @@ export class ConversationRepository {
 	 * Marque logiquement une conversation comme supprimée et annule ses jobs.
 	 */
 	// ============================================================================
-	public static async deleteLogical(id: string, userId: string, dev: string = "false"): Promise<boolean> {
+	public static async deleteLogical(id: string, userId: string): Promise<boolean> {
 		const conversation = await prisma.conversation.findUnique({
 			where: { id, user_id: userId },
 			select: { id: true, jobs: { select: { id: true } } },
@@ -167,12 +169,12 @@ export class ConversationRepository {
 
 		// 2. Nettoyage asynchrone des ressources associées dans Redis et annulation des jobs en cours
 		const pipeline = redisWriter.multi();
-		const env = dev === "true" ? "dev" : "prod";
+		const appEnv = getAppEnv();
 
 		for (const job of conversation.jobs) {
-			const streamKey = `jobs:sse:${env}:${job.id}`;
+			const streamKey = StreamKeys.sse(appEnv, job.id);
 			pipeline.del(streamKey);
-			eventBus.emit(JobEvents.cancelRequest, { jobId: job.id, dev });
+			eventBus.emit(JobEvents.cancelRequest, { jobId: job.id });
 		}
 
 		await pipeline.exec();

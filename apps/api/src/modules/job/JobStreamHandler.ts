@@ -5,6 +5,7 @@ import { StreamKeys, streamObserver } from "../../core/stream";
 import { JobEvents } from "./job.events";
 import { JobStreamKeys } from "./job.streams";
 import { LoggerFactory } from "../../config/logger";
+import { getAppEnv } from "../../config/env";
 import type { JobEventEnvelope } from "./job.schema";
 
 const logger = LoggerFactory.getLogger("JobStreamHandler");
@@ -37,14 +38,15 @@ export class JobStreamHandler {
 	 * Ajoute un job au registre de surveillance en mémoire et auprès de StreamObserver.
 	 */
 	// ============================================================================
-	public static trackJob(jobId: string, env: "dev" | "prod" = "prod"): void {
+	public static trackJob(jobId: string, env: "dev" | "prod" | string = getAppEnv()): void {
+		const envFlag: "dev" | "prod" = env === "dev" ? "dev" : env === "prod" ? "prod" : getAppEnv();
 		this.activeJobIds.add(jobId);
-		this.jobEnvs.set(jobId, env);
+		this.jobEnvs.set(jobId, envFlag);
 		this.lastAccessTimestamps.set(jobId, Date.now());
 
-		// Enregistrement auprès de StreamObserver avec polling rapide (100ms) pour les tokens SSE
+		// Enregistrement auprès de StreamObserver avec polling rapide (500ms) pour les tokens SSE
 		streamObserver.trackStream({
-			streamKey: StreamKeys.sse(env, jobId),
+			streamKey: StreamKeys.sse(envFlag, jobId),
 			entityId: jobId,
 			pollIntervalMs: 500,
 			terminalEvents: ["job.completed", "job.failed", "job.cancelled"],
@@ -57,13 +59,13 @@ export class JobStreamHandler {
 	 */
 	// ============================================================================
 	public static async publishToSseStream(
-		env: "dev" | "prod" | string,
-		jobId: string,
-		eventPayload: any,
+		env: "dev" | "prod" | string = getAppEnv(),
+		jobId: string = "",
+		eventPayload: any = {},
 	): Promise<void> {
-		const streamKey = StreamKeys.sse(env, jobId);
+		const envFlag: "dev" | "prod" = env === "dev" ? "dev" : env === "prod" ? "prod" : getAppEnv();
+		const streamKey = StreamKeys.sse(envFlag, jobId);
 		const serializedPayload = JSON.stringify(eventPayload);
-		const envFlag = env === "dev" ? "dev" : "prod";
 
 		await redisWriter
 			.multi()
@@ -84,11 +86,12 @@ export class JobStreamHandler {
 	 */
 	// ============================================================================
 	public static async publishToInferenceQueue(
-		env: "dev" | "prod" | string,
-		model: string,
-		eventPayload: any,
+		env: "dev" | "prod" | string = getAppEnv(),
+		model: string = "CHATBOT",
+		eventPayload: any = {},
 	): Promise<void> {
-		const queueKey = StreamKeys.queue(env, model);
+		const envFlag: "dev" | "prod" = env === "dev" ? "dev" : env === "prod" ? "prod" : getAppEnv();
+		const queueKey = StreamKeys.queue(envFlag, model);
 		await redisWriter.xAdd(
 			queueKey,
 			"*",
@@ -133,12 +136,13 @@ export class JobStreamHandler {
 	 */
 	// ============================================================================
 	public static async releaseDeferredJob(
-		env: "dev" | "prod" | string,
-		model: string,
-		eventPayload: any,
-		rawJob: string,
+		env: "dev" | "prod" | string = getAppEnv(),
+		model: string = "CHATBOT",
+		eventPayload: any = {},
+		rawJob: string = "",
 	): Promise<void> {
-		const queueKey = StreamKeys.queue(env, model);
+		const envFlag: "dev" | "prod" = env === "dev" ? "dev" : env === "prod" ? "prod" : getAppEnv();
+		const queueKey = StreamKeys.queue(envFlag, model);
 		await redisWriter
 			.multi()
 			.xAdd(
@@ -184,8 +188,9 @@ export class JobStreamHandler {
 	 * Supprime la clé de flux Redis SSE associée à un job.
 	 */
 	// ============================================================================
-	public static async deleteSseStream(env: "dev" | "prod" | string, jobId: string): Promise<void> {
-		const streamKey = StreamKeys.sse(env, jobId);
+	public static async deleteSseStream(env: "dev" | "prod" | string = getAppEnv(), jobId: string = ""): Promise<void> {
+		const envFlag: "dev" | "prod" = env === "dev" ? "dev" : env === "prod" ? "prod" : getAppEnv();
+		const streamKey = StreamKeys.sse(envFlag, jobId);
 		await redisWriter.del(streamKey);
 	}
 
@@ -341,34 +346,23 @@ export class JobStreamHandler {
 				const lastId = this.lastStreamEventIds.get(jobId) || "0-0";
 				this.lastAccessTimestamps.set(jobId, Date.now());
 
-				// Résolution de l'environnement
-				let envFlag: "dev" | "prod" | null = this.jobEnvs.get(jobId) || null;
-				if (!envFlag) {
+				// Résolution de l'environnement harmonisée
+				let envFlag: "dev" | "prod" = this.jobEnvs.get(jobId) || getAppEnv();
+				if (!this.jobEnvs.has(jobId)) {
 					try {
 						const redisVal = await redisReader.get(StreamKeys.jobEnv(jobId));
-						if (typeof redisVal === "string" && (redisVal === "dev" || redisVal === "prod")) {
+						if (redisVal === "dev" || redisVal === "prod") {
 							envFlag = redisVal;
-							this.jobEnvs.set(jobId, envFlag);
 						}
 					} catch (err) {
 						logger.debug(`Erreur lors de la récupération de l'environnement Redis pour le job ${jobId}: ${err}`);
 					}
+					this.jobEnvs.set(jobId, envFlag);
 				}
 
-				let results;
-				if (envFlag) {
-					results = await redisStream.xRead([{ key: StreamKeys.sse(envFlag, jobId), id: lastId }], {
-						COUNT: 200,
-					});
-				} else {
-					results = await redisStream.xRead(
-						[
-							{ key: StreamKeys.sse("dev", jobId), id: lastId },
-							{ key: StreamKeys.sse("prod", jobId), id: lastId },
-						],
-						{ COUNT: 200 },
-					);
-				}
+				const results = await redisStream.xRead([{ key: StreamKeys.sse(envFlag, jobId), id: lastId }], {
+					COUNT: 200,
+				});
 
 				if (results) {
 					for (const streamResult of results) {
@@ -386,7 +380,7 @@ export class JobStreamHandler {
 								const tokenPayload = {
 									jobId,
 									eventId: msg.id,
-									env: (envFlag as "dev" | "prod") || "prod",
+									env: envFlag,
 									envelope: envelope as JobEventEnvelope,
 								};
 

@@ -15,7 +15,7 @@ export const JobCreatedDoneSchema = z
 	.object({
 		jobId: z.string().min(1),
 		conversationId: z.string().optional(),
-		dev: z.string(),
+		
 		model: z.string(),
 		correlationId: z.string().optional(),
 		executeAt: z.string().optional(),
@@ -25,7 +25,7 @@ export const JobCreatedDoneSchema = z
 export const JobCancelEventSchema = z
 	.object({
 		jobId: z.string().min(1),
-		dev: z.string().optional(),
+		
 	})
 	.passthrough();
 
@@ -33,14 +33,14 @@ export const JobDeferEventSchema = z
 	.object({
 		jobId: z.string().min(1),
 		targetModel: z.string(),
-		dev: z.string().optional(),
+		
 	})
 	.passthrough();
 
 export const JobCreateEventSchema = z
 	.object({
 		jobId: z.string().min(1),
-		dev: z.string().optional(),
+		
 	})
 	.passthrough();
 

@@ -6,6 +6,22 @@ import { router } from "../router/index";
 import App from "../App.vue";
 import { useAuthStore } from "../stores/auth";
 
+// Polyfill visualViewport pour JSDOM (requis par VOverlay/VSnackbar de Vuetify)
+if (typeof window !== "undefined" && !window.visualViewport) {
+  (window as any).visualViewport = {
+    width: 1024,
+    height: 768,
+    offsetLeft: 0,
+    offsetTop: 0,
+    pageLeft: 0,
+    pageTop: 0,
+    scale: 1,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  };
+}
+
 describe("App.vue Root Layout", () => {
   let pinia: any;
 
@@ -19,6 +35,9 @@ describe("App.vue Root Layout", () => {
     return mount(App, {
       global: {
         plugins: [pinia, router, vuetify],
+        stubs: {
+          GlobalNotification: true,
+        },
       },
     });
   }

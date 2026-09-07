@@ -12,6 +12,7 @@ import { ConversationEvents } from "../conversation/conversation.events";
 import { redisStream } from "../../config/redis";
 import { JobStreamKeys } from "./job.streams";
 import type { JobEventEnvelope } from "./job.schema";
+import { env, getAppEnv } from "../../config/env";
 
 const logger = LoggerFactory.getLogger("JobService");
 
@@ -56,15 +57,15 @@ export class JobService {
 		eventBus.on(JobEvents.timeout, (payload) => void this.handleTimeout(payload));
 
 		// Écoute de la suppression d'une conversation pour annulation propre
-		eventBus.on(ConversationEvents.deleted, async ({ conversationId, dev }) => {
+		eventBus.on(ConversationEvents.deleted, async ({ conversationId }) => {
 			try {
 				const activeJobs = await prisma.job.findMany({
 					where: { conversation_id: conversationId, status: { in: ["PENDING", "IN_PROGRESS"] } },
 					select: { id: true },
 				});
 				for (const job of activeJobs) {
-					await JobStreamHandler.deleteSseStream(dev, job.id);
-					await this.cancelJob({ jobId: job.id, dev });
+					await JobStreamHandler.deleteSseStream(getAppEnv(), job.id);
+					await this.cancelJob({ jobId: job.id });
 				}
 			} catch (err) {
 				logger.error(`Erreur lors du nettoyage des jobs pour la conversation ${conversationId}`, err);
@@ -201,6 +202,7 @@ export class JobService {
 		const result = transactionResult;
 		if (!result) return { jobId, conversationId };
 
+		const appEnv = getAppEnv();
 		const eventPayload = {
 			event: "job.created" as const,
 			data: {
@@ -208,42 +210,36 @@ export class JobService {
 				status: executeAt ? ("DEFERRED" as const) : ("PENDING" as const),
 				job_id: jobId,
 				conversation_id: conversationId,
-				dev: EgobotConfig.dev,
 				data: {
 					email: EgobotConfig.email,
 					url: EgobotConfig.url,
-					key_db: EgobotConfig.db_key,
 					prompt,
 					history: result.conversation.messages || [],
 				},
 			},
 		};
 
-		const envFlag = EgobotConfig.dev === "true" ? "dev" : "prod";
-
 		// Publication dans le stream SSE
-		await JobStreamHandler.publishToSseStream(envFlag, result.createdJob.id, eventPayload);
+		await JobStreamHandler.publishToSseStream(appEnv, result.createdJob.id, eventPayload);
 
 		// Enfilage du job
 		if (executeAt) {
 			const score = new Date(executeAt).getTime();
 			await JobStreamHandler.scheduleDeferred(score, {
 				jobId,
-				dev: EgobotConfig.dev,
 				model: EgobotConfig.model,
-				queueKey: `jobs:queue:${envFlag}:${EgobotConfig.model}`,
+				queueKey: JobStreamKeys.queue(appEnv, EgobotConfig.model),
 				envelope: eventPayload,
 			});
 			logger.info(`Job ${jobId} planifié de manière différée (score: ${score}).`);
 		} else {
-			await JobStreamHandler.publishToInferenceQueue(envFlag, EgobotConfig.model, eventPayload);
+			await JobStreamHandler.publishToInferenceQueue(appEnv, EgobotConfig.model, eventPayload);
 			logger.info(`Job ${jobId} enfilé dans la file active.`);
 		}
 
 		eventBus.emit(JobEvents.createdDone, {
 			jobId: result.createdJob.id,
 			conversationId,
-			dev: EgobotConfig.dev,
 			model: EgobotConfig.model,
 			correlationId,
 			executeAt,
@@ -261,7 +257,7 @@ export class JobService {
 	 */
 	// ============================================================================
 	public static async cancelJob(payload: any): Promise<{ jobId: string; status: "CANCELLED" }> {
-		const { jobId, dev, correlationId } = payload || {};
+		const { jobId, correlationId } = payload || {};
 		if (!jobId) return { jobId: "", status: "CANCELLED" };
 
 		logger.info(`Traitement d'annulation pour le job ${jobId}`, { correlationId });
@@ -293,7 +289,7 @@ export class JobService {
 	 */
 	// ============================================================================
 	public static async deferJob(payload: any): Promise<{ success: boolean; newJobId?: string }> {
-		const { jobId, targetModel, dev } = payload || {};
+		const { jobId, targetModel } = payload || {};
 		if (!jobId || !targetModel) return { success: false };
 
 		logger.info(`Redirection du job ${jobId} vers le modèle ${targetModel}`);
@@ -315,7 +311,6 @@ export class JobService {
 		const newEgobotConfig = {
 			...userConfigStr,
 			model: targetModel as Model,
-			dev: dev ?? userConfigStr.dev ?? "false",
 		};
 
 		const newJobId = crypto.randomUUID();
@@ -353,7 +348,7 @@ export class JobService {
 			});
 		});
 
-		const newDevEnv = newEgobotConfig.dev === "true" ? "dev" : "prod";
+		const appEnv = getAppEnv();
 		const newEventPayload = {
 			event: "job.created" as const,
 			data: {
@@ -361,24 +356,21 @@ export class JobService {
 				status: "PENDING" as const,
 				job_id: newJob.id,
 				conversation_id: oldJob.conversation_id,
-				dev: newEgobotConfig.dev,
 				data: {
 					email: newEgobotConfig.email,
 					url: newEgobotConfig.url,
-					key_db: newEgobotConfig.db_key,
 					prompt: (await prisma.message.findUnique({ where: { id: oldJob.user_prompt_id } }))?.content || "",
 					history: [],
 				},
 			},
 		};
 
-		await JobStreamHandler.publishToInferenceQueue(newDevEnv, targetModel, newEventPayload);
-		JobStreamHandler.trackJob(newJob.id, newDevEnv);
+		await JobStreamHandler.publishToInferenceQueue(appEnv, targetModel, newEventPayload);
+		JobStreamHandler.trackJob(newJob.id, appEnv);
 
 		eventBus.emit(JobEvents.createdDone, {
 			jobId: newJob.id,
 			conversationId: oldJob.conversation_id,
-			dev: newEgobotConfig.dev,
 			model: targetModel,
 		});
 
@@ -397,7 +389,7 @@ export class JobService {
 				envelope: JobEventEnvelope;
 				env?: "dev" | "prod";
 			};
-
+			console.log(`JobService.handleTokenEmitted: jobId=${jobId}, event=${envelope.event}, env=${env}`);
 			// Règle d'irréversibilité : si job terminal connu en mémoire, ignorer immédiatement
 			if (terminalJobs.has(jobId)) {
 				return;
@@ -409,7 +401,6 @@ export class JobService {
 				terminalJobs.add(jobId);
 				eventBus.emit(JobEvents.cancelRequest, {
 					jobId,
-					dev: env ?? (envelope.data as any)?.dev ?? "false",
 				});
 				return;
 			}
@@ -424,7 +415,6 @@ export class JobService {
 					eventBus.emit(JobEvents.deferRequest, {
 						jobId,
 						targetModel,
-						dev: env ?? (envelope.data as any)?.dev,
 					});
 					return;
 				}
@@ -441,7 +431,7 @@ export class JobService {
 						const streamEnv =
 							env ||
 							JobStreamHandler.jobEnvsMap.get(jobId) ||
-							((envelope.data as any)?.dev === "true" ? "dev" : "prod");
+							getAppEnv();
 						let messages = await redisStream.xRange(JobStreamKeys.sse(streamEnv, jobId), "-", "+");
 						if (!messages || messages.length === 0) {
 							const altEnv = streamEnv === "dev" ? "prod" : "dev";
@@ -592,7 +582,6 @@ export class JobService {
 							kind: "state",
 							status: "FAILED",
 							job_id: job.id,
-							dev: "false",
 							error: "Délai d'attente dépassé (inactivité du worker).",
 						},
 					},
@@ -621,15 +610,16 @@ export class JobService {
 			for (const rawJob of rawJobs) {
 				try {
 					const payload = JSON.parse(rawJob);
-					const { jobId, dev, model, envelope } = payload;
+					const { jobId, model, envelope } = payload;
 
 					const updatedEnvelope = {
 						...envelope,
 						data: { ...envelope.data, status: "PENDING" },
 					};
 
-					await JobStreamHandler.releaseDeferredJob(dev === "true" ? "dev" : "prod", model, updatedEnvelope, rawJob);
-					JobStreamHandler.trackJob(jobId, dev === "true" ? "dev" : "prod");
+					const appEnv = getAppEnv();
+					await JobStreamHandler.releaseDeferredJob(appEnv, model, updatedEnvelope, rawJob);
+					JobStreamHandler.trackJob(jobId, appEnv);
 
 					await JobRepository.update(jobId, { status: Status.PENDING });
 					logger.info(`Job différé ${jobId} libéré et enfilé dans la file active.`);
@@ -637,7 +627,6 @@ export class JobService {
 
 					eventBus.emit(JobEvents.createdDone, {
 						jobId,
-						dev,
 						model,
 					});
 				} catch (err) {

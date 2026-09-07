@@ -50,13 +50,19 @@ describe("LoggerFactory & Abstract Logger", () => {
 	});
 
 	it("should respect log levels (default to INFO)", () => {
-		const logger = LoggerFactory.getLogger("LevelTest");
+		const originalLevel = logger.level;
+		logger.level = "info";
+		try {
+			const levelLogger = LoggerFactory.getLogger("LevelTest");
 
-		logger.debug("hidden");
-		expect(pinoSpy.debug).not.toHaveBeenCalled();
+			levelLogger.debug("hidden");
+			expect(pinoSpy.debug).not.toHaveBeenCalled();
 
-		logger.info("visible");
-		expect(pinoSpy.info).toHaveBeenCalled();
+			levelLogger.info("visible");
+			expect(pinoSpy.info).toHaveBeenCalled();
+		} finally {
+			logger.level = originalLevel;
+		}
 	});
 
 	it("should include metadata and correlation ID in logs", () => {

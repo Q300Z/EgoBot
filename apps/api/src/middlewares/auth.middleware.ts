@@ -7,7 +7,7 @@ import { jwtVerify, errors } from "jose";
 import { UserPayloadSchema } from "../modules/auth";
 import { UnauthorizedError, ForbiddenError } from "../core/errors";
 import { traceStorage } from "../config/trace";
-import { env } from "../config/env";
+import { env, isDev } from "../config/env";
 import { LoggerFactory } from "../config/logger";
 
 const JWT_SECRET = new TextEncoder().encode(env.SECRET_KEY);
@@ -85,8 +85,8 @@ export const devOnly = (req: Request, res: Response, next: NextFunction): void =
 		throw new UnauthorizedError("Utilisateur non authentifié.");
 	}
 
-	// Accès autorisé si l'app est en mode dev OU si l'utilisateur possède le flag dev
-	if (process.env.NODE_ENV !== "development" && user.dev !== "true") {
+	// Accès autorisé uniquement si l'application s'exécute en mode développement
+	if (!isDev()) {
 		throw new ForbiddenError("Cette fonctionnalité est réservée au mode développement.");
 	}
 	next();

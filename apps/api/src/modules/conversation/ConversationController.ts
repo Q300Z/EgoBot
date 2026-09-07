@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { ApiResponseFactory } from "../../utils";
-import type { GetConversation } from "./conversation.schema";
+import type { GetConversation, GetConversationsQuery } from "./conversation.schema";
 import { NotFoundError, BadRequestError } from "../../core/errors";
 import { getValidatedData } from "../../middlewares";
 import { eventBus } from "../../core/bus/eventBus";
@@ -25,10 +25,21 @@ export class ConversationController {
 		const correlationId = req.correlationId;
 		try {
 			const user = req.user;
-			const query = (req.query || {}) as Record<string, string | undefined>;
-			const page = query.page ? Number(query.page) : (query.offset && query.limit ? Math.floor(Number(query.offset) / Number(query.limit)) + 1 : undefined);
-			const pageSize = query.pageSize ? Number(query.pageSize) : (query.limit ? Number(query.limit) : undefined);
-			const search = typeof query.search === "string" ? query.search : undefined;
+			const validated = getValidatedData<GetConversationsQuery>(req);
+			const query = (validated?.query ?? req.query ?? {}) as Record<string, unknown>;
+			const page =
+				query.page !== undefined
+					? Number(query.page)
+					: query.offset !== undefined && query.limit !== undefined
+						? Math.floor(Number(query.offset) / Number(query.limit)) + 1
+						: undefined;
+			const pageSize =
+				query.pageSize !== undefined
+					? Number(query.pageSize)
+					: query.limit !== undefined
+						? Number(query.limit)
+						: undefined;
+			const search = typeof query.search === "string" && query.search.trim().length > 0 ? query.search.trim() : undefined;
 
 			logger.info(`Récupération des listes pour l'utilisateur ${user.email}`, { correlationId, userId: user.id });
 
@@ -119,7 +130,6 @@ export class ConversationController {
 				.request(ConversationCommands.deleteLogical, {
 					id: params.id,
 					userId: user.id,
-					dev: user.dev,
 				})
 				.catch((error) => {
 					logger.error("Erreur en arrière-plan lors de la suppression", error, { correlationId });

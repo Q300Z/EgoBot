@@ -7,11 +7,10 @@ import type { UserPayload } from "../auth";
 import { LoggerFactory } from "../../config/logger";
 import { eventBus } from "../../core/bus/eventBus";
 import { MessageCommands } from "./message.commands";
-import { AuthCommands } from "../auth/auth.commands";
 import { JobCommands } from "../job/job.commands";
-import { JobStreamKeys } from "../job/job.streams";
-import { redisReader } from "../../config/redis";
+
 import { SseService } from "../../core/sse";
+import { getAppEnv } from "../../config/env";
 
 const logger = LoggerFactory.getLogger("MessageController");
 
@@ -49,31 +48,12 @@ export class MessageController {
 			logger.info(`Initialisation de la session SSE pour le job ${jobId}`, { correlationId, userId: user?.id });
 			const session = await SseService.setupJobSession(req, res);
 
-			// Résolution de l'environnement SSE
-			let streamEnv: "dev" | "prod" = "prod";
-			if (String(user?.dev) === "true") {
-				streamEnv = "dev";
-			} else if (user?.id) {
-				const userConfig = await eventBus.request(AuthCommands.getUserConfig, { userId: user.id });
-				if (String(userConfig?.dev) === "true") {
-					streamEnv = "dev";
-				}
-			} else {
-				try {
-					const envVal = (await redisReader.get(JobStreamKeys.jobEnv(jobId))) as string | null;
-					if (envVal === "dev" || envVal === "prod") {
-						streamEnv = envVal;
-					}
-				} catch {
-					// fallback to prod
-				}
-			}
 
 			// Récupération éventuelle de Last-Event-ID
 			const lastEventId = (req.headers?.["last-event-id"] || req.query?.lastEventId) as string | undefined;
 
 			// Liaison de la session au flux du job
-			await SseService.attachJobSession(jobId, session, streamEnv, lastEventId);
+			await SseService.attachJobSession(jobId, session, getAppEnv(), lastEventId);
 			if (["COMPLETED", "FAILED", "CANCELLED"].includes(job.status)) {
 				logger.info(`Job ${jobId} déjà en état terminal (${job.status}), clôture de la session SSE.`);
 				session.destroy();
@@ -122,14 +102,12 @@ export class MessageController {
 	public async cancelMessage(req: Request, res: Response, next?: NextFunction): Promise<void> {
 		const correlationId = req.correlationId;
 		try {
-			const user: UserPayload = req.user;
 			const { params } = getValidatedData<CancelMessage>(req);
 
 			logger.info(`Annulation du job ${params.id} demandée par l'utilisateur`, { correlationId });
 
 			const response = await eventBus.request(MessageCommands.cancel, {
 				jobId: params.id,
-				dev: user.dev,
 				correlationId,
 			});
 

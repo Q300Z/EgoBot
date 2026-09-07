@@ -7,6 +7,20 @@ import { LoggerFactory } from "../config/logger";
 
 const logger = LoggerFactory.getLogger("ValidationMiddleware");
 
+/**
+ * Extrait récursivement la forme d'un schéma Zod s'il s'agit d'un objet (direct ou enveloppé par ZodEffects).
+ */
+function getObjectShape(schema: ZodType): Record<string, unknown> | null {
+	if (schema instanceof ZodObject) {
+		return schema.shape;
+	}
+	const def = (schema as any)._def;
+	if (def?.schema) {
+		return getObjectShape(def.schema);
+	}
+	return null;
+}
+
 // ============================================================================
 /**
  * Middleware d'interception et de validation des requêtes HTTP avec un schéma Zod.
@@ -16,9 +30,9 @@ export const validate = (schema: ZodType, safe: boolean = false) => {
 	return (req: Request, _res: Response, next: NextFunction): void => {
 		try {
 			const dataToValidate: Record<string, unknown> = {};
+			const shape = getObjectShape(schema);
 
-			if (schema instanceof ZodObject) {
-				const shape = schema.shape;
+			if (shape) {
 				if ("body" in shape) {
 					dataToValidate.body = req.body;
 				}
@@ -28,16 +42,50 @@ export const validate = (schema: ZodType, safe: boolean = false) => {
 				if ("query" in shape) {
 					dataToValidate.query = req.query;
 				}
+			} else {
+				dataToValidate.body = req.body;
+				dataToValidate.params = req.params;
+				dataToValidate.query = req.query;
 			}
 
-			// Utilisation du parsing synchrone
-			if (safe) req.validatedData = schema.safeParse(dataToValidate);
-			else req.validatedData = schema.parse(dataToValidate);
+			const parseResult = schema.safeParse(dataToValidate);
+
+			if (safe) {
+				req.validatedData = parseResult;
+				next();
+				return;
+			}
+
+			if (!parseResult.success) {
+				const formattedErrors = parseResult.error.issues.map((err) => ({
+					path: err.path.length > 0 ? err.path.join(".") : "root",
+					message: err.message,
+					code: err.code,
+				}));
+				throw new ValidationError(formattedErrors);
+			}
+
+			req.validatedData = parseResult.data;
+
+			// Mise à jour des données parsées et coercées sur la requête
+			if (parseResult.data && typeof parseResult.data === "object") {
+				const data = parseResult.data as Record<string, unknown>;
+				if ("body" in data && data.body !== undefined) {
+					req.body = data.body;
+				}
+				if ("params" in data && data.params !== undefined) {
+					req.params = data.params as any;
+				}
+				if ("query" in data && data.query !== undefined) {
+					req.query = data.query as any;
+				}
+			}
+
 			next();
 		} catch (error) {
 			if (error instanceof ZodError) {
 				const formattedErrors = error.issues.map((err) => ({
-					path: err.path.join("."),
+					path: err.path.length > 0 ? err.path.join(".") : "root",
 					message: err.message,
 					code: err.code,
 				}));
@@ -70,8 +118,8 @@ export function globalErrorHandler(err: unknown, _req: Request, res: Response, _
 			logger.warn(`[HttpError ${err.statusCode}] ${err.message}`);
 		}
 
-		if (err instanceof ValidationError) {
-			ApiResponseFactory.validationError(res, err.issues);
+		if (err instanceof ValidationError || (err.statusCode === 422 && Array.isArray((err as any).issues))) {
+			ApiResponseFactory.validationError(res, (err as ValidationError).issues);
 			return;
 		}
 
@@ -91,6 +139,17 @@ export function globalErrorHandler(err: unknown, _req: Request, res: Response, _
 		}
 
 		ApiResponseFactory.badRequest(res, err.message, err.details, err.statusCode);
+		return;
+	}
+
+	if (err instanceof ZodError) {
+		const formattedErrors = err.issues.map((issue) => ({
+			path: issue.path.length > 0 ? issue.path.join(".") : "root",
+			message: issue.message,
+			code: issue.code,
+		}));
+		logger.warn(`[ZodError 422] Erreur de validation Zod directe interceptée`);
+		ApiResponseFactory.validationError(res, formattedErrors);
 		return;
 	}
 

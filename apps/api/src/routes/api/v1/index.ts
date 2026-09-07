@@ -1,7 +1,11 @@
 import { Router } from "express";
 import { authenticateJWT, validate } from "../../../middlewares";
 import { AuthController, LoginRequestSchema, RegisterRequestSchema } from "../../../modules/auth";
-import { ConversationController, GetConversationSchema } from "../../../modules/conversation";
+import {
+	ConversationController,
+	GetConversationSchema,
+	GetConversationsQuerySchema,
+} from "../../../modules/conversation";
 import { MessageController, PostMessageSchema, CancelMessageSchema } from "../../../modules/message";
 
 import { healthCheckHandler } from "../../health";
@@ -20,7 +24,12 @@ router.post("/auth/register", validate(RegisterRequestSchema), AuthController.re
 router.get("/auth/me", authenticateJWT, AuthController.getMe);
 
 // Conversations
-router.get("/conversations", authenticateJWT, conversationController.getConversations.bind(conversationController));
+router.get(
+	"/conversations",
+	authenticateJWT,
+	validate(GetConversationsQuerySchema),
+	conversationController.getConversations.bind(conversationController),
+);
 router.get(
 	"/conversations/:id",
 	authenticateJWT,

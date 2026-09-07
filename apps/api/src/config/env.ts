@@ -26,9 +26,23 @@ const INSECURE_DEFAULT_SECRETS = new Set([
 	"super_secret_jwt_key_12345",
 ]);
 
+const normalizeNodeEnv = (val: unknown): string => {
+	if (typeof val === "string") {
+		const lower = val.trim().toLowerCase();
+		if (lower === "development" || lower === "dev" || lower === "test") {
+			return "dev";
+		}
+		if (lower === "production" || lower === "prod") {
+			return "prod";
+		}
+	}
+	return typeof val === "string" ? val : "prod";
+};
+
 const envSchema = z
 	.object({
-		NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+		NODE_ENV: z.preprocess(normalizeNodeEnv, z.enum(["dev", "prod"])).default("prod"),
+		DEV_MODE: z.preprocess((val) => val === "true" || val === true, z.boolean()).default(false),
 		PORT: z.coerce.number().default(8000),
 		DATABASE_URL: z.string().default("file:./prod.db"),
 		PRISMA_DISABLED: z.preprocess((val) => val === "true" || val === true, z.boolean()).default(false),
@@ -50,7 +64,8 @@ const envSchema = z
 		),
 	})
 	.superRefine((data, ctx) => {
-		if (data.NODE_ENV === "production") {
+		const effectiveEnv = data.DEV_MODE || data.NODE_ENV === "dev" ? "dev" : "prod";
+		if (effectiveEnv === "prod") {
 			if (!data.SECRET_KEY || data.SECRET_KEY.length < 32) {
 				ctx.addIssue({
 					code: z.ZodIssueCode.custom,
@@ -88,3 +103,27 @@ if (!parsed.success) {
 }
 
 export const env = parsed.data;
+
+export type AppEnv = "dev" | "prod";
+
+/**
+ * Retourne l'environnement applicatif harmonisé ("dev" | "prod").
+ * Déterminé directement par les variables d'environnement configurées (NODE_ENV, DEV_MODE).
+ */
+export function getAppEnv(): AppEnv {
+	return env.DEV_MODE || env.NODE_ENV === "dev" ? "dev" : "prod";
+}
+
+/**
+ * Indique si l'application s'exécute en environnement de développement.
+ */
+export function isDev(): boolean {
+	return getAppEnv() === "dev";
+}
+
+/**
+ * Indique si l'application s'exécute en environnement de production.
+ */
+export function isProd(): boolean {
+	return getAppEnv() === "prod";
+}

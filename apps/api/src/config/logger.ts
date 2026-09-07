@@ -3,7 +3,7 @@ import { env } from "./env";
 import { traceStorage } from "./trace";
 
 export const logger = pino({
-	level: process.env.LOG_LEVEL || (env.NODE_ENV === "production" || env.NODE_ENV === "test" ? "info" : "debug"),
+	level: process.env.LOG_LEVEL || (env.NODE_ENV === "prod" ? "info" : "debug"),
 	mixin() {
 		const store = traceStorage.getStore();
 		return store
@@ -15,7 +15,7 @@ export const logger = pino({
 			: {};
 	},
 	transport:
-		env.NODE_ENV === "development"
+		env.NODE_ENV === "dev"
 			? {
 					target: "pino-pretty",
 					options: {

@@ -37,7 +37,6 @@ export const ConversationCommands = {
 		z.object({
 			id: z.string(),
 			userId: z.string(),
-			dev: z.string(),
 		}),
 		z.object({ success: z.boolean() }),
 	),

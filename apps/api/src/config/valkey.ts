@@ -14,7 +14,7 @@ import {
 	ConfigurationError,
 	CircuitBreakerError,
 } from "@valkey/valkey-glide";
-import { env } from "./env";
+import { env, isProd } from "./env";
 import { LoggerFactory } from "./logger";
 import { traceStorage } from "./trace";
 
@@ -111,7 +111,7 @@ export function createGlideConfig(options: GlideConfigCustomOptions | ProtocolVe
 	const opts: GlideConfigCustomOptions =
 		typeof options === "number" ? { protocol: options } : options;
 
-	const isProduction = env.NODE_ENV === "production";
+	const isProduction = isProd();
 	const circuitBreakerEnabled =
 		opts.enableCircuitBreaker !== undefined
 			? opts.enableCircuitBreaker

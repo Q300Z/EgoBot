@@ -221,7 +221,7 @@ export class InferenceController {
 		const session = await SseService.setupJobSession(req, res, entityId);
 
 		// 2. Branche la session et synchronise l'historique depuis Redis Streams
-		const env = req.user?.dev === "true" ? "dev" : "prod";
+		const env = req.user?.env.NODE_ENV;
 		const lastEventId = (req.headers["last-event-id"] || req.query.lastEventId) as string | undefined;
 
 		await SseService.attachJobSession(entityId, session, env, lastEventId);

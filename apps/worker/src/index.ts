@@ -11,7 +11,8 @@ const worker = new WorkerApplication({
 });
 
 worker.registerTask("CHATBOT", async (payload, ctx) => {
-  console.log(`[Worker TS] Prompt reçu pour le job ${ctx.jobId} : "${payload.prompt}"`);
+  const prompt = payload.prompt || payload.data?.prompt || "";
+  console.log(`[Worker TS] Prompt reçu pour le job ${ctx.jobId} : "${prompt}"`);
 
   const firstPart = [
     "Bonjour",

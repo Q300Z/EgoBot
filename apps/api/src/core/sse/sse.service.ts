@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { redisStream } from "../../config/redis";
 import { eventBus } from "../bus/eventBus";
 import { LoggerFactory } from "../../config/logger";
+import { getAppEnv } from "../../config/env";
 import type { JobEventEnvelope } from "../../modules/job";
 import { JobEvents } from "../../modules/job/job.events";
 
@@ -311,7 +312,7 @@ export class SseService {
 	public static async syncHistory(
 		jobId: string,
 		session: BufferedSession,
-		env: "dev" | "prod" = "prod",
+		env: "dev" | "prod" = getAppEnv(),
 		lastEventId?: string,
 	): Promise<void> {
 		try {
@@ -391,7 +392,7 @@ export class SseService {
 	public static async attachSession(
 		jobId: string,
 		session: BufferedSession,
-		env: "dev" | "prod" = "prod",
+		env: "dev" | "prod" = getAppEnv(),
 		lastEventId?: string,
 	): Promise<void> {
 		await this.attachJobSession(jobId, session, env, lastEventId);
@@ -405,7 +406,7 @@ export class SseService {
 	public static async attachJobSession(
 		jobId: string,
 		session: BufferedSession,
-		env: "dev" | "prod" = "prod",
+		env: "dev" | "prod" = getAppEnv(),
 		lastEventId?: string,
 	): Promise<void> {
 		this.connectToBus(jobId, session);
@@ -442,7 +443,7 @@ export class SseService {
 		conversationId: string,
 		session: BufferedSession,
 		activeJobId?: string,
-		env: "dev" | "prod" = "prod",
+		env: "dev" | "prod" = getAppEnv(),
 		lastEventId?: string,
 	): Promise<void> {
 		this.connectConversationToBus(conversationId, session);

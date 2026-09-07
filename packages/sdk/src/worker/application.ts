@@ -207,10 +207,15 @@ export class WorkerApplication {
         return;
       }
 
+      const handlerPayload = {
+        ...payloadData,
+        ...(payloadData.data && typeof payloadData.data === "object" ? payloadData.data : {}),
+      };
+
       const ctx = createWorkerContext(jobId, conversationId, this.env, this.redisWriter);
       const startTime = Date.now();
 
-      await handler(payloadData, ctx);
+      await handler(handlerPayload, ctx);
 
       const durationSec = (Date.now() - startTime) / 1000;
       const sseStreamKey = `jobs:sse:${this.env}:${jobId}`;

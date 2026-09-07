@@ -34,8 +34,6 @@ enum Status {
 
 enum Model {
   CHATBOT       @map("chatbot")
-  STATISTIQUE   @map("statistique")
-  OBJ_TRV_PERDU @map("obj_trv_perdu")
 
   @@map("model_enum")
 }
@@ -88,15 +86,6 @@ model Message {
   conversation Conversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
 
   @@index([conversation_id])
-}
-
-model gvDemande {
-  uid        String   @id @unique
-  dev        Boolean  @default(false)
-  status     Status   @default(PENDING)
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  error      String?
 }
 
 model User {

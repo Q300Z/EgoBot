@@ -8,7 +8,6 @@ export const AuthEvents = {
 			userId: z.string(),
 			email: z.string(),
 			version: z.enum(["v1", "v2", "classic"]).or(z.string()),
-			dev: z.string(),
 		}),
 	),
 };

@@ -87,15 +87,13 @@ export class MessageService {
 	// ============================================================================
 	public static async handleCancelMessage(input: {
 		jobId: string;
-		dev: string;
 		correlationId?: string;
 	}): Promise<{ jobId: string; status: "CANCELLED" }> {
-		const { jobId, dev, correlationId } = input;
+		const { jobId, correlationId } = input;
 		logger.info(`Demande d'annulation du message/job ${jobId}`, { correlationId });
 
 		const result = await eventBus.request(JobCommands.cancel, {
 			jobId,
-			dev,
 			correlationId,
 		});
 

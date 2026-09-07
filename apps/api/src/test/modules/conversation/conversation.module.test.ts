@@ -70,14 +70,12 @@ describe("ConversationModule (TDD)", () => {
 		const res = await eventBus.request(ConversationCommands.deleteLogical, {
 			id: "conv-1",
 			userId: "user-1",
-			dev: "false",
 		});
 
 		expect(res).toEqual({ success: true });
 		expect(listener).toHaveBeenCalledWith({
 			conversationId: "conv-1",
 			userId: "user-1",
-			dev: "false",
 		});
 		unsub();
 	});

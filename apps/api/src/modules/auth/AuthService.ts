@@ -105,13 +105,10 @@ export class AuthService {
 			role,
 		});
 
-		const dev = role === "ADMIN" || data.email.toLowerCase().endsWith("@agelid.com") ? "true" : "false";
 		const payload = {
 			id: user.id,
 			email: user.email,
 			role: user.role,
-			dev,
-			client_id: "default",
 		};
 
 		const token = await new SignJWT(payload)
@@ -127,9 +124,6 @@ export class AuthService {
 			model: "CHATBOT",
 			email: user.email,
 			user: user.id,
-			client: "default",
-			db_key: "default",
-			dev,
 			token,
 		};
 		try {
@@ -142,7 +136,6 @@ export class AuthService {
 			userId: user.id,
 			email: user.email,
 			version: "classic",
-			dev,
 		});
 
 		return {
@@ -152,7 +145,6 @@ export class AuthService {
 				email: user.email,
 				username: user.username,
 				role: user.role,
-				dev,
 			},
 		};
 	}
@@ -178,12 +170,10 @@ export class AuthService {
 			throw new UnauthorizedError("Identifiants incorrects.");
 		}
 
-		const dev = user.role === "ADMIN" || user.email.toLowerCase().endsWith("@agelid.com") ? "true" : "false";
 		const payload = {
 			id: user.id,
 			email: user.email,
 			role: user.role,
-			dev,
 			client_id: "default",
 		};
 
@@ -200,9 +190,6 @@ export class AuthService {
 			model: "CHATBOT",
 			email: user.email,
 			user: user.id,
-			client: "default",
-			db_key: "default",
-			dev,
 			token,
 		};
 		try {
@@ -215,7 +202,6 @@ export class AuthService {
 			userId: user.id,
 			email: user.email,
 			version: "classic",
-			dev,
 		});
 
 		return {
@@ -225,7 +211,6 @@ export class AuthService {
 				email: user.email,
 				username: user.username,
 				role: user.role,
-				dev,
 			},
 		};
 	}
@@ -254,7 +239,7 @@ export class AuthService {
 				id: Egobot.user,
 				email: Egobot.email,
 				username: Egobot.user,
-				role: Egobot.email.toLowerCase().endsWith("@agelid.com") && Egobot.dev === "true" ? "ADMIN" : "USER",
+				role: Egobot.email.toLowerCase().endsWith("@agelid.com") ? "ADMIN" : "USER",
 			};
 		}
 
@@ -273,15 +258,11 @@ export class AuthService {
 		// Fallback pour utilisateur classique inscrit en base SQLite
 		const user = await AuthRepository.findUserById(userId);
 		if (user) {
-			const dev = user.role === "ADMIN" || user.email.toLowerCase().endsWith("@agelid.com") ? "true" : "false";
 			const defaultConfig: EgobotConfig = {
 				url: "http://localhost:8000",
 				model: "CHATBOT",
 				email: user.email,
 				user: user.id,
-				client: "default",
-				db_key: "default",
-				dev,
 			};
 			try {
 				await AuthRepository.saveEgobotConfig(user.id, defaultConfig);

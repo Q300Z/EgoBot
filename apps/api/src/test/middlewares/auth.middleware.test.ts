@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
-import { authenticateJWT, isAdmin } from "../../middlewares/auth.middleware";
+import { authenticateJWT, isAdmin, devOnly } from "../../middlewares/auth.middleware";
+import * as envConfig from "../../config/env";
 import { UnauthorizedError, ForbiddenError } from "../../core/errors";
 import { SignJWT } from "jose";
 import { env } from "../../config/env";

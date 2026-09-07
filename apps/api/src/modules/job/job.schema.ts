@@ -21,7 +21,7 @@ const JobBasePayloadSchema = z
 		kind: JobEventKindEnum,
 		job_id: z.string(),
 		conversation_id: z.string().optional(),
-		dev: z.union([z.string(), z.boolean()]).transform((v) => String(v)),
+		dev: z.union([z.string(), z.boolean()]).transform((v) => String(v)).optional(),
 	})
 	.passthrough();
 

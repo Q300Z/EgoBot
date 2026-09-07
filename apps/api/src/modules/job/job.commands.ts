@@ -29,7 +29,7 @@ export const JobCreateRequestSchema = z
 export const JobCancelRequestSchema = z
 	.object({
 		jobId: z.string().min(1),
-		dev: z.string().optional(),
+		
 		correlationId: z.string().optional(),
 	})
 	.passthrough();
@@ -43,7 +43,7 @@ export const JobDeferRequestSchema = z
 	.object({
 		jobId: z.string().min(1),
 		targetModel: z.string(),
-		dev: z.string().optional(),
+		
 	})
 	.passthrough();
 
