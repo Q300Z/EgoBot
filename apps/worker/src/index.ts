@@ -1,11 +1,13 @@
+import { createPrismaClient, type LogisticsPrismaClient } from "@egobot/logistics-agent/database";
 import { WorkerApplication } from "@egobot/sdk/worker";
 import dotenv from "dotenv";
+import { createLogisticsHandler } from "./handlers/logistics.handler.js";
 
 dotenv.config();
 
 const worker = new WorkerApplication({
   workerId: "ts-worker-1",
-  models: ["CHATBOT", "ANALYTICS"],
+  models: ["CHATBOT", "ANALYTICS", "LOGISTICS"],
   env: process.env.NODE_ENV || "dev",
   redisUrl: process.env.REDIS_URL || "redis://localhost:6379",
 });
@@ -37,6 +39,17 @@ worker.registerTask("CHATBOT", async (payload, ctx) => {
     await new Promise((r) => setTimeout(r, 120));
   }
 });
+
+let logisticsPrisma: LogisticsPrismaClient | undefined;
+
+function getLogisticsPrisma(): LogisticsPrismaClient {
+  if (!logisticsPrisma) {
+    logisticsPrisma = createPrismaClient(process.env.DATABASE_URL);
+  }
+  return logisticsPrisma;
+}
+
+worker.registerTask("LOGISTICS", createLogisticsHandler({ getPrisma: getLogisticsPrisma }));
 
 worker.start();
 

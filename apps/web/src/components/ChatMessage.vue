@@ -17,29 +17,24 @@
           {{ message.role === 'USER' ? (userName || 'Vous') : 'EgoBot (Duhamel Logistique)' }}
         </div>
         <div v-if="message.role === 'USER'" class="text-body-2 white-space-pre-wrap text-white">{{ message.content }}</div>
-        <div v-else class="text-body-2 markdown-body text-grey-darken-4" v-html="renderedMarkdown"></div>
+        <MessageContent
+          v-else-if="message.content"
+          :content="message.content"
+          class="markdown-body text-grey-darken-4"
+        />
+        <div v-else class="text-body-2 markdown-body text-grey-darken-4">...</div>
       </v-card>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
-import { marked } from "marked";
+import MessageContent from "./MessageContent.vue";
 
-const props = defineProps<{
+defineProps<{
   message: { role: "USER" | "ASSISTANT"; content: string };
   userName?: string;
 }>();
-
-const renderedMarkdown = computed(() => {
-  if (!props.message?.content) return "...";
-  try {
-    return marked.parse(props.message.content, { gfm: true, breaks: true }) as string;
-  } catch {
-    return props.message.content;
-  }
-});
 </script>
 
 <style scoped>

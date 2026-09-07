@@ -352,6 +352,40 @@ describe("LogibotClientSDK", () => {
       unsubscribe();
     });
 
+    it("should dispatch onStatus for a worker completion envelope (kind: stats)", () => {
+      const sdk = new LogibotClientSDK({ baseUrl: "http://localhost:3000" });
+      const onStatus = vi.fn();
+      const onStatistics = vi.fn();
+
+      let createdEsInstance: MockEventSource | null = null;
+      (globalThis as any).EventSource = class extends MockEventSource {
+        constructor(url: string) {
+          super(url);
+          createdEsInstance = this;
+        }
+      };
+
+      const unsubscribe = sdk.connectJobStream("job-stats", { onStatus, onStatistics });
+      const es = createdEsInstance!;
+
+      es.onmessage!({
+        data: JSON.stringify({
+          kind: "stats",
+          status: "COMPLETED",
+          job_id: "job-stats",
+          statistics: { generated_tokens: 10 },
+        }),
+      });
+
+      // Un événement portant à la fois un statut et des statistiques est
+      // classé en priorité comme changement de statut (isStatus avant
+      // isStats) : c'est le signal le plus actionnable pour l'appelant.
+      expect(onStatus).toHaveBeenCalledWith("COMPLETED", undefined);
+      expect(onStatistics).not.toHaveBeenCalled();
+
+      unsubscribe();
+    });
+
     it("should connect to admin conversation SSE stream and emit tokens/status", () => {
       const sdk = new LogibotClientSDK({ baseUrl: "http://localhost:3000", token: "admin-jwt" });
       const onToken = vi.fn();
