@@ -26,6 +26,26 @@ if (typeof window !== "undefined") {
   window.scrollTo = vi.fn();
 }
 
+// Mock localStorage
+const storage: Record<string, string> = {};
+const mockLocalStorage = {
+  getItem: vi.fn((key: string) => storage[key] || null),
+  setItem: vi.fn((key: string, val: string) => {
+    storage[key] = String(val);
+  }),
+  removeItem: vi.fn((key: string) => {
+    delete storage[key];
+  }),
+  clear: vi.fn(() => {
+    Object.keys(storage).forEach((key) => delete storage[key]);
+  }),
+};
+
+Object.defineProperty(window, "localStorage", {
+  value: mockLocalStorage,
+  writable: true,
+});
+
 // Mock window.matchMedia (non disponible dans jsdom)
 Object.defineProperty(window, "matchMedia", {
   writable: true,

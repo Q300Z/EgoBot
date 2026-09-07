@@ -29,6 +29,56 @@ export class ConversationRepository {
     });
   }
 
+  static async findAllAdmin(userId?: string) {
+    return prisma.conversation.findMany({
+      where: {
+        deleted_at: null,
+        ...(userId ? { user_id: userId } : {}),
+      },
+      include: {
+        user: {
+          select: { id: true, email: true, role: true },
+        },
+        _count: {
+          select: { messages: true },
+        },
+      },
+      orderBy: { updated_at: "desc" },
+    });
+  }
+
+  static async findByUserIdAdmin(userId: string) {
+    return prisma.conversation.findMany({
+      where: {
+        user_id: userId,
+        deleted_at: null,
+      },
+      include: {
+        user: {
+          select: { id: true, email: true, role: true },
+        },
+        _count: {
+          select: { messages: true },
+        },
+      },
+      orderBy: { updated_at: "desc" },
+    });
+  }
+
+  static async findByIdAdmin(id: string) {
+    return prisma.conversation.findFirst({
+      where: { id, deleted_at: null },
+      include: {
+        user: {
+          select: { id: true, email: true, role: true },
+        },
+        messages: {
+          orderBy: { created_at: "asc" },
+        },
+      },
+    });
+  }
+
   static async softDelete(id: string) {
     return prisma.conversation.update({
       where: { id },

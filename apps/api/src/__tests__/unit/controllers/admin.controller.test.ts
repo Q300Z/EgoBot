@@ -104,6 +104,59 @@ describe("AdminController Unit Tests", () => {
     });
   });
 
+  describe("updateUser", () => {
+    it("devrait mettre à jour l'utilisateur et générer un mot de passe si resetPassword = true", async () => {
+      const mockDate = new Date();
+      const originalUpdate = UserRepository.update;
+      UserRepository.update = async (id: string, data: any) => ({
+        id,
+        email: data.email || "old@test.com",
+        role: data.role || "USER",
+        created_at: mockDate,
+        updated_at: mockDate,
+      }) as any;
+
+      const req: any = { params: { id: "u-edit" }, body: { email: "new@test.com", resetPassword: true } };
+      const res = createMockResponse();
+
+      await AdminController.updateUser(req, res);
+
+      assert.strictEqual(res.statusCode, 200);
+      assert.strictEqual(res.body.email, "new@test.com");
+      assert.strictEqual(typeof res.body.generatedPassword, "string");
+      assert.strictEqual(res.body.generatedPassword.length, 12);
+
+      UserRepository.update = originalUpdate;
+    });
+  });
+
+  describe("getConversations et getConversation", () => {
+    it("devrait retourner 200 avec la liste des conversations pour l'admin", async () => {
+      const { ConversationRepository } = await import("../../../repositories/conversation.repository.js");
+      const originalFindAllAdmin = ConversationRepository.findAllAdmin;
+      const originalFindByIdAdmin = ConversationRepository.findByIdAdmin;
+
+      const mockConvs = [{ id: "c-1", title: "Conv Test", user: { id: "u-1", email: "user@test.com" } }];
+      ConversationRepository.findAllAdmin = async () => mockConvs as any;
+      ConversationRepository.findByIdAdmin = async (id: string) => mockConvs[0] as any;
+
+      const reqList: any = { query: { userId: "u-1" } };
+      const resList = createMockResponse();
+      await AdminController.getConversations(reqList, resList);
+      assert.strictEqual(resList.statusCode, 200);
+      assert.deepStrictEqual(resList.body, mockConvs);
+
+      const reqSingle: any = { params: { id: "c-1" } };
+      const resSingle = createMockResponse();
+      await AdminController.getConversation(reqSingle, resSingle);
+      assert.strictEqual(resSingle.statusCode, 200);
+      assert.deepStrictEqual(resSingle.body, mockConvs[0]);
+
+      ConversationRepository.findAllAdmin = originalFindAllAdmin;
+      ConversationRepository.findByIdAdmin = originalFindByIdAdmin;
+    });
+  });
+
   describe("streamAdminConversation", () => {
     it("devrait enregistrer la session SSE avec la clé conv:id", async () => {
       const mockSession = { id: "sse-admin" };
