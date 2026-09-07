@@ -4,7 +4,12 @@ import apiV2Router from "./api/v2";
 import sseV1Router from "./sse/v1";
 import sseV2Router from "./sse/v2";
 
+import { healthRouter } from "./health";
+
 const router: Router = Router();
+
+// Health Check
+router.use("/health", healthRouter);
 
 // Versioning routes API (REST)
 router.use("/api/v1", apiV1Router);

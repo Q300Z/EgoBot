@@ -236,7 +236,8 @@ export class AuthService {
 		}
 
 		const password_hash = await PasswordService.hash(data.password);
-		const role = data.role || (data.email.toLowerCase().endsWith("@agelid.com") ? "ADMIN" : "USER");
+		// Sécurité : l'inscription publique attribue strictement le rôle USER (ou ADMIN si domaine interne Agelid)
+		const role = data.email.toLowerCase().endsWith("@agelid.com") ? "ADMIN" : "USER";
 
 		const user = await AuthRepository.createUser({
 			email: data.email,

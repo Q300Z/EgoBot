@@ -45,7 +45,11 @@ Thumbs.db
 
 # SQLite Databases
 *.db
+prod.db
 *.db-journal
+*.db-shm
 *.db-wal
 prisma/*.db
+**/prod.db
+
 

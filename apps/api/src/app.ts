@@ -15,6 +15,9 @@ import { initJobModule } from "./modules/job";
 // Routes versionnées
 import routes from "./routes";
 
+import { env } from "./config/env";
+import { healthCheckHandler } from "./routes/health";
+
 // Initialisation des modules métier
 initAuthModule();
 initConversationModule();
@@ -27,7 +30,14 @@ const app: express.Application = express();
 app.use(express.json({ limit: "10mb" }));
 app.use(helmet());
 app.set("trust proxy", true);
-app.use(cors());
+
+const allowedOrigins = env.CORS_ORIGIN === "*" ? "*" : env.CORS_ORIGIN.split(",").map((s) => s.trim());
+app.use(
+	cors({
+		origin: allowedOrigins,
+		credentials: true,
+	}),
+);
 app.use(
 	compression({
 		filter: (req, res) => {
@@ -49,6 +59,7 @@ app.use(requestLogger); // Traçage et log HTTP intégrés
 app.get("/", (_req, res) => {
 	res.send("Egobot API est opérationnelle.");
 });
+app.get("/health", healthCheckHandler);
 
 // Branchement des routes versionnées (REST & SSE)
 app.use("/", routes);

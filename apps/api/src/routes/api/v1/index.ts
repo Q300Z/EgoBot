@@ -6,12 +6,17 @@ import { MessageController, PostMessageSchema, CancelMessageSchema } from "../..
 import { AdminController } from "../../../modules/admin";
 import { DemandeController, PostDemandeSchema } from "../../../modules/gv/demande";
 
+import { healthCheckHandler } from "../../health";
+
 const router: Router = Router();
 
 const conversationController = new ConversationController();
 const messageController = new MessageController();
 const adminController = new AdminController();
 const demandeController = new DemandeController();
+
+// Health Check
+router.get("/health", healthCheckHandler);
 
 // Auth
 router.post("/auth/login", validate(LoginRequestSchema), AuthController.login);

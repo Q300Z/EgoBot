@@ -63,16 +63,6 @@
               required
             ></v-text-field>
 
-            <v-select
-              v-if="authTab === 'register'"
-              v-model="role"
-              :items="['USER', 'ADMIN']"
-              label="Rôle initial"
-              prepend-inner-icon="mdi-account-badge"
-              variant="outlined"
-              density="comfortable"
-            ></v-select>
-
             <v-btn
               type="submit"
               color="primary"
@@ -106,7 +96,6 @@ const loginIdentifier = ref("");
 const email = ref("");
 const username = ref("");
 const password = ref("");
-const role = ref<"USER" | "ADMIN">("USER");
 const authError = ref("");
 const authLoading = ref(false);
 
@@ -117,7 +106,7 @@ async function handleAuthSubmit() {
     if (authTab.value === "login") {
       await authStore.login(loginIdentifier.value, password.value);
     } else {
-      await authStore.register(email.value, password.value, role.value, username.value || undefined);
+      await authStore.register(email.value, password.value, undefined, username.value || undefined);
     }
     await chatStore.loadConversations();
     router.push("/chat");

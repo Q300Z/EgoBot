@@ -8,3 +8,11 @@ uploads
 /src/prisma/generated/prisma
 coverage/
 generated-schemas/
+
+# SQLite Databases
+*.db
+prod.db
+*.db-journal
+*.db-shm
+*.db-wal
+prisma/*.db
