@@ -78,11 +78,12 @@ describe("LogibotClientSDK", () => {
         data: { token: "jwt-token-456", user: { id: "u2" } },
       });
 
-      const res = await sdk.register("test@test.com", "password123", "ADMIN");
+      const res = await sdk.register("test@test.com", "password123");
+      // Aucun champ role : l'inscription publique ne permet pas de choisir
+      // son niveau de privilege.
       expect(mockAxiosInstance.post).toHaveBeenCalledWith("/api/v1/auth/register", {
         email: "test@test.com",
         password: "password123",
-        role: "ADMIN",
       });
       expect(res).toEqual({ token: "jwt-token-456", user: { id: "u2" } });
       expect(mockAxiosInstance.defaults.headers.common["Authorization"]).toBe("Bearer jwt-token-456");
@@ -270,7 +271,7 @@ describe("LogibotClientSDK", () => {
       (globalThis as any).EventSource = MockEventSource;
     });
 
-    it("should open EventSource at /sse/:jobId without token in URL", () => {
+    it("should open EventSource at /sse/:jobId with the auth token in the query string", () => {
       let createdEsInstance: MockEventSource | null = null;
       (globalThis as any).EventSource = class extends MockEventSource {
         constructor(url: string) {
@@ -285,7 +286,7 @@ describe("LogibotClientSDK", () => {
       });
 
       const unsubscribe = sdk.connectJobStream("job-123", {});
-      expect(createdEsInstance!.url).toBe("http://localhost:3000/sse/job-123");
+      expect(createdEsInstance!.url).toBe("http://localhost:3000/sse/job-123?token=my-token");
       expect(unsubscribe).toBeTypeOf("function");
       unsubscribe();
     });

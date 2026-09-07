@@ -41,16 +41,6 @@
               required
             ></v-text-field>
 
-            <v-select
-              v-if="authTab === 'register'"
-              v-model="role"
-              :items="['USER', 'ADMIN']"
-              label="Rôle initial"
-              prepend-inner-icon="mdi-account-badge"
-              variant="outlined"
-              density="comfortable"
-            ></v-select>
-
             <v-btn
               type="submit"
               color="primary"
@@ -82,7 +72,6 @@ const chatStore = useChatStore();
 const authTab = ref<"login" | "register">("login");
 const email = ref("");
 const password = ref("");
-const role = ref<"USER" | "ADMIN">("USER");
 const authError = ref("");
 const authLoading = ref(false);
 
@@ -93,7 +82,8 @@ async function handleAuthSubmit() {
     if (authTab.value === "login") {
       await authStore.login(email.value, password.value);
     } else {
-      await authStore.register(email.value, password.value, role.value);
+      // Pas de rôle : l'inscription publique crée toujours un compte USER.
+      await authStore.register(email.value, password.value);
     }
     await chatStore.loadConversations();
     router.push("/chat");

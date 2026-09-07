@@ -37,7 +37,10 @@ export class AuthController {
   }
 
   static async register(req: AuthRequest, res: Response) {
-    const { email, password, role } = req.body;
+    // `role` est volontairement ignoré : cette route est publique, et lire le
+    // rôle depuis le corps de la requête permettait à n'importe qui de se créer
+    // un compte administrateur. La promotion passe par /api/v1/admin/users.
+    const { email, password } = req.body;
     if (!email || !password || password.length < 6) {
       return res.status(400).json({ error: "Email et mot de passe de 6 caractères minimum requis" });
     }
@@ -48,7 +51,7 @@ export class AuthController {
     }
 
     const hash = await bcrypt.hash(password, 10);
-    const user = await UserRepository.create({ email, password_hash: hash, role: role || "USER" });
+    const user = await UserRepository.create({ email, password_hash: hash, role: "USER" });
 
     const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, env.JWT_SECRET, { expiresIn: "7d" });
 

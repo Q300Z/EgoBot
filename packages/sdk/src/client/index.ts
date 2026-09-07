@@ -35,8 +35,10 @@ export class LogibotClientSDK {
     return res.data; // { token, user }
   }
 
-  async register(email: string, password: string, role?: string) {
-    const res = await this.api.post("/api/v1/auth/register", { email, password, role });
+  // Pas de paramètre `role` : l'inscription est publique et l'API l'ignore.
+  // La création d'un compte administrateur passe par createUser().
+  async register(email: string, password: string) {
+    const res = await this.api.post("/api/v1/auth/register", { email, password });
     if (res.data.token) {
       this.setToken(res.data.token);
     }
@@ -184,7 +186,10 @@ export class LogibotClientSDK {
       onError?: (err: any) => void;
     }
   ): () => void {
-    const streamUrl = `${this.api.defaults.baseURL}/sse/${jobId}`;
+    // EventSource n'accepte pas d'en-tête : le jeton passe par la query string,
+    // comme pour connectAdminConversationStream. Sans lui, l'API répond 401 —
+    // le flux d'un job n'est plus accessible du seul fait d'en connaître l'id.
+    const streamUrl = `${this.api.defaults.baseURL}/sse/${jobId}${this.token ? `?token=${encodeURIComponent(this.token)}` : ""}`;
     const eventSource = new EventSource(streamUrl);
 
     const handleEvent = (event: MessageEvent) => {
