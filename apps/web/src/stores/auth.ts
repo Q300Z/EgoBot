@@ -20,8 +20,8 @@ export const useAuthStore = defineStore("auth", () => {
     localStorage.setItem("token", data.token);
   }
 
-  async function register(email: string, pass: string, role?: string) {
-    const data = await sdk.value.register(email, pass, role);
+  async function register(email: string, pass: string) {
+    const data = await sdk.value.register(email, pass);
     token.value = data.token;
     user.value = data.user;
     localStorage.setItem("token", data.token);

@@ -92,9 +92,12 @@ describe("Auth Middleware Unit Tests", () => {
       assert.strictEqual(req.user.id, "user-sse");
     });
 
-    it("devrait valider l'accès via le jobId si aucun token valide n'est fourni", async () => {
-      JobRepository.findById = async (id: string) => ({ id: "job-sse-1", conversation_id: "conv-sse-1" }) as any;
-      ConversationRepository.findById = async (id: string) => ({ id: "conv-sse-1", user_id: "owner-user-id" }) as any;
+    it("devrait refuser l'accès au flux d'un job sans jeton, même si le jobId existe", async () => {
+      // Ancien comportement : le jobId servait de « ticket d'accès » et suffisait
+      // à lire le flux de n'importe quel utilisateur. Un jobId n'est pas un
+      // secret — il est renvoyé dans stream_url et journalisé.
+      JobRepository.findById = async () => ({ id: "job-sse-1", conversation_id: "conv-sse-1" }) as any;
+      ConversationRepository.findById = async () => ({ id: "conv-sse-1", user_id: "owner-user-id" }) as any;
 
       const req: any = { query: {}, params: { jobId: "job-sse-1" } };
       const res = createMockResponse();
@@ -104,13 +107,12 @@ describe("Auth Middleware Unit Tests", () => {
         nextCalled = true;
       });
 
-      assert.strictEqual(nextCalled, true);
-      assert.strictEqual(req.user.id, "owner-user-id");
+      assert.strictEqual(res.statusCode, 401);
+      assert.deepStrictEqual(res.body, { success: false, error: "Accès non autorisé" });
+      assert.strictEqual(nextCalled, false);
     });
 
-    it("devrait retourner 401 si le token est absent/invalide et le jobId est inconnu", async () => {
-      JobRepository.findById = async () => null as any;
-
+    it("devrait retourner 401 si aucun jeton n'est fourni", async () => {
       const req: any = { query: {}, params: { jobId: "bad-job-id" } };
       const res = createMockResponse();
       let nextCalled = false;
@@ -120,7 +122,85 @@ describe("Auth Middleware Unit Tests", () => {
       });
 
       assert.strictEqual(res.statusCode, 401);
-      assert.deepStrictEqual(res.body, { success: false, error: "Accès SSE refusé (Job ID invalide)" });
+      assert.strictEqual(nextCalled, false);
+    });
+
+    it("devrait retourner 401 si le jeton est invalide", async () => {
+      const req: any = { query: { token: "jeton-bidon" }, params: { jobId: "job-sse-1" } };
+      const res = createMockResponse();
+      let nextCalled = false;
+
+      await sseAuthMiddleware(req, res, () => {
+        nextCalled = true;
+      });
+
+      assert.strictEqual(res.statusCode, 401);
+      assert.strictEqual(nextCalled, false);
+    });
+
+    it("devrait autoriser le propriétaire du job", async () => {
+      JobRepository.findById = async () => ({ id: "job-sse-1", conversation_id: "conv-sse-1" }) as any;
+      ConversationRepository.findById = async () => ({ id: "conv-sse-1", user_id: "user-sse" }) as any;
+
+      const token = jwt.sign({ id: "user-sse", email: "sse@test.com", role: "USER" }, env.JWT_SECRET);
+      const req: any = { query: { token }, params: { jobId: "job-sse-1" } };
+      const res = createMockResponse();
+      let nextCalled = false;
+
+      await sseAuthMiddleware(req, res, () => {
+        nextCalled = true;
+      });
+
+      assert.strictEqual(nextCalled, true);
+      assert.strictEqual(req.user.id, "user-sse");
+    });
+
+    it("devrait retourner 403 si le job appartient à un autre utilisateur", async () => {
+      JobRepository.findById = async () => ({ id: "job-sse-1", conversation_id: "conv-sse-1" }) as any;
+      ConversationRepository.findById = async () => ({ id: "conv-sse-1", user_id: "un-autre-user" }) as any;
+
+      const token = jwt.sign({ id: "user-sse", email: "sse@test.com", role: "USER" }, env.JWT_SECRET);
+      const req: any = { query: { token }, params: { jobId: "job-sse-1" } };
+      const res = createMockResponse();
+      let nextCalled = false;
+
+      await sseAuthMiddleware(req, res, () => {
+        nextCalled = true;
+      });
+
+      assert.strictEqual(res.statusCode, 403);
+      assert.strictEqual(nextCalled, false);
+    });
+
+    it("devrait autoriser un ADMIN sur le job d'un autre utilisateur", async () => {
+      JobRepository.findById = async () => ({ id: "job-sse-1", conversation_id: "conv-sse-1" }) as any;
+      ConversationRepository.findById = async () => ({ id: "conv-sse-1", user_id: "un-autre-user" }) as any;
+
+      const token = jwt.sign({ id: "admin-1", email: "admin@test.com", role: "ADMIN" }, env.JWT_SECRET);
+      const req: any = { query: { token }, params: { jobId: "job-sse-1" } };
+      const res = createMockResponse();
+      let nextCalled = false;
+
+      await sseAuthMiddleware(req, res, () => {
+        nextCalled = true;
+      });
+
+      assert.strictEqual(nextCalled, true);
+    });
+
+    it("devrait retourner 404 si le job est introuvable", async () => {
+      JobRepository.findById = async () => null as any;
+
+      const token = jwt.sign({ id: "user-sse", email: "sse@test.com", role: "USER" }, env.JWT_SECRET);
+      const req: any = { query: { token }, params: { jobId: "job-inexistant" } };
+      const res = createMockResponse();
+      let nextCalled = false;
+
+      await sseAuthMiddleware(req, res, () => {
+        nextCalled = true;
+      });
+
+      assert.strictEqual(res.statusCode, 404);
       assert.strictEqual(nextCalled, false);
     });
   });

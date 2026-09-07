@@ -18,10 +18,12 @@ export const LoginRequestSchema = z.object({
 });
 export type LoginRequest = z.infer<typeof LoginRequestSchema>;
 
+// Pas de champ `role` : l'inscription est publique, l'accepter depuis le client
+// permettrait de se créer un compte administrateur. La création d'un compte
+// privilégié passe par les routes /api/v1/admin/users, protégées par requireAdmin.
 export const RegisterRequestSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
-  role: RoleSchema.optional(),
 });
 export type RegisterRequest = z.infer<typeof RegisterRequestSchema>;
 

@@ -3,6 +3,7 @@ import { eventBus } from "../events/eventBus.js";
 import { JobRepository } from "../repositories/job.repository.js";
 import { ConversationRepository } from "../repositories/conversation.repository.js";
 import { LoggerFactory } from "../config/logger.js";
+import { STREAM_ENV } from "../config/env.js";
 import { v4 as uuidv4 } from "uuid";
 
 const logger = LoggerFactory.getLogger("JobService");
@@ -55,7 +56,10 @@ export class JobService {
       model,
     });
 
-    const queueKey = `jobs:queue:dev:${model}`;
+    // Préfixe partagé avec le worker : figé à "dev" jusqu'ici, il ne
+    // correspondait plus dès que NODE_ENV était défini (Docker dev comme prod),
+    // et aucun job n'atteignait le worker.
+    const queueKey = `jobs:queue:${STREAM_ENV}:${model}`;
     const payload = {
       jobId,
       conversationId: convId,
@@ -77,7 +81,7 @@ export class JobService {
   private static async pollSseStreams() {
     while (this.isRunning) {
       try {
-        const keys = await valkeyStream.keys("jobs:sse:dev:*");
+        const keys = await valkeyStream.keys(`jobs:sse:${STREAM_ENV}:*`);
         for (const key of keys) {
           const parts = key.split(":");
           const jobId = parts[parts.length - 1];

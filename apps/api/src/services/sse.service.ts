@@ -3,6 +3,7 @@ import { createSession, Session } from "better-sse";
 import { eventBus } from "../events/eventBus.js";
 import { LoggerFactory } from "../config/logger.js";
 import { valkeyStream } from "../config/valkey.js";
+import { STREAM_ENV } from "../config/env.js";
 
 const logger = LoggerFactory.getLogger("SseService");
 
@@ -41,8 +42,7 @@ export class SseService {
     const lastEventId = (req.headers["last-event-id"] as string) || (req.query.lastEventId as string);
 
     if (lastEventId && jobId) {
-      const env = process.env.NODE_ENV || "dev";
-      const sseStreamKey = `jobs:sse:${env}:${jobId}`;
+      const sseStreamKey = `jobs:sse:${STREAM_ENV}:${jobId}`;
       try {
         const startId = this.incrementStreamId(lastEventId);
         const missedEvents = await valkeyStream.xrange(sseStreamKey, startId, "+");
