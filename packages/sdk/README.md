@@ -20,7 +20,7 @@ packages/sdk/
 ├── src/
 │   ├── client/
 │   │   ├── event-client.ts   # Helper EventSource avec support Last-Event-ID
-│   │   └── index.ts          # Classe LogibotClientSDK (Auth, Conversations, Admin)
+│   │   └── index.ts          # Classe EgobotClientSDK (Auth, Conversations, Admin)
 │   └── worker/
 │       ├── context.ts        # WorkerTaskContext (sendToken, checkCancellation, deferJob)
 │       ├── application.ts    # Moteur WorkerApplication (Valkey Streams XREADGROUP/XACK)
@@ -38,7 +38,7 @@ packages/sdk/
 Pour exposer un nouvel endpoint API au client Web (ex: `deleteUser` ou `getArticles`) :
 
 ```typescript
-export class LogibotClientSDK {
+export class EgobotClientSDK {
   // ...
   async getArticles(): Promise<Article[]> {
     const res = await this.api.get("/api/v1/articles");

@@ -51,6 +51,59 @@ describe("createWorkerContext", () => {
     expect(mockRedisWriter.expire).toHaveBeenCalledWith("jobs:sse:production:job-123", 3600);
   });
 
+  it("should send source object to redis sse stream with marker chunk", async () => {
+    const ctx = createWorkerContext("job-123", "conv-456", "production", mockRedisWriter);
+
+    await ctx.sendSource({
+      title: "Manuel Logistique v2",
+      url: "https://example.com/doc",
+      type: "doc",
+    });
+
+    expect(mockRedisWriter.xadd).toHaveBeenCalledWith(
+      "jobs:sse:production:job-123",
+      "MAXLEN",
+      "~",
+      1000,
+      "*",
+      "event",
+      "source",
+      "data",
+      expect.any(String)
+    );
+
+    const dataString = mockRedisWriter.xadd.mock.calls[0][8];
+    const parsed = JSON.parse(dataString);
+    expect(parsed).toEqual({
+      event: "source",
+      data: {
+        kind: "source",
+        status: "IN_PROGRESS",
+        job_id: "job-123",
+        conversation_id: "conv-456",
+        chunk: '[[source:{"type":"doc","title":"Manuel Logistique v2","url":"https://example.com/doc"}]]',
+        source: {
+          type: "doc",
+          title: "Manuel Logistique v2",
+          url: "https://example.com/doc",
+        },
+      },
+    });
+
+    expect(mockRedisWriter.expire).toHaveBeenCalledWith("jobs:sse:production:job-123", 3600);
+  });
+
+  it("should send source string to redis sse stream", async () => {
+    const ctx = createWorkerContext("job-123", "conv-456", "dev", mockRedisWriter);
+
+    await ctx.sendSource("Guide Utilisateur");
+
+    const dataString = mockRedisWriter.xadd.mock.calls[0][8];
+    const parsed = JSON.parse(dataString);
+    expect(parsed.data.source).toEqual({ title: "Guide Utilisateur", type: "doc" });
+    expect(parsed.data.chunk).toBe('[[source:{"title":"Guide Utilisateur","type":"doc"}]]');
+  });
+
   it("should handle deferJob by publishing defer token pattern", async () => {
     const ctx = createWorkerContext("job-789", "conv-000", "staging", mockRedisWriter);
 

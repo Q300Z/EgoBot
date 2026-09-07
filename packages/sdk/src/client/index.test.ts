@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import axios from "axios";
-import { LogibotClientSDK } from "./index.js";
+import { EgobotClientSDK } from "./index.js";
 
 vi.mock("axios");
 
-describe("LogibotClientSDK", () => {
+describe("EgobotClientSDK", () => {
   let mockAxiosInstance: any;
 
   beforeEach(() => {
@@ -28,7 +28,7 @@ describe("LogibotClientSDK", () => {
   });
 
   it("should initialize with baseUrl and optional token", () => {
-    const sdk = new LogibotClientSDK({
+    const sdk = new EgobotClientSDK({
       baseUrl: "http://api.egobot.test",
       token: "initial-token",
     });
@@ -41,14 +41,14 @@ describe("LogibotClientSDK", () => {
   });
 
   it("should set token correctly", () => {
-    const sdk = new LogibotClientSDK({ baseUrl: "http://localhost:3000" });
+    const sdk = new EgobotClientSDK({ baseUrl: "http://localhost:3000" });
     sdk.setToken("new-token");
     expect(mockAxiosInstance.defaults.headers.common["Authorization"]).toBe("Bearer new-token");
   });
 
   describe("Auth API", () => {
     it("should login and set auth token on success", async () => {
-      const sdk = new LogibotClientSDK({ baseUrl: "http://localhost:3000" });
+      const sdk = new EgobotClientSDK({ baseUrl: "http://localhost:3000" });
       mockAxiosInstance.post.mockResolvedValueOnce({
         data: { token: "jwt-token-123", user: { id: "u1" } },
       });
@@ -63,7 +63,7 @@ describe("LogibotClientSDK", () => {
     });
 
     it("should login without token response without breaking setToken", async () => {
-      const sdk = new LogibotClientSDK({ baseUrl: "http://localhost:3000" });
+      const sdk = new EgobotClientSDK({ baseUrl: "http://localhost:3000" });
       mockAxiosInstance.post.mockResolvedValueOnce({
         data: { message: "no token" },
       });
@@ -73,7 +73,7 @@ describe("LogibotClientSDK", () => {
     });
 
     it("should register user and set token", async () => {
-      const sdk = new LogibotClientSDK({ baseUrl: "http://localhost:3000" });
+      const sdk = new EgobotClientSDK({ baseUrl: "http://localhost:3000" });
       mockAxiosInstance.post.mockResolvedValueOnce({
         data: { token: "jwt-token-456", user: { id: "u2" } },
       });
@@ -89,7 +89,7 @@ describe("LogibotClientSDK", () => {
     });
 
     it("should fetch current authenticated user getMe()", async () => {
-      const sdk = new LogibotClientSDK({ baseUrl: "http://localhost:3000" });
+      const sdk = new EgobotClientSDK({ baseUrl: "http://localhost:3000" });
       mockAxiosInstance.get.mockResolvedValueOnce({
         data: { id: "u1", email: "test@test.com" },
       });
@@ -102,7 +102,7 @@ describe("LogibotClientSDK", () => {
 
   describe("Messages & Conversations API", () => {
     it("should create a message", async () => {
-      const sdk = new LogibotClientSDK({ baseUrl: "http://localhost:3000" });
+      const sdk = new EgobotClientSDK({ baseUrl: "http://localhost:3000" });
       mockAxiosInstance.post.mockResolvedValueOnce({
         data: { job_id: "j1", conversation_id: "c1" },
       });
@@ -117,7 +117,7 @@ describe("LogibotClientSDK", () => {
     });
 
     it("should get all conversations", async () => {
-      const sdk = new LogibotClientSDK({ baseUrl: "http://localhost:3000" });
+      const sdk = new EgobotClientSDK({ baseUrl: "http://localhost:3000" });
       mockAxiosInstance.get.mockResolvedValueOnce({
         data: [{ id: "c1" }, { id: "c2" }],
       });
@@ -128,7 +128,7 @@ describe("LogibotClientSDK", () => {
     });
 
     it("should get a single conversation by id", async () => {
-      const sdk = new LogibotClientSDK({ baseUrl: "http://localhost:3000" });
+      const sdk = new EgobotClientSDK({ baseUrl: "http://localhost:3000" });
       mockAxiosInstance.get.mockResolvedValueOnce({
         data: { id: "c1", title: "Conv 1" },
       });
@@ -139,7 +139,7 @@ describe("LogibotClientSDK", () => {
     });
 
     it("should delete a conversation by id", async () => {
-      const sdk = new LogibotClientSDK({ baseUrl: "http://localhost:3000" });
+      const sdk = new EgobotClientSDK({ baseUrl: "http://localhost:3000" });
       mockAxiosInstance.delete.mockResolvedValueOnce({
         data: { success: true },
       });
@@ -152,7 +152,7 @@ describe("LogibotClientSDK", () => {
 
   describe("Admin API", () => {
     it("should get users list", async () => {
-      const sdk = new LogibotClientSDK({ baseUrl: "http://localhost:3000" });
+      const sdk = new EgobotClientSDK({ baseUrl: "http://localhost:3000" });
       mockAxiosInstance.get.mockResolvedValueOnce({
         data: [{ id: "u1" }],
       });
@@ -163,7 +163,7 @@ describe("LogibotClientSDK", () => {
     });
 
     it("should create user", async () => {
-      const sdk = new LogibotClientSDK({ baseUrl: "http://localhost:3000" });
+      const sdk = new EgobotClientSDK({ baseUrl: "http://localhost:3000" });
       const newUser = { email: "admin@test.com", password: "password", role: "ADMIN" };
       mockAxiosInstance.post.mockResolvedValueOnce({
         data: { id: "u2", ...newUser },
@@ -175,7 +175,7 @@ describe("LogibotClientSDK", () => {
     });
 
     it("should delete user", async () => {
-      const sdk = new LogibotClientSDK({ baseUrl: "http://localhost:3000" });
+      const sdk = new EgobotClientSDK({ baseUrl: "http://localhost:3000" });
       mockAxiosInstance.delete.mockResolvedValueOnce({
         data: { success: true },
       });
@@ -186,7 +186,7 @@ describe("LogibotClientSDK", () => {
     });
 
     it("should update user details and handle password reset response", async () => {
-      const sdk = new LogibotClientSDK({ baseUrl: "http://localhost:3000" });
+      const sdk = new EgobotClientSDK({ baseUrl: "http://localhost:3000" });
       mockAxiosInstance.put.mockResolvedValueOnce({
         data: { id: "u2", email: "updated@test.com", role: "USER", generatedPassword: "abc" },
       });
@@ -200,7 +200,7 @@ describe("LogibotClientSDK", () => {
     });
 
     it("should fetch admin conversations list and single conversation", async () => {
-      const sdk = new LogibotClientSDK({ baseUrl: "http://localhost:3000" });
+      const sdk = new EgobotClientSDK({ baseUrl: "http://localhost:3000" });
       mockAxiosInstance.get.mockResolvedValueOnce({
         data: [{ id: "conv-1", title: "Conv 1" }],
       });
@@ -220,7 +220,7 @@ describe("LogibotClientSDK", () => {
     });
 
     it("should fetch user conversations via getUserConversations", async () => {
-      const sdk = new LogibotClientSDK({ baseUrl: "http://localhost:3000" });
+      const sdk = new EgobotClientSDK({ baseUrl: "http://localhost:3000" });
       mockAxiosInstance.get.mockResolvedValueOnce({
         data: [{ id: "conv-user-1", title: "User Conv 1", _count: { messages: 2 } }],
       });
@@ -271,7 +271,7 @@ describe("LogibotClientSDK", () => {
     });
 
     it("should open EventSource at /sse/:jobId without token in URL", () => {
-      let createdEsInstance: MockEventSource | null = null;
+      let createdEsInstance: any = null;
       (globalThis as any).EventSource = class extends MockEventSource {
         constructor(url: string) {
           super(url);
@@ -279,19 +279,19 @@ describe("LogibotClientSDK", () => {
         }
       };
 
-      const sdk = new LogibotClientSDK({
+      const sdk = new EgobotClientSDK({
         baseUrl: "http://localhost:3000",
         token: "my-token",
       });
 
       const unsubscribe = sdk.connectJobStream("job-123", {});
-      expect(createdEsInstance?.url).toBe("http://localhost:3000/sse/job-123");
+      expect((createdEsInstance as any)?.url).toBe("http://localhost:3000/sse/job-123");
       expect(unsubscribe).toBeTypeOf("function");
       unsubscribe();
     });
 
     it("should handle token, status, statistics, unknown, invalid JSON, and error events", () => {
-      const sdk = new LogibotClientSDK({ baseUrl: "http://localhost:3000" });
+      const sdk = new EgobotClientSDK({ baseUrl: "http://localhost:3000" });
 
       const onToken = vi.fn();
       const onStatus = vi.fn();
@@ -353,7 +353,7 @@ describe("LogibotClientSDK", () => {
     });
 
     it("should connect to admin conversation SSE stream and emit tokens/status", () => {
-      const sdk = new LogibotClientSDK({ baseUrl: "http://localhost:3000", token: "admin-jwt" });
+      const sdk = new EgobotClientSDK({ baseUrl: "http://localhost:3000", token: "admin-jwt" });
       const onToken = vi.fn();
       const onStatus = vi.fn();
 
@@ -376,6 +376,55 @@ describe("LogibotClientSDK", () => {
 
       unsubscribe();
       expect(createdEsInstance!.closed).toBe(true);
+    });
+
+    it("should handle source events and inline source tokens in connectJobStream", () => {
+      const sdk = new EgobotClientSDK({ baseUrl: "http://localhost:3000" });
+      const onToken = vi.fn();
+      const onSource = vi.fn();
+
+      let createdEs: MockEventSource | null = null;
+      (globalThis as any).EventSource = class extends MockEventSource {
+        constructor(url: string) {
+          super(url);
+          createdEs = this;
+        }
+      };
+
+      const unsubscribe = sdk.connectJobStream("job-source", { onToken, onSource });
+
+      // 1. Source SSE event
+      const sourcePayload = {
+        title: "Manuel Logistique v2",
+        url: "https://example.com/doc",
+        type: "doc",
+      };
+      createdEs!.emit("source", {
+        type: "source",
+        payload: {
+          job_id: "job-source",
+          source: sourcePayload,
+          chunk: `[[source:${JSON.stringify(sourcePayload)}]]`,
+        },
+      });
+
+      expect(onSource).toHaveBeenCalledWith(sourcePayload);
+      expect(onToken).toHaveBeenCalledWith(`[[source:${JSON.stringify(sourcePayload)}]]`);
+
+      // 2. Inline token source detection
+      const inlineSource = { title: "Fiche Produit", url: "https://example.com/item" };
+      createdEs!.emit("token", {
+        type: "token",
+        payload: {
+          job_id: "job-source",
+          chunk: `Voir [[source:${JSON.stringify(inlineSource)}]] ici`,
+        },
+      });
+
+      expect(onSource).toHaveBeenCalledWith(inlineSource);
+      expect(onToken).toHaveBeenCalledWith(`Voir [[source:${JSON.stringify(inlineSource)}]] ici`);
+
+      unsubscribe();
     });
   });
 });
