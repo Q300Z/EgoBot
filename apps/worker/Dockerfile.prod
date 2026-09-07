@@ -8,6 +8,10 @@ RUN turbo prune @egobot/worker --docker
 # Stage 2: Install dependencies & compile
 FROM node:22-alpine AS installer
 WORKDIR /app
+# better-sqlite3 (peer dependency optionnelle de prisma, tirée par
+# @egobot/logistics-agent) doit compiler depuis les sources sur Alpine, même
+# si le worker ne l'utilise jamais à l'exécution.
+RUN apk add --no-cache python3 make g++
 RUN npm install -g pnpm@11.9.0
 
 # Copy manifests first for optimal layer caching
