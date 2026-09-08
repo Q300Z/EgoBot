@@ -48,7 +48,7 @@ const worker = new WorkerApplication({
   workerId: "ts-worker-1",
   models: ["CHATBOT", "LOGISTICS"],
   env: workerEnv,
-  redisUrl: process.env.REDIS_URL || process.env.VALKEY_URL || "redis://localhost:6379",
+  redisUrl: process.env.VALKEY_URL || process.env.REDIS_URL || "redis://localhost:6379",
 });
 
 worker.registerTask("CHATBOT", async (payload, ctx) => {
