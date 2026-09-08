@@ -20,8 +20,23 @@ export interface RunLogisticsQueryOptions {
   model?: ChatOpenAI;
 }
 
+/** Consommation réelle remontée par le fournisseur pour tous les appels LLM. */
+export interface LogisticsTokenUsage {
+  inputTokens: number;
+  cachedInputTokens: number;
+  outputTokens: number;
+  reasoningTokens: number;
+  totalTokens: number;
+}
+
 export type RunLogisticsQueryResult =
-  | { ok: true; answer: string; toolCalls: string[]; cancelled: boolean }
+  | {
+      ok: true;
+      answer: string;
+      toolCalls: string[];
+      cancelled: boolean;
+      tokenUsage: LogisticsTokenUsage;
+    }
   | {
       ok: false;
       reason: "NO_IDENTITY" | "NOT_FOUND" | "INACTIVE" | "EMPTY_QUESTION";
@@ -75,8 +90,8 @@ export async function runLogisticsQuery(
 
   // 4. Sans onToken : réponse en bloc. Avec onToken : diffusion au fil de l'eau.
   if (!onToken) {
-    const { answer, toolCalls } = await invokeAgent(agent, input);
-    return { ok: true, answer, toolCalls, cancelled: false };
+    const { answer, toolCalls, tokenUsage } = await invokeAgent(agent, input);
+    return { ok: true, answer, toolCalls, cancelled: false, tokenUsage };
   }
 
   const streamed = await streamAgentResponse(
@@ -92,11 +107,17 @@ export async function runLogisticsQuery(
 async function invokeAgent(
   agent: ReactAgent,
   input: AgentInput,
-): Promise<{ answer: string; toolCalls: string[] }> {
+): Promise<{
+  answer: string;
+  toolCalls: string[];
+  tokenUsage: LogisticsTokenUsage;
+}> {
   const result = await agent.invoke(input);
+  const messages = getMessages(result);
   return {
     answer: extractAnswer(result),
     toolCalls: extractToolCalls(result),
+    tokenUsage: extractTokenUsage(messages),
   };
 }
 
@@ -120,28 +141,41 @@ async function streamAgentResponse(
   input: AgentInput,
   onToken: (chunk: string) => void | Promise<void>,
   shouldCancel: (() => boolean | Promise<boolean>) | undefined,
-): Promise<{ answer: string; toolCalls: string[]; cancelled: boolean }> {
+): Promise<{
+  answer: string;
+  toolCalls: string[];
+  cancelled: boolean;
+  tokenUsage: LogisticsTokenUsage;
+}> {
   // Repli défensif : certaines versions n'exposent pas streamEvents.
   const streamer = agent as {
     streamEvents?: (input: AgentInput, options: { version: "v2" }) => AsyncIterable<StreamEventLike>;
   };
   if (typeof streamer.streamEvents !== "function") {
-    const { answer, toolCalls } = await invokeAgent(agent, input);
+    const { answer, toolCalls, tokenUsage } = await invokeAgent(agent, input);
     await onToken(answer);
-    return { answer, toolCalls, cancelled: false };
+    return { answer, toolCalls, cancelled: false, tokenUsage };
   }
 
   const toolCalls: string[] = [];
   let answer = "";
+  const tokenUsage = emptyTokenUsage();
 
   for await (const event of streamer.streamEvents(input, { version: "v2" })) {
     // Consulté entre deux fragments : interruption propre.
     if (shouldCancel && (await shouldCancel())) {
-      return { answer, toolCalls, cancelled: true };
+      return { answer, toolCalls, cancelled: true, tokenUsage };
     }
 
     if (event.event === "on_tool_start") {
       if (event.name) toolCalls.push(event.name);
+      continue;
+    }
+
+    // Un agent peut appeler le modèle plusieurs fois (sélection d'un outil,
+    // puis formulation finale). Chaque fin d'appel porte sa propre consommation.
+    if (event.event === "on_chat_model_end") {
+      addTokenUsage(tokenUsage, extractTokenUsage([event.data?.output]));
       continue;
     }
 
@@ -154,14 +188,93 @@ async function streamAgentResponse(
     }
   }
 
-  return { answer, toolCalls, cancelled: false };
+  return { answer, toolCalls, cancelled: false, tokenUsage };
 }
 
 /** Forme minimale d'un événement streamEvents v2 réellement consommée ici. */
 interface StreamEventLike {
   event: string;
   name?: string;
-  data?: { chunk?: { content?: unknown } };
+  data?: { chunk?: { content?: unknown }; output?: unknown };
+}
+
+function emptyTokenUsage(): LogisticsTokenUsage {
+  return {
+    inputTokens: 0,
+    cachedInputTokens: 0,
+    outputTokens: 0,
+    reasoningTokens: 0,
+    totalTokens: 0,
+  };
+}
+
+function toTokenCount(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function addTokenUsage(
+  target: LogisticsTokenUsage,
+  usage: LogisticsTokenUsage,
+): void {
+  target.inputTokens += usage.inputTokens;
+  target.cachedInputTokens += usage.cachedInputTokens;
+  target.outputTokens += usage.outputTokens;
+  target.reasoningTokens += usage.reasoningTokens;
+  target.totalTokens += usage.totalTokens;
+}
+
+/**
+ * Additionne les métadonnées de tous les messages IA d'un run agentique.
+ * `usage_metadata` est la forme LangChain actuelle ; `tokenUsage` conserve la
+ * compatibilité avec les réponses OpenAI exposant encore les noms historiques.
+ */
+export function extractTokenUsage(messages: unknown[]): LogisticsTokenUsage {
+  const total = emptyTokenUsage();
+
+  for (const message of messages) {
+    if (!message || typeof message !== "object") continue;
+    const record = message as Record<string, unknown>;
+    const usage = record.usage_metadata;
+
+    if (usage && typeof usage === "object") {
+      const metadata = usage as Record<string, unknown>;
+      const inputDetails =
+        metadata.input_token_details &&
+        typeof metadata.input_token_details === "object"
+          ? (metadata.input_token_details as Record<string, unknown>)
+          : {};
+      const outputDetails =
+        metadata.output_token_details &&
+        typeof metadata.output_token_details === "object"
+          ? (metadata.output_token_details as Record<string, unknown>)
+          : {};
+
+      const inputTokens = toTokenCount(metadata.input_tokens);
+      const outputTokens = toTokenCount(metadata.output_tokens);
+      const messageTotal = toTokenCount(metadata.total_tokens);
+
+      total.inputTokens += inputTokens;
+      total.cachedInputTokens += toTokenCount(inputDetails.cache_read);
+      total.outputTokens += outputTokens;
+      total.reasoningTokens += toTokenCount(outputDetails.reasoning);
+      total.totalTokens += messageTotal || inputTokens + outputTokens;
+      continue;
+    }
+
+    const responseMetadata = record.response_metadata;
+    if (!responseMetadata || typeof responseMetadata !== "object") continue;
+    const legacy = (responseMetadata as Record<string, unknown>).tokenUsage;
+    if (!legacy || typeof legacy !== "object") continue;
+    const tokenUsage = legacy as Record<string, unknown>;
+    const inputTokens = toTokenCount(tokenUsage.promptTokens);
+    const outputTokens = toTokenCount(tokenUsage.completionTokens);
+    const messageTotal = toTokenCount(tokenUsage.totalTokens);
+
+    total.inputTokens += inputTokens;
+    total.outputTokens += outputTokens;
+    total.totalTokens += messageTotal || inputTokens + outputTokens;
+  }
+  return total;
 }
 
 /**
