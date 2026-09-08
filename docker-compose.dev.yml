@@ -20,6 +20,14 @@ services:
       - NODE_ENV=development
       - VALKEY_URL=redis://valkey:6379
       - JWT_SECRET=super_secret_jwt_key_dev
+      # Base SQLite de l'API sur un volume nommé (persiste entre les rebuilds) ;
+      # chemin absolu hors de l'arbo source pour ne rien masquer.
+      - DATABASE_URL=file:/data/api.db
+    # Applique les migrations Prisma AVANT de lancer le serveur (sinon le process
+    # dev garde le fichier .db verrouillé en WAL et `migrate deploy` échoue).
+    command: sh -c "pnpm --filter api exec prisma migrate deploy && pnpm --filter api dev"
+    volumes:
+      - api_db_data:/data
     depends_on:
       - valkey
 
@@ -63,8 +71,13 @@ services:
     container_name: scaffold_web_dev
     ports:
       - "3000:3000"
+    environment:
+      # Le proxy Vite tourne dans ce conteneur : "localhost" y désigne le
+      # conteneur web, pas l'API. On vise le service `api` sur le réseau Compose.
+      - API_PROXY_TARGET=http://api:8000
     depends_on:
       - api
 
 volumes:
   postgres_dev_data:
+  api_db_data:

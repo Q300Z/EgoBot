@@ -214,7 +214,9 @@ function onDialogAction() {
 
 <style scoped>
 .technical-details {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: rgba(var(--v-theme-on-surface), 0.06);
+  color: rgb(var(--v-theme-on-surface));
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.12);
   padding: 8px;
   border-radius: 4px;
   font-size: 11px;

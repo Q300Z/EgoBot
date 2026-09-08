@@ -1,6 +1,11 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 
+// Cible du proxy vers l'API. En natif, l'API écoute sur localhost ; sous Docker
+// Compose, le serveur Vite tourne dans le conteneur `web` et doit joindre le
+// conteneur `api` par son nom de service réseau (défini via API_PROXY_TARGET).
+const apiTarget = process.env.API_PROXY_TARGET || "http://localhost:8000";
+
 export default defineConfig({
   plugins: [vue()],
   server: {
@@ -13,11 +18,11 @@ export default defineConfig({
     // Effet secondaire utile : tout passe par la même origine, donc aucune
     // question de CORS ni de port supplémentaire à exposer.
     proxy: {
-      "/api": { target: "http://localhost:8000", changeOrigin: true },
-      "/health": { target: "http://localhost:8000", changeOrigin: true },
+      "/api": { target: apiTarget, changeOrigin: true },
+      "/health": { target: apiTarget, changeOrigin: true },
       // Le flux SSE doit rester ouvert : pas de tampon, pas de fermeture
       // anticipée, sinon l'affichage au fil de l'eau ne fonctionne plus.
-      "/sse": { target: "http://localhost:8000", changeOrigin: true, ws: false },
+      "/sse": { target: apiTarget, changeOrigin: true, ws: false },
     },
   },
   test: {
