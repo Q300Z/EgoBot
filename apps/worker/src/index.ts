@@ -132,10 +132,10 @@ worker.registerTask("CHATBOT", async (payload, ctx) => {
   // 4. Démo Puces de sources interactives
   if (lower.includes("source")) {
     await streamWords("Cette réponse illustre les différents types de puces de sources gérées par le composant :\n\n");
-    await ctx.sendSource({ title: "Documentation officielle", url: "https://example.com/doc", type: "doc" });
+    await ctx.sendSource({ title: "Documentation officielle", url: "https://claude.ai/code/artifact/0eb15ca9-c209-4c6b-8b1b-f561469bc62c", type: "doc" });
     await ctx.sendSource({ title: "Base de données SQLite", type: "database" });
-    await ctx.sendSource({ title: "API Externe Transport", url: "https://example.com/api", type: "api" });
-    await ctx.sendSource({ title: "Site web logistique", url: "https://example.com", type: "web" });
+    await ctx.sendSource({ title: "API Externe Transport", url: "https://claude.ai/code/artifact/7d874922-d28e-46d2-b05e-dd8c5f35c52a", type: "api" });
+    await ctx.sendSource({ title: "Site web logistique", url: "https://claude.ai/code/artifact/d27c9998-2e1b-4f57-8039-1cc99f229d82", type: "web" });
     await ctx.sendSource({ title: "Fichier contrat_client.pdf", type: "file" });
     return;
   }
@@ -160,7 +160,7 @@ worker.registerTask("CHATBOT", async (payload, ctx) => {
     await ctx.sendToken("\n```mermaid\nstateDiagram-v2\n    COMMANDE --> EXPEDITION\n    EXPEDITION --> LIVRAISON\n```\n\n");
     
     // Sources
-    await ctx.sendSource({ title: "Manuel Duhamel Logistique", url: "https://example.com/doc", type: "doc" });
+    await ctx.sendSource({ title: "Manuel Duhamel Logistique", url: "https://claude.ai/code/artifact/0eb15ca9-c209-4c6b-8b1b-f561469bc62c", type: "doc" });
     await ctx.sendSource({ title: "Inventaire WMS", type: "database" });
     return;
   }
@@ -185,7 +185,7 @@ worker.registerTask("CHATBOT", async (payload, ctx) => {
 
   await ctx.sendSource({
     title: "Guide de démonstration EgoBot",
-    url: "https://example.com/guide",
+    url: "https://claude.ai/code/artifact/746fc5ea-83dc-484a-a4f2-6eb525d2684d",
     type: "doc",
   });
 });
