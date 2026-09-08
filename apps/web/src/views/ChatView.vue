@@ -154,8 +154,16 @@
           class="mb-2"
           aria-label="Mode de réponse du prochain message"
         >
-          <v-btn value="CHATBOT" size="small">Assistant général</v-btn>
-          <v-btn value="LOGISTICS" size="small">Suivi commandes</v-btn>
+          <v-tooltip location="top" text="Mode démonstration : réponses simulées avec graphiques, tableaux et diagrammes pour tester le rendu visuel.">
+            <template #activator="{ props }">
+              <v-btn v-bind="props" value="CHATBOT" size="small">Assistant général</v-btn>
+            </template>
+          </v-tooltip>
+          <v-tooltip location="top" text="Mode IA connecté : agent logistique intelligent qui interroge vos données réelles (commandes, stocks, livraisons).">
+            <template #activator="{ props }">
+              <v-btn v-bind="props" value="LOGISTICS" size="small">Suivi commandes</v-btn>
+            </template>
+          </v-tooltip>
         </v-btn-toggle>
         <div class="d-flex align-center">
           <v-textarea

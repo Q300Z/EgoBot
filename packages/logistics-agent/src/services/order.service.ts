@@ -4,6 +4,16 @@ import type {
   Prisma,
 } from "../../prisma/generated/prisma/client.js";
 import type { LogisticsPrismaClient } from "../database/index.js";
+
+import {
+  orderSummaryResultSchema,
+  productOrderHistoryResultSchema,
+  upcomingDeliveriesResultSchema,
+  type OrderSummaryResultDto,
+  type ProductOrderHistoryResultDto,
+  type UpcomingDeliveriesResultDto,
+} from "../dtos/index.js";
+
 import {
   notFound,
   orderDetailsResultSchema,
@@ -150,7 +160,7 @@ export class OrderService {
     const limit = rawOptions.limit ?? 25;
     const query: Prisma.OrderFindManyArgs = {
       where: buildOrderWhere(rawOptions),
-      orderBy: { id: "asc" },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       take: limit + 1,
     };
 
@@ -414,6 +424,81 @@ export class OrderService {
     return orderResultSchema.parse({
       found: true,
       order: mapOrder(order),
+    });
+  }
+
+  async getOrderSummary(customerId: string): Promise<OrderSummaryResultDto> {
+    const orders = await this.prisma.order.findMany({
+      where: { customerId }
+    });
+
+    let totalSpent = 0;
+    let totalDue = 0;
+    const byStatus: Record<string, number> = {};
+
+    for (const order of orders) {
+      if (order.status === 'DELIVERED' || order.status === 'SHIPPED' || order.status === 'CONFIRMED' || order.status === 'PARTIALLY_SHIPPED' || order.status === 'PROCESSING') {
+        totalSpent += Number(order.totalIncludingTax);
+      }
+      totalDue += Number(order.amountDue);
+      
+      byStatus[order.status] = (byStatus[order.status] || 0) + 1;
+    }
+
+    const avg = orders.length ? (totalSpent / orders.length).toFixed(2) : "0.00";
+
+    return orderSummaryResultSchema.parse({
+      totalOrders: orders.length,
+      ordersByStatus: byStatus,
+      totalSpent: totalSpent.toFixed(2),
+      totalDue: totalDue.toFixed(2),
+      averageCart: avg
+    });
+  }
+
+  async getProductOrderHistory(customerId: string, sku: string): Promise<ProductOrderHistoryResultDto> {
+    const lines = await this.prisma.orderLine.findMany({
+      where: {
+        order: { customerId },
+        skuSnapshot: sku
+      },
+      include: { order: true },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    return productOrderHistoryResultSchema.parse({
+      found: lines.length > 0,
+      orders: lines.map(line => ({
+        orderNumber: line.order.orderNumber,
+        orderedAt: line.order.orderedAt ? line.order.orderedAt.toISOString() : null,
+        status: line.order.status,
+        orderedQuantity: line.orderedQuantity
+      }))
+    });
+  }
+
+  async getUpcomingDeliveries(customerId: string, daysAhead = 14): Promise<UpcomingDeliveriesResultDto> {
+    const minDate = new Date();
+    const maxDate = new Date();
+    maxDate.setDate(maxDate.getDate() + daysAhead);
+
+    const orders = await this.prisma.order.findMany({
+      where: {
+        customerId,
+        requestedDeliveryDate: {
+          gte: minDate,
+          lte: maxDate
+        },
+        status: { notIn: ['DELIVERED', 'CANCELLED'] }
+      }
+    });
+
+    return upcomingDeliveriesResultSchema.parse({
+      deliveries: orders.map(order => ({
+        orderNumber: order.orderNumber,
+        requestedDeliveryDate: order.requestedDeliveryDate ? order.requestedDeliveryDate.toISOString() : null,
+        status: order.status
+      }))
     });
   }
 }

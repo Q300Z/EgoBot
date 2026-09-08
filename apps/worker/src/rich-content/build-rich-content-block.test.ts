@@ -23,7 +23,7 @@ describe("buildRichContentBlock", () => {
       assert.ok(jsonMatch);
       const parsed = JSON.parse(jsonMatch![1]!);
       assert.strictEqual(parsed.type, "bar");
-      assert.deepStrictEqual(parsed.datasets[0].data, [120, 30, 90]);
+      assert.deepStrictEqual(parsed.datasets[0].data, [120, 30, 90, 0]);
     });
 
     it("devrait retourner null quand le produit n'est pas trouvé", () => {

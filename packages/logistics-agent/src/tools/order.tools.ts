@@ -2,7 +2,15 @@ import { tool } from "langchain";
 import { z } from "zod";
 import type { AuthenticatedCustomer } from "../dtos/index.js";
 import type { OrderService } from "../services/index.js";
-import { orderNumberInputSchema } from "./schemas.js";
+import {
+  orderNumberInputSchema,
+  orderListInputSchema,
+  orderSearchInputSchema,
+  orderSummaryInputSchema,
+  productOrderHistoryInputSchema,
+  upcomingDeliveriesInputSchema,
+
+} from "./schemas.js";
 
 const emptyOrderInputSchema = z.object({});
 
@@ -42,5 +50,62 @@ export function createOrderTools(
     },
   );
 
-  return [getOrderStatus, getOrderDetails, getLastOrder] as const;
+  const listCustomerOrders = tool(
+    ({ status, limit }) =>
+      orderService.listByCustomer(customer.customerId, {
+        status: status as any,
+        limit,
+      }),
+    {
+      name: "list_customer_orders",
+      description:
+        "Liste les commandes du client authentifié, triées de la plus récente à la plus ancienne. Peut être filtré par statut.",
+      schema: orderListInputSchema,
+    },
+  );
+
+  const searchOrders = tool(
+    ({ query, status, limit }) =>
+      orderService.search(query, {
+        customerId: customer.customerId,
+        status: status as any,
+        limit,
+      }),
+    {
+      name: "search_orders",
+      description:
+        "Recherche parmi les commandes du client authentifié par texte libre (numéro de commande, article). Retourne les commandes correspondantes.",
+      schema: orderSearchInputSchema,
+    },
+  );
+
+  
+  const getOrderSummary = tool(
+    () => orderService.getOrderSummary(customer.customerId),
+    {
+      name: "get_order_summary",
+      description: "Retourne un résumé agrégé des commandes du client.",
+      schema: orderSummaryInputSchema,
+    },
+  );
+
+  const getProductOrderHistory = tool(
+    ({ sku }) => orderService.getProductOrderHistory(customer.customerId, sku),
+    {
+      name: "get_product_order_history",
+      description: "Recherche l'historique de commande pour un produit spécifique pour ce client.",
+      schema: productOrderHistoryInputSchema,
+    },
+  );
+
+  const getUpcomingDeliveries = tool(
+    ({ daysAhead }) => orderService.getUpcomingDeliveries(customer.customerId, daysAhead),
+    {
+      name: "get_upcoming_deliveries",
+      description: "Liste les commandes avec une date de livraison prévue dans les prochains jours (défaut 14).",
+      schema: upcomingDeliveriesInputSchema,
+    },
+  );
+
+  return [getOrderStatus, getOrderDetails, getLastOrder, listCustomerOrders, searchOrders, getOrderSummary, getProductOrderHistory, getUpcomingDeliveries] as const;
 }

@@ -448,7 +448,6 @@ export class JobService {
 				envelope: JobEventEnvelope;
 				env?: "dev" | "prod";
 			};
-			console.log(`JobService.handleTokenEmitted: jobId=${jobId}, event=${envelope.event}, env=${env}`);
 			// Règle d'irréversibilité : si job terminal connu en mémoire, ignorer immédiatement
 			if (terminalJobs.has(jobId)) {
 				return;

@@ -13,11 +13,11 @@ export function createCustomerTools(
   customerService: CustomerService,
 ) {
   const getCustomerProfile = tool(
-    () => customerService.findById(customer.customerId),
+    () => customerService.findProfileSummary(customer.customerId),
     {
       name: "get_customer_profile",
       description:
-        "Consulte le profil complet du client authentifié : identité, coordonnées, état du compte et adresse courante.",
+        "Consulte le profil du client authentifié : numéro client, identité, coordonnées, état du compte et adresse courante.",
       schema: emptyCustomerInputSchema,
     },
   );

@@ -138,9 +138,11 @@ export class SseService {
 				const targetSessions = new Set<BufferedSession>([...jobSessions, ...convSessions]);
 
 				if (targetSessions.size > 0) {
-					logger.debug(
-						`Diffusion SSE de ${envelope.event} (id: ${eventId}) pour le job ${jobId} vers ${targetSessions.size} sessions.`,
-					);
+					if (envelope.event !== "job.progress") {
+						logger.debug(
+							`Diffusion SSE de ${envelope.event} (id: ${eventId}) pour le job ${jobId} vers ${targetSessions.size} sessions.`,
+						);
+					}
 					const frontendPayload = this.toFrontendPayload(envelope);
 					for (const session of targetSessions) {
 						session.push(frontendPayload, envelope.event, eventId);
