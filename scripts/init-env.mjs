@@ -30,41 +30,14 @@ if (!fs.existsSync(rootEnvPath)) {
       /JWT_SECRET=super_secret_jwt_key_for_dev_environment_at_least_32_chars/g,
       `JWT_SECRET=${randomSecret}`
     );
-    content = content.replace(
-      /SECRET_KEY=super_secret_jwt_key_for_dev_environment_at_least_32_chars/g,
-      `SECRET_KEY=${randomSecret}`
-    );
     fs.writeFileSync(rootEnvPath, content, "utf-8");
-    console.log("✅ Fichier .env racine créé à partir de .env.example (avec un JWT_SECRET généré).");
+    console.log("✅ Fichier .env racine créé à partir de .env.example (avec un JWT_SECRET cryptographique unique).");
   } else {
     console.error("❌ Impossible de trouver .env.example à la racine !");
     process.exit(1);
   }
 } else {
   console.log("ℹ️  Le fichier .env racine existe déjà. Préservation des valeurs existantes.");
-}
-
-// Synchroniser des copies/liens locaux pour la compatibilité avec Prisma Studio et outils IDE
-const subProjects = [
-  "apps/api",
-  "apps/worker",
-  "packages/logistics-agent",
-];
-
-for (const sub of subProjects) {
-  const subEnv = path.join(rootDir, sub, ".env");
-  const subEnvExample = path.join(rootDir, sub, ".env.example");
-
-  if (!fs.existsSync(subEnv)) {
-    if (fs.existsSync(subEnvExample)) {
-      fs.copyFileSync(subEnvExample, subEnv);
-      console.log(`✅ Fichier ${sub}/.env initialisé depuis son exemple.`);
-    } else {
-      // Si pas de .env.example local, copier le .env racine
-      fs.copyFileSync(rootEnvPath, subEnv);
-      console.log(`✅ Fichier ${sub}/.env créé depuis le .env racine.`);
-    }
-  }
 }
 
 console.log("\n🎉 Environnement initialisé avec succès !");

@@ -25,7 +25,6 @@ services:
       - NODE_ENV=development
       - API_DATABASE_URL=file:/app/apps/api/data/dev.db
       - LOGISTICS_DATABASE_URL=file:/app/packages/logistics-agent/data/logistics.db
-      - DATABASE_URL=file:/app/apps/api/data/dev.db
     volumes:
       - api_dev_sqlite:/app/apps/api/data
       - logistics_dev_sqlite:/app/packages/logistics-agent/data
@@ -61,9 +60,7 @@ services:
       - PORT=8000
       - NODE_ENV=development
       - VALKEY_URL=redis://valkey:6379
-      - REDIS_URL=redis://valkey:6379
       - API_DATABASE_URL=file:/app/apps/api/data/dev.db
-      - DATABASE_URL=file:/app/apps/api/data/dev.db
       - CORS_ORIGIN=http://localhost:3000
     volumes:
       - ./apps/api/src:/app/apps/api/src
@@ -85,9 +82,7 @@ services:
     environment:
       - NODE_ENV=development
       - VALKEY_URL=redis://valkey:6379
-      - REDIS_URL=redis://valkey:6379
       - LOGISTICS_DATABASE_URL=file:/app/packages/logistics-agent/data/logistics.db
-      - DATABASE_URL=file:/app/packages/logistics-agent/data/logistics.db
     volumes:
       - ./apps/worker/src:/app/apps/worker/src
       - logistics_dev_sqlite:/app/packages/logistics-agent/data

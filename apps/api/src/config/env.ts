@@ -45,7 +45,8 @@ try {
 const rawEnv = {
 	...process.env,
 	DATABASE_URL: process.env.API_DATABASE_URL || process.env.DATABASE_URL || "file:./dev.db",
-	SECRET_KEY: process.env.SECRET_KEY || process.env.JWT_SECRET || "change_me_with_a_long_random_secret",
+	SECRET_KEY: process.env.JWT_SECRET || process.env.SECRET_KEY || "change_me_with_a_long_random_secret",
+	VALKEY_URL: process.env.VALKEY_URL || process.env.REDIS_URL || "redis://127.0.0.1:6379",
 };
 
 const INSECURE_DEFAULT_SECRETS = new Set([
