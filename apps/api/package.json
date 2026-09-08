@@ -18,7 +18,11 @@
 		"prisma:studio": "prisma studio",
 		"test": "vitest run --fileParallelism=false --maxWorkers=1",
 		"test:coverage": "vitest run --coverage --fileParallelism=false --maxWorkers=1",
-		"test:load": "npx tsx src/scripts/load-test.ts"
+		"test:load": "npx tsx src/scripts/load-test.ts",
+		"seed": "tsx src/scripts/seed.ts"
+	},
+	"prisma": {
+		"seed": "tsx src/scripts/seed.ts"
 	},
 	"author": "Thomas Boutin",
 	"license": "ISC",
