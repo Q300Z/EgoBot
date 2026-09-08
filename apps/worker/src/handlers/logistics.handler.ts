@@ -39,31 +39,53 @@ export function createLogisticsHandler({
       return;
     }
 
-    const agent = createAgent({ customer: resolution.customer, prisma });
+    // Toute erreur au-delà de ce point — clé absente, modèle inaccessible,
+    // quota dépassé, panne réseau — laissait l'utilisateur devant une bulle
+    // vide : le worker relançait trois fois puis abandonnait en file de rebut,
+    // sans qu'aucun fragment ne soit émis. Un échec muet n'est diagnosticable
+    // ni depuis l'interface, ni par la personne qui teste.
+    try {
+      const agent = createAgent({ customer: resolution.customer, prisma });
 
-    const run = await agent.streamEvents(
-      { messages: [{ role: "user", content: prompt }] },
-      { version: "v3" },
-    );
+      const run = await agent.streamEvents(
+        { messages: [{ role: "user", content: prompt }] },
+        { version: "v3" },
+      );
 
-    await Promise.all([
-      (async () => {
-        for await (const msg of run.messages) {
-          for await (const token of msg.text) {
-            if (await ctx.checkCancellation()) return;
-            await ctx.sendToken(token);
+      await Promise.all([
+        (async () => {
+          for await (const msg of run.messages) {
+            for await (const token of msg.text) {
+              if (await ctx.checkCancellation()) return;
+              await ctx.sendToken(token);
+            }
           }
-        }
-      })(),
-      (async () => {
-        for await (const call of run.toolCalls) {
-          const output = await call.output;
-          const block = buildRichContentBlock(call.name, output);
-          if (block) {
-            await ctx.sendToken(block);
+        })(),
+        (async () => {
+          for await (const call of run.toolCalls) {
+            const output = await call.output;
+            const block = buildRichContentBlock(call.name, output);
+            if (block) {
+              await ctx.sendToken(block);
+            }
           }
-        }
-      })(),
-    ]);
+        })(),
+      ]);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      console.error(`[Worker LOGISTICS] Échec du job ${ctx.jobId} :`, error);
+
+      // Cas de loin le plus fréquent en développement, et le plus opaque :
+      // le client de chat lève dès sa construction quand aucune clé n'est
+      // fournie, avant même le premier appel réseau.
+      const missingKey = /api key|apikey|401|unauthorized/i.test(detail);
+
+      await ctx.sendToken(
+        missingKey
+          ? "Le service de génération n'est pas configuré : la clé API du modèle est absente ou invalide. " +
+              "Renseignez la configuration du modèle dans apps/worker/.env."
+          : `Le traitement de votre demande a échoué : ${detail}`,
+      );
+    }
   };
 }
