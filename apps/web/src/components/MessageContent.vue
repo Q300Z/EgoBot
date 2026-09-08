@@ -103,7 +103,7 @@ function renderMarkdown(text: string): string {
 
 .message-content__markdown :deep(th),
 .message-content__markdown :deep(td) {
-  border: 1px solid rgba(128, 128, 128, 0.3);
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.22);
   padding: 0.35rem 0.6rem;
   text-align: left;
 }
@@ -127,9 +127,9 @@ function renderMarkdown(text: string): string {
   font-weight: 600;
   line-height: 1.3;
   border-radius: 16px;
-  border: 1px solid rgba(24, 38, 48, 0.2);
-  background-color: #e6ecf0;
-  color: #182630 !important;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.2);
+  background-color: rgba(var(--v-theme-on-surface), 0.08);
+  color: rgb(var(--v-theme-on-surface)) !important;
   text-decoration: none;
   vertical-align: baseline;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
@@ -168,35 +168,36 @@ function renderMarkdown(text: string): string {
   align-items: center;
 }
 
-/* Variantes thématiques selon le type */
+/* Variantes thématiques selon le type — teintes dérivées des couleurs
+   sémantiques du thème Vuetify actif, donc lisibles en clair comme en sombre. */
 .message-content__markdown :deep(.source-chip--doc) {
-  background-color: #e0f2fe;
-  border-color: #7dd3fc;
-  color: #0369a1 !important;
+  background-color: rgba(var(--v-theme-info), 0.14);
+  border-color: rgba(var(--v-theme-info), 0.45);
+  color: rgb(var(--v-theme-info)) !important;
 }
 
 .message-content__markdown :deep(.source-chip--sql),
 .message-content__markdown :deep(.source-chip--database) {
-  background-color: #fef3c7;
-  border-color: #fcd34d;
-  color: #92400e !important;
+  background-color: rgba(var(--v-theme-warning), 0.16);
+  border-color: rgba(var(--v-theme-warning), 0.45);
+  color: rgb(var(--v-theme-warning)) !important;
 }
 
 .message-content__markdown :deep(.source-chip--api) {
-  background-color: #ecfdf5;
-  border-color: #6ee7b7;
-  color: #047857 !important;
+  background-color: rgba(var(--v-theme-success), 0.14);
+  border-color: rgba(var(--v-theme-success), 0.45);
+  color: rgb(var(--v-theme-success)) !important;
 }
 
 .message-content__markdown :deep(.source-chip--web) {
-  background-color: #f3e8ff;
-  border-color: #d8b4fe;
-  color: #6d28d9 !important;
+  background-color: rgba(var(--v-theme-secondary), 0.18);
+  border-color: rgba(var(--v-theme-secondary), 0.5);
+  color: rgb(var(--v-theme-secondary)) !important;
 }
 
 .message-content__markdown :deep(.source-chip--file) {
-  background-color: #f1f5f9;
-  border-color: #cbd5e1;
-  color: #334155 !important;
+  background-color: rgba(var(--v-theme-on-surface), 0.08);
+  border-color: rgba(var(--v-theme-on-surface), 0.25);
+  color: rgb(var(--v-theme-on-surface)) !important;
 }
 </style>
