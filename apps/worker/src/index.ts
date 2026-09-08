@@ -5,10 +5,21 @@ import { createLogisticsHandler } from "./handlers/logistics.handler.js";
 
 dotenv.config();
 
+// Doit produire exactement les mêmes valeurs ("dev" | "prod") que
+// normalizeNodeEnv dans apps/api/src/config/env.ts : les clés de file Redis
+// (jobs:queue:<env>:<model>) sont construites des deux côtés à partir de
+// cette valeur, un écart silencieux fait que les jobs ne sont plus jamais
+// consommés par aucun worker.
+function normalizeNodeEnv(val: string | undefined): "dev" | "prod" {
+  const lower = val?.trim().toLowerCase();
+  if (lower === "development" || lower === "dev" || lower === "test") return "dev";
+  return "prod";
+}
+
 const worker = new WorkerApplication({
   workerId: "ts-worker-1",
   models: ["CHATBOT", "LOGISTICS"],
-  env: process.env.NODE_ENV || "dev",
+  env: normalizeNodeEnv(process.env.NODE_ENV),
   redisUrl: process.env.REDIS_URL || "redis://localhost:6379",
 });
 

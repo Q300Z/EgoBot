@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM node:22-alpine
 
 RUN corepack enable && corepack prepare pnpm@11.9.0 --activate
 
@@ -7,5 +7,9 @@ WORKDIR /app
 COPY . .
 
 RUN pnpm install
+# @egobot/worker importe @egobot/logistics-agent (et ses propres dépendances
+# workspace) via des exports pointant vers dist/ : sans ce build, tsx watch
+# échoue à résoudre ces modules au démarrage.
+RUN pnpm exec turbo build --filter=@egobot/worker^...
 
-CMD ["pnpm", "--filter", "@my-llm/worker", "dev"]
+CMD ["pnpm", "--filter", "@egobot/worker", "dev"]
