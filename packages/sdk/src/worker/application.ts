@@ -25,7 +25,7 @@ export class WorkerApplication {
     this.workerId = options.workerId;
     this.models = options.models;
     this.env = options.env || "dev";
-    const url = options.redisUrl || "redis://localhost:6379";
+    const url = options.redisUrl || options.valkeyUrl || "redis://localhost:6379";
 
     this.redisReader = new Redis(url);
     this.redisWriter = new Redis(url);

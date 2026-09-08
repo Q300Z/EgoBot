@@ -17,13 +17,14 @@ function findUp(fileName: string, startDir: string): string | null {
   }
 }
 
-// 1. Charger le .env racine
-const rootEnv = findUp(".env", __dirname) ?? findUp(".env", process.cwd());
+// 1. Charger le .env local d'abord (sans écraser les variables Docker/système)
+dotenv.config();
+
+// 2. Charger le .env racine pour les variables globales manquantes
+const rootEnv = findUp(".env", path.dirname(__dirname)) ?? findUp(".env", process.cwd());
 if (rootEnv && fs.existsSync(rootEnv)) {
   dotenv.config({ path: rootEnv });
 }
-// 2. Charger le .env local avec surcharges prioritaires
-dotenv.config({ override: true });
 
 // Doit produire exactement les mêmes valeurs ("dev" | "prod") que
 // normalizeNodeEnv dans apps/api/src/config/env.ts : les clés de file Redis
@@ -47,7 +48,7 @@ const worker = new WorkerApplication({
   workerId: "ts-worker-1",
   models: ["CHATBOT", "LOGISTICS"],
   env: workerEnv,
-  redisUrl: process.env.REDIS_URL || "redis://localhost:6379",
+  redisUrl: process.env.REDIS_URL || process.env.VALKEY_URL || "redis://localhost:6379",
 });
 
 worker.registerTask("CHATBOT", async (payload, ctx) => {
