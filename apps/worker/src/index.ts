@@ -3,7 +3,28 @@ import { WorkerApplication } from "@egobot/sdk/worker";
 import dotenv from "dotenv";
 import { createLogisticsHandler } from "./handlers/logistics.handler.js";
 
+import * as path from "node:path";
+import * as fs from "node:fs";
+
+function findUp(fileName: string, startDir: string): string | null {
+  let currentDir = startDir;
+  while (true) {
+    const candidate = path.join(currentDir, fileName);
+    if (fs.existsSync(candidate)) return candidate;
+    const parent = path.dirname(currentDir);
+    if (parent === currentDir) return null;
+    currentDir = parent;
+  }
+}
+
+// 1. Charger le .env local d'abord (sans écraser les variables Docker/système)
 dotenv.config();
+
+// 2. Charger le .env racine pour les variables globales manquantes
+const rootEnv = findUp(".env", path.dirname(__dirname)) ?? findUp(".env", process.cwd());
+if (rootEnv && fs.existsSync(rootEnv)) {
+  dotenv.config({ path: rootEnv });
+}
 
 // Doit produire exactement les mêmes valeurs ("dev" | "prod") que
 // normalizeNodeEnv dans apps/api/src/config/env.ts : les clés de file Redis
@@ -16,11 +37,18 @@ function normalizeNodeEnv(val: string | undefined): "dev" | "prod" {
   return "prod";
 }
 
+function resolveWorkerEnv(): "dev" | "prod" {
+  const isDevMode = process.env.DEV_MODE === "true";
+  return isDevMode || normalizeNodeEnv(process.env.NODE_ENV) === "dev" ? "dev" : "prod";
+}
+
+const workerEnv = resolveWorkerEnv();
+
 const worker = new WorkerApplication({
   workerId: "ts-worker-1",
   models: ["CHATBOT", "LOGISTICS"],
-  env: normalizeNodeEnv(process.env.NODE_ENV),
-  redisUrl: process.env.REDIS_URL || "redis://localhost:6379",
+  env: workerEnv,
+  redisUrl: process.env.VALKEY_URL || process.env.REDIS_URL || "redis://localhost:6379",
 });
 
 worker.registerTask("CHATBOT", async (payload, ctx) => {
@@ -166,7 +194,7 @@ let logisticsPrisma: LogisticsPrismaClient | undefined;
 
 function getLogisticsPrisma(): LogisticsPrismaClient {
   if (!logisticsPrisma) {
-    logisticsPrisma = createPrismaClient(process.env.DATABASE_URL);
+    logisticsPrisma = createPrismaClient(process.env.LOGISTICS_DATABASE_URL || process.env.DATABASE_URL);
   }
   return logisticsPrisma;
 }

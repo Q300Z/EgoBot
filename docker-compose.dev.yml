@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   valkey:
     image: valkey/valkey:8-alpine
@@ -7,64 +5,114 @@ services:
     ports:
       - "6379:6379"
     command: valkey-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Conteneur éphémère : applique les migrations et seeds SQLite puis s'arrête.
+  # Garantit que les bases existent et sont seedées avant le démarrage de l'API et du Worker.
+  migrator:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile.dev
+    container_name: scaffold_migrator_dev
+    init: true
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=development
+      - API_DATABASE_URL=file:/app/apps/api/data/dev.db
+      - LOGISTICS_DATABASE_URL=file:/app/packages/logistics-agent/data/logistics.db
+    volumes:
+      - api_dev_sqlite:/app/apps/api/data
+      - logistics_dev_sqlite:/app/packages/logistics-agent/data
+    command: >
+      sh -c "
+        echo '=== 1/4 Migrations API ===' &&
+        pnpm --filter api exec prisma migrate deploy &&
+        echo '=== 2/4 Seed Admin API ===' &&
+        pnpm --filter api run seed &&
+        echo '=== 3/4 Migrations Logistics Agent ===' &&
+        pnpm --filter @egobot/logistics-agent exec prisma migrate deploy &&
+        echo '=== 4/4 Seed & Liaison Logistics Agent ===' &&
+        pnpm --filter @egobot/logistics-agent exec prisma db seed &&
+        pnpm --filter @egobot/logistics-agent exec tsx scripts/link-customer.ts admin@egobot.local &&
+        echo '=== Initialisation des bases terminée avec succès ==='
+      "
+    restart: "no"
+    depends_on:
+      valkey:
+        condition: service_healthy
 
   api:
     build:
       context: .
       dockerfile: apps/api/Dockerfile.dev
     container_name: scaffold_api_dev
+    init: true
     ports:
       - "8000:8000"
+    env_file:
+      - .env
     environment:
       - PORT=8000
       - NODE_ENV=development
       - VALKEY_URL=redis://valkey:6379
-      - JWT_SECRET=super_secret_jwt_key_dev
-    depends_on:
-      - valkey
-
-  postgres:
-    image: postgres:16-alpine
-    container_name: scaffold_postgres_dev
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_USER=egobot
-      - POSTGRES_PASSWORD=egobot
-      - POSTGRES_DB=egobot
+      - REDIS_URL=redis://valkey:6379
+      - API_DATABASE_URL=file:/app/apps/api/data/dev.db
+      - CORS_ORIGIN=http://localhost:3000
     volumes:
-      - postgres_dev_data:/var/lib/postgresql/data
+      - ./apps/api/src:/app/apps/api/src
+      - api_dev_sqlite:/app/apps/api/data
+    depends_on:
+      valkey:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
 
   worker:
     build:
       context: .
       dockerfile: apps/worker/Dockerfile.dev
     container_name: scaffold_worker_dev
-    # Identifiants LLM (LOGISTICS_MODEL_PROVIDER, AZURE_OPENAI_*, OPENAI_API_KEY...)
-    # lus depuis ce fichier local non versionné plutôt qu'écrits ici en dur.
+    init: true
     env_file:
-      - packages/logistics-agent/.env
+      - .env
     environment:
       - NODE_ENV=development
       - VALKEY_URL=redis://valkey:6379
       - REDIS_URL=redis://valkey:6379
-      # packages/logistics-agent utilise désormais SQLite (voir son README) ;
-      # le fichier .db, seedé sur l'hôte, est copié dans l'image par
-      # Dockerfile.dev (COPY . .) — chemin absolu pour éviter toute ambiguïté
-      # de résolution relative selon le CWD du process worker.
-      - DATABASE_URL=file:/app/packages/logistics-agent/logistics.db
+      - LOGISTICS_DATABASE_URL=file:/app/packages/logistics-agent/data/logistics.db
+    volumes:
+      - ./apps/worker/src:/app/apps/worker/src
+      - logistics_dev_sqlite:/app/packages/logistics-agent/data
     depends_on:
-      - valkey
+      valkey:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
 
   web:
     build:
       context: .
       dockerfile: apps/web/Dockerfile.dev
     container_name: scaffold_web_dev
+    init: true
     ports:
       - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      - VITE_API_PROXY_TARGET=http://api:8000
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./apps/web/src:/app/apps/web/src
     depends_on:
       - api
 
 volumes:
-  postgres_dev_data:
+  api_dev_sqlite:
+  logistics_dev_sqlite:
+

@@ -9,6 +9,8 @@ COPY . .
 
 RUN pnpm install
 RUN pnpm --filter api exec prisma generate
+RUN pnpm --filter @egobot/logistics-agent exec prisma generate
+RUN mkdir -p /app/apps/api/data /app/packages/logistics-agent/data
 
 EXPOSE 8000
 

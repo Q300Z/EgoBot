@@ -13,16 +13,16 @@
         class="pa-3 rounded-lg"
         elevation="1"
       >
-        <div :class="['text-caption mb-1 font-weight-bold', message.role === 'USER' ? 'text-grey-lighten-3' : 'text-grey-darken-4']">
+        <div :class="['text-caption mb-1 font-weight-bold', message.role === 'USER' ? 'text-grey-lighten-3' : 'text-medium-emphasis']">
           {{ message.role === 'USER' ? (userName || 'Vous') : 'EgoBot (Duhamel Logistique)' }}
         </div>
         <div v-if="message.role === 'USER'" class="text-body-2 white-space-pre-wrap text-white">{{ message.content }}</div>
         <MessageContent
           v-else-if="message.content"
           :content="message.content"
-          class="markdown-body text-grey-darken-4"
+          class="markdown-body"
         />
-        <div v-else class="text-body-2 markdown-body text-grey-darken-4">...</div>
+        <div v-else class="text-body-2 markdown-body">...</div>
       </v-card>
     </div>
   </div>
@@ -44,8 +44,11 @@ defineProps<{
 .max-w-75 {
   max-width: 75%;
 }
+/* Couleurs pilotées par le thème Vuetify actif (clair ou sombre) via ses
+   variables CSS : plus aucune teinte figée qui rendrait le texte illisible
+   sur la bulle sombre en dark mode. */
 .markdown-body {
-  color: #182630 !important;
+  color: rgb(var(--v-theme-on-surface)) !important;
 }
 .markdown-body :deep(table) {
   border-collapse: collapse;
@@ -54,13 +57,13 @@ defineProps<{
 }
 .markdown-body :deep(th),
 .markdown-body :deep(td) {
-  border: 1px solid rgba(24, 38, 48, 0.3);
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.25);
   padding: 6px 12px;
   text-align: left;
-  color: #182630 !important;
+  color: rgb(var(--v-theme-on-surface)) !important;
 }
 .markdown-body :deep(th) {
-  background-color: rgba(24, 38, 48, 0.1);
+  background-color: rgba(var(--v-theme-on-surface), 0.08);
   font-weight: bold;
 }
 .markdown-body :deep(img) {
@@ -70,8 +73,9 @@ defineProps<{
   margin: 0.5rem 0;
 }
 .markdown-body :deep(pre) {
-  background-color: #182630;
-  color: #FFFFFF;
+  background-color: #0e151c;
+  color: #e6ecf1;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   padding: 8px 12px;
   border-radius: 6px;
   overflow-x: auto;
@@ -80,9 +84,17 @@ defineProps<{
   font-family: monospace;
   font-size: 0.9em;
 }
+.markdown-body :deep(:not(pre) > code) {
+  background-color: rgba(var(--v-theme-on-surface), 0.1);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.markdown-body :deep(a) {
+  color: rgb(var(--v-theme-primary));
+}
 .markdown-body :deep(p) {
   margin-bottom: 0.5rem;
-  color: #182630 !important;
+  color: rgb(var(--v-theme-on-surface)) !important;
 }
 .markdown-body :deep(p:last-child) {
   margin-bottom: 0;

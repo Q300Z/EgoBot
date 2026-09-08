@@ -37,11 +37,9 @@ graph TD
     WORKER --> VALKEY
 ```
 
-> ⚠️ `docker-compose.dev.yml`/`docker-compose.prod.yml` provisionnent encore un
-> conteneur PostgreSQL pour `logistics-agent` (`DATABASE_URL=postgresql://...`
-> passé au `worker`) — cette bascule vers SQLite (fichier local) n'a pas
-> encore été répercutée dans les fichiers Docker Compose. À vérifier avec
-> l'équipe avant de lancer le worker en conteneur sur cette branche.
+> 💡 **Bases de Données SQLite** :
+> L'ensemble du monorepo fonctionne désormais sur **SQLite** (`apps/api` et `packages/logistics-agent`).
+> En développement avec Docker Compose, les bases sont isolées dans des volumes nommés ext4 (`api_dev_sqlite` et `logistics_dev_sqlite`), garantissant l'intégrité du mode WAL sans risque de corruption sur systèmes de fichiers virtuels.
 
 ---
 
@@ -58,115 +56,90 @@ graph TD
 
 ---
 
-## ⚙️ Comment Fonctionne ce Monorepo ?
+## ⚡ Guide de Démarrage Rapide (Recommandé — Fonctionne sur Windows, macOS et Linux)
 
-Le monorepo repose sur le duo **`pnpm workspaces`** (pour la gestion des paquets et le linking local) et **`Turborepo`** (pour l'orchestration des tâches et le cache intelligent).
+Le mode de développement conteneurisé est la solution recommandée car `apps/api` repose sur **`@valkey/valkey-glide`**, dont les binaires natifs ne sont disponibles que sous Linux/macOS. Docker assure une compatibilité 100% universelle sans aucune compilation C++ locale.
 
-### 1. Linking Local & Symlinks (`workspace:*`)
-Le fichier `pnpm-workspace.yaml` déclare l'ensemble des projets du workspace (`apps/*` et `packages/*`).
-Lorsque `apps/worker` déclare `"@egobot/shared-types": "workspace:*"` dans son `package.json`, `pnpm` crée automatiquement un **lien symbolique local** vers le code compilé dans `packages/shared-types/dist`. Aucune publication sur un registre externe (NPM) n'est nécessaire.
-
-### 2. Graphe de Dépendances & Cache (`turbo.json`)
-Turborepo analyse le graphe de dépendances (*DAG - Directed Acyclic Graph*) pour exécuter les tâches dans le meilleur ordre possible :
-- Lors de la commande `pnpm build`, Turborepo compile d'abord `shared-types`, `sdk` et `logistics-agent`, puis en parallèle `api`, `worker` et `web`.
-- **Cache Hit** : Si le code source d'un package n'a pas changé, Turborepo réutilise instantanément les artefacts du cache sans re-compiler (`cache hit`).
-
----
-
-## ⚠️ Windows : l'API doit tourner en Docker
-
-`apps/api` utilise **`@valkey/valkey-glide`** comme client Redis/Valkey, dont les binaires natifs ne sont publiés **que pour macOS et Linux** — il n'existe aucun paquet `@valkey/valkey-glide-win32-*`. Lancer `pnpm --filter api dev` nativement sous Windows échoue donc systématiquement (`Cannot find module '@valkey/valkey-glide-win32-x64-msvc'`).
-
-- **Sous Windows** : utiliser **Docker** pour `apps/api` (voir plus bas). `apps/worker` et `apps/web` n'ont pas cette contrainte (ils reposent sur `ioredis`, portable) et peuvent tourner nativement si besoin.
-- **Sous macOS / Linux** : le mode natif (`pnpm dev`) fonctionne sans Docker pour les trois applications.
-
----
-
-## ⚡ Guide de Démarrage Rapide (Docker — recommandé, fonctionne sur toutes plateformes)
-
-### 1. Copier les fichiers d'environnement
-
-```bash
-# apps/api : requis, sinon l'app se croit en production et refuse de démarrer
-cp apps/api/.env.example apps/api/.env
-```
-Éditer `apps/api/.env` si besoin (`CORS_ORIGIN` doit correspondre au port du frontend — `http://localhost:3000` par défaut avec `apps/web/vite.config.ts`).
-
-### 2. Installer les dépendances
+### 1. Installer les dépendances
 
 ```bash
 pnpm install
 ```
 
-### 3. Démarrer la stack complète en développement (hot-reload)
+### 2. Initialiser l'environnement (Fichier unique à la racine)
 
 ```bash
-docker compose -f docker-compose.dev.yml up -d --build
-```
-Démarre `valkey`, `postgres`, `api` (`http://localhost:8000`), `worker` et `web` (`http://localhost:3000`).
-
-Pour ne démarrer qu'un sous-ensemble (ex. juste l'API pour tester l'auth) :
-```bash
-docker compose -f docker-compose.dev.yml up -d --build valkey api
+pnpm env:init
 ```
 
-### 4. Appliquer les migrations base de données
+*Cette commande initialise le fichier `/.env` racine depuis `.env.example` et génère automatiquement un secret JWT cryptographique sécurisé. Toutes les variables (ports, connexions Valkey, URLs SQLite) sont pré-configurées avec des valeurs saines.*
 
-Deux bases SQLite distinctes à migrer séparément (chacune un simple fichier local, aucun serveur requis) :
+### 3. Démarrer l'environnement complet
 
 ```bash
-# apps/api : utilisateurs, conversations, jobs
-pnpm db:migrate
-
-# packages/logistics-agent : clients, commandes, livraisons, stock
-cd packages/logistics-agent
-pnpm exec prisma migrate dev
-cd ../..
+pnpm dev
 ```
-*(`packages/logistics-agent/.env` doit exister — copier `.env.example` au préalable ; la valeur par défaut `DATABASE_URL="file:./logistics.db"` convient telle quelle en local.)*
 
-### 5. Peupler la base logistique avec des données de test (optionnel)
+*Ce qui se passe automatiquement sous le capot :*
+
+1. **Infrastructure** : Démarrage du cluster en mémoire `valkey` (`port 6379`).
+2. **Auto-Migrate & Seeds** : Le conteneur éphémère `scaffold_migrator_dev` s'exécute en premier :
+   - Applique les migrations Prisma des deux bases SQLite (`dev.db` et `logistics.db`).
+   - Crée le compte administrateur de test (`admin@egobot.local`).
+   - Génère le jeu de test logistique (150 commandes, livraisons, stocks) et y rattache le compte admin.
+3. **Services applicatifs** : Une fois les bases prêtes, `api` (`http://localhost:8000`), `worker` et `web` (`http://localhost:3000`) démarrent en direct avec hot-reload.
+
+### 4. Utiliser l'application
+
+- Ouvrir **`http://localhost:3000`** dans votre navigateur.
+- Se connecter avec les identifiants de test pré-configurés :
+  - **Email** : `admin@egobot.local`
+  - **Mot de passe** : `Password123!`
+- Sélectionner le modèle **LOGISTICS** dans le chat et tester :
+  *« Où en est ma dernière commande ? »* ou *« Liste mes livraisons »*.
+
+### 5. Arrêter ou réinitialiser
 
 ```bash
-cd packages/logistics-agent
-pnpm exec prisma db seed
-cd ../..
+# Arrêter la stack proprement (ou presser Ctrl+C dans le terminal)
+pnpm dev:down
+
+# Reconstruire les images après un changement de package.json
+pnpm dev:build
+
+# Réinitialiser les bases de données Docker à blanc
+pnpm dev:reset
 ```
-*(~50 clients, 150 commandes et leurs livraisons/mouvements de stock, jeu de données déterministe et auto-vérifié. `apps/api` n'a pas de script de seed configuré à ce jour.)*
-
-### 6. Suivre les logs
-
-```bash
-docker compose -f docker-compose.dev.yml logs -f api worker web
-```
-
-### 7. Tout arrêter proprement
-
-```bash
-docker compose -f docker-compose.dev.yml down
-```
-*(Les fichiers SQLite persistent sur le disque hôte, indépendamment de Docker ; Valkey n'a pas de volume et repart vide à chaque `down` — les sessions/config utilisateur en cache y sont perdues.)*
 
 ---
 
-## ⚡ Guide de Démarrage Rapide (natif, macOS / Linux uniquement)
+## ⚡ Guide de Démarrage Natif (macOS / Linux uniquement)
+
+Pour exécuter les processus Node.js directement sur la machine hôte :
 
 ```bash
-# 1. Démarrer uniquement l'infrastructure (Valkey)
-docker compose -f docker-compose.dev.yml up -d valkey
+# 1. Initialiser l'environnement
+pnpm env:init
 
-# 2. Migrations (voir commandes détaillées ci-dessus)
+# 2. Démarrer uniquement l'infrastructure Valkey
+pnpm infra:up
+
+# 3. Migrer et peupler les deux bases de données locales
 pnpm db:migrate
-cd packages/logistics-agent && pnpm exec prisma migrate dev && cd ../..
+pnpm db:seed
 
-# 3. Lancer l'ensemble des applications en mode développement
-pnpm dev
+# 4. Lancer toutes les applications en mode dev (Turborepo)
+pnpm dev:native
 ```
-*Turborepo lance simultanément l'API Express sur `http://localhost:8000`, le Worker TS et le Client Web Vue 3 sur `http://localhost:3000`.*
 
-### Compiler l'intégralité du Monorepo
+### Outils de Base de Données (Prisma Studio)
+
 ```bash
-pnpm build
+# Explorer les comptes et conversations API (port 5555)
+pnpm db:studio:api
+
+# Explorer les commandes et stocks logistiques (port 5556)
+pnpm db:studio:logistics
 ```
 
 ---
@@ -174,12 +147,15 @@ pnpm build
 ## 🔄 Comment Mettre à Jour les Dépendances du Monorepo ?
 
 ### 1. Mettre à jour de manière interactive TOUT le Monorepo
+
 ```bash
 pnpm update -r --interactive --latest
 ```
+
 *(Le drapeau `-r` ou `--recursive` applique la commande sur l'ensemble des workspaces).*
 
 ### 2. Mettre à jour les dépendances d'un projet spécifique
+
 ```bash
 # Mettre à jour une dépendance spécifique dans l'API (nom de package non scopé : "api")
 pnpm --filter api update express@latest
@@ -189,9 +165,11 @@ pnpm --filter @egobot/shared-types add zod@latest
 ```
 
 ### 3. Mettre à jour les dépendances de la Racine (Turbo, TypeScript)
+
 ```bash
 pnpm add -Dw turbo@latest typescript@latest
 ```
+
 *(Le drapeau `-w` ou `--workspace-root` cible spécifiquement la racine).*
 
 ---
@@ -199,12 +177,15 @@ pnpm add -Dw turbo@latest typescript@latest
 ## 📦 Build de Production, Tests & Releases
 
 ### 1. Compiler l'ensemble du Monorepo pour la Production
+
 ```bash
 pnpm build
 ```
+
 *Turborepo orchestre la compilation de `shared-types`, `sdk`, `logistics-agent`, puis génère les bundles dans `apps/api/dist`, `apps/worker/dist` et `apps/web/dist`.*
 
 Pour compiler uniquement une application spécifique :
+
 ```bash
 pnpm --filter @egobot/web build
 pnpm --filter api build
@@ -228,6 +209,7 @@ pnpm --filter @egobot/logistics-agent test # Vitest
 ```
 
 ### 3. Vérification des types & lint
+
 ```bash
 pnpm --filter api check-types
 pnpm lint
@@ -240,19 +222,22 @@ pnpm lint
 Chaque application dispose de trois Dockerfiles (`dev`, `test`, `prod`), et le monorepo fournit un fichier Docker Compose par environnement.
 
 ### A. Fichiers Docker par Projet
-* **`apps/api/`** :
+
+- **`apps/api/`** :
   - `Dockerfile.dev` : Hot-reload avec `tsx watch` (Node 22-alpine).
   - `Dockerfile.test` : Exécution automatique des tests Vitest API.
   - `Dockerfile.prod` : Image multi-stage issue de `pnpm deploy`.
-* **`apps/worker/`** :
+
+- **`apps/worker/`** :
   - `Dockerfile.dev` : `tsx watch`, build préalable des dépendances workspace (`@egobot/logistics-agent`, `@egobot/sdk`, `@egobot/shared-types`) via `turbo build --filter=@egobot/worker^...`.
   - `Dockerfile.prod` : Image multi-stage + cible optionnelle `migrator` (applique les migrations PostgreSQL de `logistics-agent` avant démarrage).
-* **`apps/web/`** :
+- **`apps/web/`** :
   - `Dockerfile.dev` : Serveur de dev Vite (build préalable de `@egobot/sdk`).
   - `Dockerfile.test` : Exécution des tests unitaires Frontend.
   - `Dockerfile.prod` : Compilation statique Vue 3 + serveur Nginx Alpine.
 
 ### B. Commandes Docker Compose par Environnement
+
 ```bash
 # 🛠️ 1. Stack complète en Développement (Hot-Reload)
 docker compose -f docker-compose.dev.yml up -d --build
@@ -264,9 +249,11 @@ docker compose -f docker-compose.test.yml up --build --exit-code-from api-test
 cp .env.example .env   # renseigner JWT_SECRET, POSTGRES_PASSWORD, OPENAI_API_KEY
 docker compose -f docker-compose.prod.yml up -d --build
 ```
+
 *(`docker-compose.prod.yml` refuse de démarrer si `JWT_SECRET`, `POSTGRES_PASSWORD` ou `OPENAI_API_KEY` sont absents — voir `.env.example` à la racine. Un conteneur éphémère `migrate` applique les migrations PostgreSQL avant que le `worker` ne démarre.)*
 
 ### C. Rebuilder un seul service après une modification de Dockerfile ou de dépendance
+
 ```bash
 docker compose -f docker-compose.dev.yml up -d --build api
 docker compose -f docker-compose.dev.yml up -d --build worker
@@ -288,4 +275,5 @@ docker compose -f docker-compose.dev.yml up -d --build web
 ---
 
 ## 🛡️ Licence
+
 Projet sous licence MIT.

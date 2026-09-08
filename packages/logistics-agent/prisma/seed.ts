@@ -36,7 +36,7 @@ import { fakerFR as faker } from "@faker-js/faker";
 import { randomUUID } from "node:crypto";
 
 const adapter = new PrismaBetterSqlite3({
-  url: process.env.DATABASE_URL || "file:./logistics.db",
+  url: process.env.LOGISTICS_DATABASE_URL || process.env.DATABASE_URL || "file:./logistics.db",
 });
 
 const prisma = new PrismaClient({ adapter });
