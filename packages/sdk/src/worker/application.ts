@@ -37,7 +37,15 @@ export class WorkerApplication {
 
   async start() {
     this.isRunning = true;
-    console.info(`[Worker SDK] Worker ${this.workerId} démarré sur les modèles : ${this.models.join(", ")}`);
+    // Le préfixe de file est affiché explicitement : c'est la seule valeur qui
+    // doit impérativement correspondre à celle de l'API. En cas de divergence,
+    // les jobs sont publiés dans une file que personne ne consomme, sans
+    // erreur ni trace — comparer cette ligne à celle du démarrage de l'API est
+    // le moyen le plus rapide de le constater.
+    console.info(
+      `[Worker SDK] Worker ${this.workerId} démarré sur les modèles : ${this.models.join(", ")} ` +
+        `(files jobs:queue:${this.env}:*)`,
+    );
 
     this.pollQueues();
     this.startHeartbeat();
