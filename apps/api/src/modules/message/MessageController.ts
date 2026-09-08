@@ -85,6 +85,7 @@ export class MessageController {
 				userEmail: user.email,
 				userClientId: user.client_id,
 				correlationId,
+				model: body.model,
 			});
 
 			ApiResponseFactory.created(res, response, "Job créé avec succès");

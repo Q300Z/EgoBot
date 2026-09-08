@@ -40,14 +40,21 @@ services:
       context: .
       dockerfile: apps/worker/Dockerfile.dev
     container_name: scaffold_worker_dev
+    # Identifiants LLM (LOGISTICS_MODEL_PROVIDER, AZURE_OPENAI_*, OPENAI_API_KEY...)
+    # lus depuis ce fichier local non versionné plutôt qu'écrits ici en dur.
+    env_file:
+      - packages/logistics-agent/.env
     environment:
       - NODE_ENV=development
       - VALKEY_URL=redis://valkey:6379
       - REDIS_URL=redis://valkey:6379
-      - DATABASE_URL=postgresql://egobot:egobot@postgres:5432/egobot
+      # packages/logistics-agent utilise désormais SQLite (voir son README) ;
+      # le fichier .db, seedé sur l'hôte, est copié dans l'image par
+      # Dockerfile.dev (COPY . .) — chemin absolu pour éviter toute ambiguïté
+      # de résolution relative selon le CWD du process worker.
+      - DATABASE_URL=file:/app/packages/logistics-agent/logistics.db
     depends_on:
       - valkey
-      - postgres
 
   web:
     build:

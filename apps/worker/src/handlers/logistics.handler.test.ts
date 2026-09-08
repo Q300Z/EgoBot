@@ -119,6 +119,46 @@ describe("createLogisticsHandler", () => {
     assert.match(fullContent, /"data":\[120,30,90\]/);
   });
 
+  it("devrait lire l'email et le prompt depuis payload.data (enveloppe réelle d'apps/api)", async () => {
+    const prisma: any = {
+      customer: {
+        findUnique: async ({ where }: any) => {
+          assert.strictEqual(where.email, "client@test.com");
+          return { id: "11111111-1111-4111-8111-111111111111", email: "client@test.com", isActive: true };
+        },
+      },
+    };
+
+    let receivedPrompt: string | null = null;
+    const createAgent = () => ({
+      streamEvents: async (state: any) => {
+        receivedPrompt = state.messages[0].content;
+        return {
+          messages: asyncOf({ text: asyncOf("OK") }),
+          toolCalls: asyncOf(),
+        };
+      },
+    });
+
+    const handler = createLogisticsHandler({ getPrisma: () => prisma, createAgent: createAgent as any });
+    const { ctx, tokens } = createMockContext();
+
+    // Forme produite par JobStreamHandler.publishToInferenceQueue : prompt et
+    // email imbriqués sous `data`, pas de champ `customer` du tout.
+    await handler(
+      {
+        kind: "state",
+        job_id: "job-1",
+        conversation_id: "conv-1",
+        data: { email: "client@test.com", prompt: "Où est ma commande ?" },
+      },
+      ctx as any,
+    );
+
+    assert.strictEqual(receivedPrompt, "Où est ma commande ?");
+    assert.strictEqual(tokens.join(""), "OK");
+  });
+
   it("devrait arrêter le streaming de texte si l'annulation est détectée", async () => {
     const prisma: any = {
       customer: {

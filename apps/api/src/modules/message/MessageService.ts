@@ -6,6 +6,7 @@ import { JobCommands } from "../job/job.commands";
 import { UnauthorizedError } from "../../core/errors";
 import { LoggerFactory } from "../../config/logger";
 import type { MessageResponse } from "./message.schema";
+import type { Model } from "../auth/auth.schema";
 
 const logger = LoggerFactory.getLogger("MessageService");
 
@@ -45,8 +46,9 @@ export class MessageService {
 		userEmail: string;
 		userClientId: string;
 		correlationId?: string;
+		model?: Model;
 	}): Promise<MessageResponse> {
-		const { conversation_id, prompt, execute_at, userId, userEmail, userClientId, correlationId } = input;
+		const { conversation_id, prompt, execute_at, userId, userEmail, userClientId, correlationId, model } = input;
 
 		// 1. Récupération et validation de la configuration Egobot via l'EventBus (découplage Repo Auth)
 		const EgobotConfig = await eventBus.request(AuthCommands.getUserConfig, { userId });
@@ -54,6 +56,12 @@ export class MessageService {
 			logger.warn(`Session Egobot expirée pour l'utilisateur ${userId}`, { correlationId });
 			throw new UnauthorizedError("Session Egobot expirée");
 		}
+
+		// Le modèle demandé par le client ne prévaut que pour une conversation
+		// encore inexistante (aucun conversation_id fourni) : le modèle d'une
+		// conversation déjà créée est figé, et le faire varier changerait
+		// silencieusement la file d'inférence utilisée pour ses jobs suivants.
+		const effectiveConfig = model && !conversation_id ? { ...EgobotConfig, model } : EgobotConfig;
 
 		const jobId = crypto.randomUUID();
 		const conversationId = conversation_id || crypto.randomUUID();
@@ -66,7 +74,7 @@ export class MessageService {
 			userEmail,
 			userClientId,
 			prompt,
-			EgobotConfig,
+			EgobotConfig: effectiveConfig,
 			correlationId,
 			executeAt: execute_at,
 		});

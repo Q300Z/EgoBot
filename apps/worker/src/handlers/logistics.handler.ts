@@ -23,7 +23,12 @@ export function createLogisticsHandler({
 }: LogisticsHandlerDeps): TaskHandler {
   return async (payload, ctx) => {
     const prisma = getPrisma();
-    const email: string | undefined = payload?.customer?.email;
+    // L'enveloppe de job d'apps/api imbrique prompt/email sous `data`
+    // (JobStreamHandler.publishToInferenceQueue XADD eventPayload.data tel
+    // quel) ; `customer.email`/`prompt` à plat sont conservés en repli pour
+    // tout appelant plus simple (scripts, tests).
+    const email: string | undefined = payload?.customer?.email || payload?.data?.email;
+    const prompt: string = payload?.prompt || payload?.data?.prompt || "";
 
     // Résolution centralisée (identité manquante, client introuvable ou
     // inactif) : messages dédiés par cas, cohérents avec le reste de
@@ -37,7 +42,7 @@ export function createLogisticsHandler({
     const agent = createAgent({ customer: resolution.customer, prisma });
 
     const run = await agent.streamEvents(
-      { messages: [{ role: "user", content: payload.prompt }] },
+      { messages: [{ role: "user", content: prompt }] },
       { version: "v3" },
     );
 

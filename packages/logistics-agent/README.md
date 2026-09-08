@@ -1,14 +1,14 @@
 # @egobot/logistics-agent
 
 Package LangChain de consultation logistique pour EgoBot. Il relie un LLM à
-des services métier en lecture seule, eux-mêmes adossés à Prisma/PostgreSQL.
+des services métier en lecture seule, eux-mêmes adossés à Prisma/SQLite.
 
 ## Architecture
 
 ```text
 src/
 ├── agent/       # Factory createAgent et prompt système
-├── database/    # Création explicite du client Prisma PostgreSQL
+├── database/    # Création explicite du client Prisma SQLite (better-sqlite3)
 ├── dtos/        # Contrats Zod sérialisables retournés au LLM
 ├── services/    # Requêtes Prisma filtrées et mapping vers les DTOs
 ├── runtime/     # Résolution du client et exécution d'une requête
@@ -44,44 +44,30 @@ l'application avant de construire les outils liés au client.
 
 ## Mise en route de la base de données
 
-### Prérequis
+Base **SQLite locale** (fichier), aucune installation de serveur requise.
 
-PostgreSQL 16 installé et démarré.
-Sous Windows : `winget install PostgreSQL.PostgreSQL.16`
+### 1. Configurer la connexion
 
-### 1. Créer la base
+Copier `.env.example` en `.env` (la valeur par défaut, `file:./logistics.db`,
+convient déjà pour le développement local — rien à modifier).
 
-```bash
-psql -U postgres -c "CREATE DATABASE egobot;"
-```
-
-Sous Windows, si `psql` est introuvable :
-
-```powershell
-$env:Path += ";C:\Program Files\PostgreSQL\16\bin"
-```
-
-### 2. Configurer la connexion
-
-Copier `.env.example` en `.env` et y renseigner son mot de passe PostgreSQL.
-
-### 3. Créer les tables
+### 2. Créer les tables
 
 Les commandes suivantes se lancent **depuis ce dossier** (`packages/logistics-agent`),
 faute de quoi le `.env` ne serait pas trouvé :
 
 ```bash
-pnpm exec prisma db push
-pnpm exec prisma generate
+pnpm exec prisma migrate dev
 ```
+*(Génère aussi le client Prisma automatiquement.)*
 
-### 4. Remplir la base
+### 3. Remplir la base
 
 ```bash
 pnpm exec prisma db seed
 ```
 
-### 5. Visualiser (optionnel)
+### 4. Visualiser (optionnel)
 
 ```bash
 pnpm exec prisma studio
@@ -199,6 +185,12 @@ AZURE_OPENAI_API_VERSION=2026-01-01
 - `AZURE_OPENAI_API_VERSION` : version d'API Azure OpenAI, indépendante des
   versions OpenAI
 
+Aucune `temperature` n'est fixée par défaut : les modèles de raisonnement
+(familles GPT-5 / o-series, sur OpenAI comme sur Azure) rejettent toute valeur
+non par défaut avec une erreur 400 (`Only the default (1) value is
+supported`). Si un déploiement en accepte une, l'injecter via l'option
+`model` (voir plus bas).
+
 Pour l'authentification Microsoft Entra ID (Managed Identity), qui ne peut
 pas se réduire à une variable d'environnement, ou pour tout autre besoin de
 configuration avancée, injecte directement une instance via l'option
@@ -219,7 +211,6 @@ const agent = createLogisticsAgent({
   model: new AzureChatOpenAI({
     azureADTokenProvider: getEntraIdToken,
     azureOpenAIApiDeploymentName: "mon-deploiement-gpt5",
-    temperature: 0,
   }),
 });
 ```
