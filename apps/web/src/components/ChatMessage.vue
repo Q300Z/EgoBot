@@ -1,5 +1,6 @@
 <template>
   <div
+    v-if="!isCancelled"
     :class="['d-flex mb-4', message.role === 'USER' ? 'justify-end' : 'justify-start']"
     :aria-label="message.role === 'USER' ? 'Votre message' : 'Message de l\'assistant EgoBot'"
   >
@@ -29,12 +30,37 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import MessageContent from "./MessageContent.vue";
 
-defineProps<{
-  message: { role: "USER" | "ASSISTANT"; content: string };
+const props = defineProps<{
+  message: {
+    role: "USER" | "ASSISTANT";
+    content: string;
+    cancelled?: boolean;
+    status?: string;
+  };
   userName?: string;
 }>();
+
+const isCancelled = computed(() => {
+  const msg = props.message as any;
+  if (!msg) return false;
+  // Ne s'applique qu'au chatbot / assistant
+  if (msg.role !== "ASSISTANT") return false;
+  // 1. Marque booléenne explicite
+  if (msg.cancelled === true) return true;
+  // 2. Marque de statut
+  if (msg.status === "CANCELLED") return true;
+  // 3. Marque textuelle de repli pour distinguer un message annulé d'un message en cours de génération
+  if (typeof msg.content === "string") {
+    const trimmed = msg.content.trim();
+    if (trimmed === "<cancelled>" || trimmed === "[cancelled]" || trimmed.startsWith("<cancelled>")) {
+      return true;
+    }
+  }
+  return false;
+});
 </script>
 
 <style scoped>

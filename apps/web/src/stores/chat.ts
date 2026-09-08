@@ -47,6 +47,16 @@ export const useChatStore = defineStore("chat", () => {
       return;
     }
 
+    // Marquer immédiatement le message assistant en cours comme annulé
+    const lastMsg = currentConversation.value?.messages[currentConversation.value.messages.length - 1];
+    if (lastMsg && lastMsg.role === "ASSISTANT") {
+      lastMsg.cancelled = true;
+      lastMsg.status = "CANCELLED";
+      if (!lastMsg.content || lastMsg.content.trim() === "") {
+        lastMsg.content = "<cancelled>";
+      }
+    }
+
     try {
       await authStore.sdk.cancelMessage(jobIdToCancel);
       notificationStore.showInfo(
@@ -149,6 +159,16 @@ export const useChatStore = defineStore("chat", () => {
           if (fallbackTimer) clearTimeout(fallbackTimer);
           isStreaming.value = false;
           currentJobId.value = null;
+          if (status === "CANCELLED") {
+            const lastMsg = currentConversation.value?.messages[currentConversation.value.messages.length - 1];
+            if (lastMsg && lastMsg.role === "ASSISTANT") {
+              lastMsg.cancelled = true;
+              lastMsg.status = "CANCELLED";
+              if (!lastMsg.content || lastMsg.content.trim() === "") {
+                lastMsg.content = "<cancelled>";
+              }
+            }
+          }
           if (activeStreamCleanup.value) {
             activeStreamCleanup.value();
             activeStreamCleanup.value = null;

@@ -134,7 +134,7 @@
           <!-- Affichage fluide des messages de la conversation -->
           <div v-else key="messages-list">
             <ChatMessage
-              v-for="(msg, idx) in chatStore.currentConversation?.messages || []"
+              v-for="(msg, idx) in visibleMessages"
               :key="msg.id || idx"
               :message="msg"
             />
@@ -202,7 +202,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted, nextTick } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useChatStore } from "../stores/chat";
 import { useAuthStore } from "../stores/auth";
@@ -218,6 +218,29 @@ const uiStore = useUiStore();
 const promptInput = ref("");
 const selectedModel = ref<"CHATBOT" | "LOGISTICS">("CHATBOT");
 const chatBoxRef = ref<HTMLElement | null>(null);
+
+function isMessageCancelled(msg: any): boolean {
+  if (!msg) return false;
+  if (msg.role !== "ASSISTANT") return false;
+  // 1. Marque booléenne explicite
+  if (msg.cancelled === true) return true;
+  // 2. Marque de statut
+  if (msg.status === "CANCELLED") return true;
+  // 3. Marque textuelle de repli pour différencier des messages vides en attente normale
+  if (typeof msg.content === "string") {
+    const trimmed = msg.content.trim();
+    if (trimmed === "<cancelled>" || trimmed === "[cancelled]" || trimmed.startsWith("<cancelled>")) {
+      return true;
+    }
+  }
+  return false;
+}
+
+const visibleMessages = computed(() => {
+  return (chatStore.currentConversation?.messages || []).filter(
+    (msg: any) => !isMessageCancelled(msg)
+  );
+});
 
 async function selectConversation(id: string) {
   if (chatStore.currentConversation?.id !== id) {
