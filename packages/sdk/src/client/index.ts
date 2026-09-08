@@ -71,6 +71,11 @@ export class EgobotClientSDK {
     return res.data?.data ?? res.data; // { job_id, conversation_id, stream_url }
   }
 
+  async cancelMessage(jobId: string) {
+    const res = await this.api.post(`/api/v1/messages/${jobId}/cancel`);
+    return res.data?.data ?? res.data;
+  }
+
   async getConversations() {
     const res = await this.api.get("/api/v1/conversations");
     return res.data?.data ?? res.data; // array [ conversation1, conversation2 ]

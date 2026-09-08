@@ -84,9 +84,22 @@
             {{ chatStore.currentConversation?.title || 'Nouvelle Discussion' }}
           </span>
         </div>
-        <v-chip v-if="chatStore.isStreaming" color="warning" size="small" prepend-icon="mdi-loading mdi-spin">
-          Génération...
-        </v-chip>
+        <div v-if="chatStore.isStreaming" class="d-flex align-center ga-2">
+          <v-chip color="warning" size="small" prepend-icon="mdi-loading mdi-spin">
+            Génération...
+          </v-chip>
+          <v-btn
+            size="small"
+            variant="tonal"
+            color="error"
+            prepend-icon="mdi-stop-circle-outline"
+            aria-label="Arrêter la génération"
+            title="Arrêter la génération"
+            @click="chatStore.cancelCurrentMessage"
+          >
+            Arrêter
+          </v-btn>
+        </div>
       </div>
 
       <!-- Flux de Messages (Animation Fondu & Squelettes de Chargement) -->
@@ -162,13 +175,23 @@
           ></v-textarea>
 
           <v-btn
+            v-if="chatStore.isStreaming"
+            icon="mdi-stop"
+            color="error"
+            variant="flat"
+            size="default"
+            aria-label="Arrêter la génération"
+            title="Arrêter la génération"
+            @click="chatStore.cancelCurrentMessage"
+          ></v-btn>
+          <v-btn
+            v-else
             icon="mdi-send"
             color="secondary"
             variant="flat"
             size="default"
             aria-label="Envoyer le message"
             title="Envoyer le message"
-            :loading="chatStore.isStreaming"
             :disabled="!promptInput.trim() || chatStore.isLoadingConversation"
             @click="handleSend"
           ></v-btn>

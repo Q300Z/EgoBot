@@ -13,6 +13,7 @@ export const useChatStore = defineStore("chat", () => {
   const isLoadingConversations = ref(false);
   const isLoadingConversation = ref(false);
   const activeStreamCleanup = ref<(() => void) | null>(null);
+  const currentJobId = ref<string | null>(null);
 
   async function loadConversations() {
     isLoadingConversations.value = true;
@@ -36,6 +37,30 @@ export const useChatStore = defineStore("chat", () => {
       activeStreamCleanup.value = null;
     }
     isStreaming.value = false;
+    currentJobId.value = null;
+  }
+
+  async function cancelCurrentMessage() {
+    const jobIdToCancel = currentJobId.value;
+    if (!jobIdToCancel) {
+      stopStreaming();
+      return;
+    }
+
+    try {
+      await authStore.sdk.cancelMessage(jobIdToCancel);
+      notificationStore.showInfo(
+        "La génération du message a été interrompue.",
+        "Génération arrêtée"
+      );
+    } catch (err: any) {
+      notificationStore.showError(err);
+    } finally {
+      stopStreaming();
+      if (currentConversation.value?.id) {
+        await loadConversation(currentConversation.value.id, { silent: true });
+      }
+    }
   }
 
   async function loadConversation(id: string, options?: { silent?: boolean }) {
@@ -91,6 +116,7 @@ export const useChatStore = defineStore("chat", () => {
     }
 
     isStreaming.value = true;
+    currentJobId.value = jobResult.job_id;
     let receivedAnyToken = false;
     let fallbackTimer: any = null;
 
@@ -99,6 +125,7 @@ export const useChatStore = defineStore("chat", () => {
         console.warn("[ChatStore] Fallback SSE activé -> Passage en Batch HTTP Polling (aucun token reçu après 20s)");
         if (activeStreamCleanup.value) activeStreamCleanup.value();
         isStreaming.value = false;
+        currentJobId.value = null;
         await loadConversation(jobResult.conversation_id, { silent: true });
       }
     }, 20000);
@@ -121,6 +148,7 @@ export const useChatStore = defineStore("chat", () => {
         if (status === "COMPLETED" || status === "FAILED" || status === "CANCELLED") {
           if (fallbackTimer) clearTimeout(fallbackTimer);
           isStreaming.value = false;
+          currentJobId.value = null;
           if (activeStreamCleanup.value) {
             activeStreamCleanup.value();
             activeStreamCleanup.value = null;
@@ -139,6 +167,7 @@ export const useChatStore = defineStore("chat", () => {
         // Si le streaming était déjà terminé (normalement ou par annulation), la clôture HTTP n'est pas une erreur
         if (!isStreaming.value) return;
         isStreaming.value = false;
+        currentJobId.value = null;
         if (activeStreamCleanup.value) {
           activeStreamCleanup.value();
           activeStreamCleanup.value = null;
@@ -157,12 +186,14 @@ export const useChatStore = defineStore("chat", () => {
     conversations,
     currentConversation,
     isStreaming,
+    currentJobId,
     isLoadingConversations,
     isLoadingConversation,
     activeStreamCleanup,
     loadConversations,
     loadConversation,
     sendMessage,
+    cancelCurrentMessage,
     stopStreaming,
   };
 });
