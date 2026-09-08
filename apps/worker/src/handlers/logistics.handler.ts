@@ -22,29 +22,35 @@ export function createLogisticsHandler({
   createAgent = createLogisticsAgent,
 }: LogisticsHandlerDeps): TaskHandler {
   return async (payload, ctx) => {
-    const prisma = getPrisma();
-    // L'enveloppe de job d'apps/api imbrique prompt/email sous `data`
-    // (JobStreamHandler.publishToInferenceQueue XADD eventPayload.data tel
-    // quel) ; `customer.email`/`prompt` à plat sont conservés en repli pour
-    // tout appelant plus simple (scripts, tests).
-    const email: string | undefined = payload?.customer?.email || payload?.data?.email;
-    const prompt: string = payload?.prompt || payload?.data?.prompt || "";
-
-    // Résolution centralisée (identité manquante, client introuvable ou
-    // inactif) : messages dédiés par cas, cohérents avec le reste de
-    // l'écosystème logistics-agent.
-    const resolution = await new CustomerQueryService(prisma).resolve({ email });
-    if (!resolution.resolved) {
-      await ctx.sendToken(resolution.message);
-      return;
-    }
-
-    // Toute erreur au-delà de ce point — clé absente, modèle inaccessible,
-    // quota dépassé, panne réseau — laissait l'utilisateur devant une bulle
-    // vide : le worker relançait trois fois puis abandonnait en file de rebut,
-    // sans qu'aucun fragment ne soit émis. Un échec muet n'est diagnosticable
-    // ni depuis l'interface, ni par la personne qui teste.
+    // La protection couvre TOUT le handler, y compris l'ouverture de la base et
+    // la résolution d'identité. Une première version ne protégeait que l'appel
+    // au modèle : une base logistique absente ou non migrée faisait alors
+    // échouer resolve() en amont, sans qu'aucun fragment ne soit émis. Le
+    // worker relançait trois fois puis abandonnait en file de rebut, et
+    // l'utilisateur restait devant une bulle vide, sans rien à diagnostiquer.
     try {
+      const prisma = getPrisma();
+      // L'enveloppe de job d'apps/api imbrique prompt/email sous `data`
+      // (JobStreamHandler.publishToInferenceQueue XADD eventPayload.data tel
+      // quel) ; `customer.email`/`prompt` à plat sont conservés en repli pour
+      // tout appelant plus simple (scripts, tests).
+      const email: string | undefined = payload?.customer?.email || payload?.data?.email;
+      const prompt: string = payload?.prompt || payload?.data?.prompt || "";
+
+      // Résolution centralisée (identité manquante, client introuvable ou
+      // inactif) : messages dédiés par cas, cohérents avec le reste de
+      // l'écosystème logistics-agent.
+      const resolution = await new CustomerQueryService(prisma).resolve({ email });
+      if (!resolution.resolved) {
+        await ctx.sendToken(resolution.message);
+        return;
+      }
+
+      if (!prompt) {
+        await ctx.sendToken("Merci de préciser votre question.");
+        return;
+      }
+
       const agent = createAgent({ customer: resolution.customer, prisma });
 
       const run = await agent.streamEvents(
