@@ -6,9 +6,18 @@ export const useAuthStore = defineStore("auth", () => {
   const token = ref<string | null>(localStorage.getItem("token"));
   const user = ref<any | null>(null);
 
+  // Adresse vide = requêtes relatives, servies par le proxy déclaré dans
+  // vite.config.ts. Coder "http://localhost:8000" en dur ne fonctionne que
+  // lorsque le navigateur tourne sur la même machine que l'API : en
+  // conteneur distant (Codespaces, VM), le navigateur cherche alors l'API
+  // sur le poste de l'utilisateur, où rien n'écoute — d'où « Network Error ».
+  //
+  // VITE_API_URL permet de viser une API distincte si besoin.
+  const apiBaseUrl = import.meta.env.VITE_API_URL ?? "";
+
   const sdk = computed(() => {
     return new EgobotClientSDK({
-      baseUrl: "http://localhost:8000",
+      baseUrl: apiBaseUrl,
       token: token.value || undefined,
     });
   });
