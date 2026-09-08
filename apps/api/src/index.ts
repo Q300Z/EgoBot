@@ -1,5 +1,5 @@
 import app from "./app";
-import { env } from "./config/env";
+import { env, getAppEnv } from "./config/env";
 import { LoggerFactory } from "./config/logger";
 import { prisma } from "./config/db";
 import { connectRedisClients } from "./config/redis";
@@ -25,7 +25,14 @@ async function bootstrap() {
 
 		// 4. Lancement de l'écoute HTTP
 		server = app.listen(env.PORT, "0.0.0.0", () => {
-			logger.info(`Serveur démarré en mode [${env.NODE_ENV}] sur http://0.0.0.0:${env.PORT}`);
+			// Le préfixe de file est affiché explicitement : il doit être identique
+			// côté worker, qui l'affiche lui aussi à son démarrage. En cas
+			// d'écart, l'API publie dans une file que personne ne consomme — sans
+			// erreur ni trace, les messages restent simplement sans réponse.
+			logger.info(
+				`Serveur démarré en mode [${env.NODE_ENV}] sur http://0.0.0.0:${env.PORT} ` +
+					`(files jobs:queue:${getAppEnv()}:*)`,
+			);
 		});
 
 		/**

@@ -131,13 +131,15 @@
 
       <!-- Zone de Saisie avec v-textarea multi-lignes auto-extensible -->
       <div class="border-t pa-3 bg-surface">
+        <!-- Toujours visible : le mode s'applique au prochain message, y compris
+             dans une conversation déjà commencée. -->
         <v-btn-toggle
-          v-if="!chatStore.currentConversation"
           v-model="selectedModel"
           color="primary"
           density="compact"
           mandatory
           class="mb-2"
+          aria-label="Mode de réponse du prochain message"
         >
           <v-btn value="CHATBOT" size="small">Assistant général</v-btn>
           <v-btn value="LOGISTICS" size="small">Suivi commandes</v-btn>
@@ -202,6 +204,12 @@ async function selectConversation(id: string) {
     router.push(`/chat/${id}`);
   }
   await chatStore.loadConversation(id);
+  // Le sélecteur reflète le mode de la conversation ouverte, pour indiquer où
+  // l'on se trouve — libre à l'utilisateur d'en changer ensuite.
+  const conversationModel = chatStore.currentConversation?.model;
+  if (conversationModel === "CHATBOT" || conversationModel === "LOGISTICS") {
+    selectedModel.value = conversationModel;
+  }
   await scrollToBottom();
 }
 
@@ -218,7 +226,9 @@ async function handleSend() {
   const text = promptInput.value;
   promptInput.value = "";
   try {
-    await chatStore.sendMessage(text, chatStore.currentConversation?.model || selectedModel.value);
+    // Le sélecteur pilote chaque message. Auparavant le modèle de la
+    // conversation l'emportait, ce qui figeait le mode à sa création.
+    await chatStore.sendMessage(text, selectedModel.value);
     if (router && chatStore.currentConversation?.id && route.path !== `/chat/${chatStore.currentConversation.id}`) {
       router.replace(`/chat/${chatStore.currentConversation.id}`);
     }
