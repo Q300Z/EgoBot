@@ -25,7 +25,19 @@ if (!process.env.DATABASE_URL) {
       "(ex. postgresql://postgres:motdepasse@localhost:5432/egobot).",
   );
 }
-if (!process.env.OPENAI_API_KEY) {
+// Le fournisseur peut être OpenAI ou Azure depuis l'ajout du support Azure :
+// vérifier la clé correspondante, et non OPENAI_API_KEY dans tous les cas.
+const provider = process.env.LOGISTICS_MODEL_PROVIDER ?? "openai";
+
+if (provider === "azure") {
+  if (!process.env.AZURE_OPENAI_API_KEY) {
+    fail(
+      "AZURE_OPENAI_API_KEY est absent alors que LOGISTICS_MODEL_PROVIDER=azure. " +
+        "Renseignez également AZURE_OPENAI_ENDPOINT, " +
+        "AZURE_OPENAI_API_DEPLOYMENT_NAME et AZURE_OPENAI_API_VERSION.",
+    );
+  }
+} else if (!process.env.OPENAI_API_KEY) {
   fail(
     "OPENAI_API_KEY est absent. Renseignez-le dans packages/logistics-agent/.env " +
       "(clé API OpenAI, ex. sk-...).",
