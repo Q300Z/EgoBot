@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, computed } from "vue";
 import { useTheme } from "vuetify";
-import mermaid from "mermaid";
 
 const props = defineProps<{ code: string }>();
 
@@ -13,18 +12,17 @@ const hasError = ref(false);
 let renderSeq = 0;
 
 async function renderDiagram() {
-  // securityLevel "strict" est déjà la valeur par défaut de Mermaid : elle
-  // neutralise les scripts et les liens cliquables dans les labels générés.
-  // Déclaré explicitement pour documenter ce choix plutôt que le modifier.
-  mermaid.initialize({
-    startOnLoad: false,
-    securityLevel: "strict",
-    theme: isDark.value ? "dark" : "default",
-  });
+  if (!props.code?.trim()) return;
 
   hasError.value = false;
   const id = `mermaid-${Date.now()}-${++renderSeq}`;
   try {
+    const { default: mermaid } = await import("mermaid");
+    mermaid.initialize({
+      startOnLoad: false,
+      securityLevel: "strict",
+      theme: isDark.value ? "dark" : "default",
+    });
     const { svg: rendered } = await mermaid.render(id, props.code);
     svg.value = rendered;
   } catch {
