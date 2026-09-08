@@ -24,10 +24,11 @@ export interface CreateLogisticsAgentOptions {
   /**
    * Fournisseur du modèle par défaut lorsque `model` n'est pas fourni.
    * Lu depuis `LOGISTICS_MODEL_PROVIDER` ("openai" ou "azure").
-   * La configuration Azure (clé, instance, déploiement, version d'API) est
-   * lue depuis les variables d'environnement standard du SDK
-   * (`AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_API_INSTANCE_NAME`,
-   * `AZURE_OPENAI_API_DEPLOYMENT_NAME`, `AZURE_OPENAI_API_VERSION`).
+   * La configuration Azure (clé, instance ou endpoint, déploiement, version
+   * d'API) est lue depuis les variables d'environnement standard du SDK
+   * (`AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_API_INSTANCE_NAME` ou
+   * `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_DEPLOYMENT_NAME`,
+   * `AZURE_OPENAI_API_VERSION`).
    */
   modelProvider?: LogisticsModelProvider;
   modelName?: string;
@@ -40,11 +41,16 @@ function createDefaultModel(
   provider: LogisticsModelProvider,
   modelName: string,
 ): BaseChatModel {
+  // Pas de `temperature` explicite : les modèles de raisonnement (familles
+  // GPT-5 / o-series, sur OpenAI comme sur Azure) rejettent toute valeur non
+  // par défaut avec une erreur 400 ("Only the default (1) value is
+  // supported"). La consigne "ne jamais halluciner" du prompt système reste
+  // la garde-fou réel, pas ce paramètre.
   if (provider === "azure") {
-    return new AzureChatOpenAI({ model: modelName, temperature: 0 });
+    return new AzureChatOpenAI({ model: modelName });
   }
 
-  return new ChatOpenAI({ model: modelName, temperature: 0 });
+  return new ChatOpenAI({ model: modelName });
 }
 
 export function createLogisticsAgent({
