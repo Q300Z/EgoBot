@@ -1,10 +1,24 @@
+import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const backendTarget = process.env.VITE_API_PROXY_TARGET || process.env.BACKEND_URL || "http://localhost:8000";
+
 export default defineConfig({
+  envDir: path.resolve(__dirname, "../../"),
   plugins: [vue()],
   server: {
     port: 3000,
+    watch: {
+      usePolling: process.env.CHOKIDAR_USEPOLLING === "true",
+      interval: 100,
+    },
+    hmr: {
+      clientPort: 3000,
+    },
     // Le navigateur n'est pas forcément sur la même machine que l'API :
     // en Codespaces ou en VM, il tourne chez l'utilisateur tandis que l'API
     // écoute dans le conteneur. Le front émet donc des requêtes relatives, et
@@ -13,11 +27,11 @@ export default defineConfig({
     // Effet secondaire utile : tout passe par la même origine, donc aucune
     // question de CORS ni de port supplémentaire à exposer.
     proxy: {
-      "/api": { target: "http://localhost:8000", changeOrigin: true },
-      "/health": { target: "http://localhost:8000", changeOrigin: true },
+      "/api": { target: backendTarget, changeOrigin: true },
+      "/health": { target: backendTarget, changeOrigin: true },
       // Le flux SSE doit rester ouvert : pas de tampon, pas de fermeture
       // anticipée, sinon l'affichage au fil de l'eau ne fonctionne plus.
-      "/sse": { target: "http://localhost:8000", changeOrigin: true, ws: false },
+      "/sse": { target: backendTarget, changeOrigin: true, ws: false },
     },
   },
   test: {
