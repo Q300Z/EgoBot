@@ -57,11 +57,17 @@ export class MessageService {
 			throw new UnauthorizedError("Session Egobot expirée");
 		}
 
-		// Le modèle demandé par le client ne prévaut que pour une conversation
-		// encore inexistante (aucun conversation_id fourni) : le modèle d'une
-		// conversation déjà créée est figé, et le faire varier changerait
-		// silencieusement la file d'inférence utilisée pour ses jobs suivants.
-		const effectiveConfig = model && !conversation_id ? { ...EgobotConfig, model } : EgobotConfig;
+		// Le mode demandé s'applique à CHAQUE message, y compris au sein d'une
+		// conversation déjà créée : c'est ce qui permet de passer de l'assistant
+		// général au suivi de commandes sans repartir d'un fil vierge.
+		//
+		// La restriction précédente (`&& !conversation_id`) visait à éviter de
+		// changer « silencieusement » la file d'inférence des jobs suivants. Le
+		// risque n'existe pas : la clé de file est calculée par job à partir de
+		// cette configuration, jamais dérivée de la conversation. Chaque Job
+		// conserve son propre `model`, et Conversation.model reste celui du
+		// premier message — l'historique demeure donc exact.
+		const effectiveConfig = model ? { ...EgobotConfig, model } : EgobotConfig;
 
 		const jobId = crypto.randomUUID();
 		const conversationId = conversation_id || crypto.randomUUID();
