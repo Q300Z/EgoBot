@@ -29,3 +29,13 @@ coverage
 .github
 README.md
 CHANGELOG.md
+*.pdf
+apps/api/docs
+apps/api/Insomnia_*.yaml
+apps/api/SQL_MAINTENANCE.txt
+
+# Local SQLite databases (prevent baking host data into images)
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
