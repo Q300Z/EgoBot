@@ -26,6 +26,11 @@
       "import": "./dist/src/dtos/index.js",
       "default": "./dist/src/dtos/index.js"
     },
+    "./evaluation": {
+      "types": "./dist/src/evaluation/index.d.ts",
+      "import": "./dist/src/evaluation/index.js",
+      "default": "./dist/src/evaluation/index.js"
+    },
     "./runtime": {
       "types": "./dist/src/runtime/index.d.ts",
       "import": "./dist/src/runtime/index.js",
@@ -51,6 +56,7 @@
     "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && prisma generate && tsc",
     "dev": "tsc --watch",
     "test": "vitest run",
+    "test:load": "tsx scripts/load-test.ts",
     "try:agent": "tsx scripts/try-agent.ts",
     "link:customer": "tsx scripts/link-customer.ts",
     "prisma:format": "prisma format",

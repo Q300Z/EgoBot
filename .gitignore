@@ -21,6 +21,7 @@ out/
 # Testing & Coverage
 coverage/
 .nyc_output/
+packages/logistics-agent/reports/
 
 # Logs
 *.log
