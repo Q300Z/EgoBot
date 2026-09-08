@@ -52,6 +52,7 @@
     "dev": "tsc --watch",
     "test": "vitest run",
     "try:agent": "tsx scripts/try-agent.ts",
+    "link:customer": "tsx scripts/link-customer.ts",
     "prisma:format": "prisma format",
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate",
