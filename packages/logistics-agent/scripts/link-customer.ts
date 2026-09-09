@@ -12,14 +12,29 @@
  * plutôt que d'en créer un nouveau : un client sans historique donnerait un
  * agent qui fonctionne mais n'a rien à raconter.
  *
+ * Pour rattacher plusieurs comptes de démo sans qu'ils ne se disputent le
+ * même client (le plus fourni), exclure ceux déjà attribués :
+ *
+ *   tsx scripts/link-customer.ts autre@email.fr --exclude=admin@egobot.local
+ *
  * Destiné au développement et à la démonstration uniquement.
  */
 import { createPrismaClient } from "../src/database/prisma.js";
 
-const email = (process.argv[2] ?? process.env.LINK_EMAIL ?? "").trim().toLowerCase();
+const args = process.argv.slice(2);
+const positional = args.filter((a) => !a.startsWith("--"));
+const excludeEmails = new Set(
+  args
+    .filter((a) => a.startsWith("--exclude="))
+    .flatMap((a) => a.slice("--exclude=".length).split(","))
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean),
+);
+
+const email = (positional[0] ?? process.env.LINK_EMAIL ?? "").trim().toLowerCase();
 
 if (!email) {
-  console.error("Usage : tsx scripts/link-customer.ts <email>");
+  console.error("Usage : tsx scripts/link-customer.ts <email> [--exclude=autre@email.fr,...]");
   process.exit(1);
 }
 
@@ -43,7 +58,11 @@ async function main(): Promise<void> {
   }
 
   // Le client le plus fourni : c'est celui qui rendra les tests les plus parlants.
+  // --exclude retire les clients déjà rattachés à un autre compte de démo,
+  // sinon deux appels successifs se disputeraient le même client (le plus
+  // fourni) et le second écraserait le rattachement du premier.
   const candidates = await prisma.customer.findMany({
+    where: excludeEmails.size > 0 ? { email: { notIn: [...excludeEmails] } } : undefined,
     select: {
       id: true,
       customerNumber: true,
@@ -56,7 +75,7 @@ async function main(): Promise<void> {
 
   if (candidates.length === 0) {
     console.error(
-      "Aucun client en base. Lancer le générateur de données au préalable :\n" +
+      "Aucun client disponible (base vide, ou tous exclus). Lancer le générateur de données :\n" +
         "  pnpm --filter @egobot/logistics-agent exec tsx prisma/seed.ts",
     );
     process.exit(1);
