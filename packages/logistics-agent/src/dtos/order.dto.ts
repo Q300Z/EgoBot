@@ -132,3 +132,35 @@ export type OrderListResultDto = z.infer<
 export type OrderStatusResultDto = z.infer<typeof orderStatusResultSchema>;
 export type OrderDetailsResultDto = z.infer<typeof orderDetailsResultSchema>;
 export type OrderListOptions = z.input<typeof orderListOptionsSchema>;
+
+export const orderSummaryResultSchema = z.object({
+  totalOrders: z.number().int(),
+  ordersByStatus: z.record(z.string(), z.number().int()),
+  totalSpent: z.string(),
+  totalDue: z.string(),
+  averageCart: z.string(),
+});
+
+export type OrderSummaryResultDto = z.infer<typeof orderSummaryResultSchema>;
+
+export const productOrderHistoryResultSchema = z.object({
+  found: z.boolean(),
+  orders: z.array(z.object({
+    orderNumber: z.string(),
+    orderedAt: z.string().nullable(),
+    status: orderStatusSchema,
+    orderedQuantity: z.number().int(),
+  })),
+});
+
+export type ProductOrderHistoryResultDto = z.infer<typeof productOrderHistoryResultSchema>;
+
+export const upcomingDeliveriesResultSchema = z.object({
+  deliveries: z.array(z.object({
+    orderNumber: z.string(),
+    requestedDeliveryDate: z.string().nullable(),
+    status: orderStatusSchema,
+  })),
+});
+
+export type UpcomingDeliveriesResultDto = z.infer<typeof upcomingDeliveriesResultSchema>;

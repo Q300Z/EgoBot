@@ -136,4 +136,32 @@ export class CustomerService {
       customer: mapCustomer(customer),
     });
   }
+
+  async findProfileSummary(customerId: string) {
+    const customer = await this.prisma.customer.findUnique({
+      where: { id: customerId },
+      select: {
+        customerNumber: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        isActive: true,
+        currentAddress: {
+          select: {
+            label: true,
+            line1: true,
+            line2: true,
+            postalCode: true,
+            city: true,
+            countryCode: true,
+          },
+        },
+      },
+    });
+
+    if (!customer) return notFound("Client introuvable.");
+
+    return { found: true as const, customer };
+  }
 }

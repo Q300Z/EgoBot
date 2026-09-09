@@ -1,8 +1,6 @@
 import "vuetify/styles";
 import "@mdi/font/css/materialdesignicons.css";
 import { createVuetify } from "vuetify";
-import * as components from "vuetify/components";
-import * as directives from "vuetify/directives";
 
 // Détection défensive : window.matchMedia peut ne pas exister (ex: jsdom en test)
 const prefersDark =
@@ -11,8 +9,6 @@ const prefersDark =
   window.matchMedia("(prefers-color-scheme: dark)").matches;
 
 export default createVuetify({
-  components,
-  directives,
   theme: {
     defaultTheme: prefersDark ? "dark" : "light",
     themes: {

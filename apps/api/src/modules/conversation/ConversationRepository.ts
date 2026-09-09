@@ -92,7 +92,7 @@ export class ConversationRepository {
 	 */
 	// ============================================================================
 	public static async findById(id: string, userId: string) {
-		return prisma.conversation.findUnique({
+		const conv = await prisma.conversation.findUnique({
 			where: {
 				id,
 				user_id: userId,
@@ -100,12 +100,41 @@ export class ConversationRepository {
 			},
 			include: {
 				messages: {
+					include: {
+						assistant_message_jobs: {
+							select: { status: true },
+						},
+					},
 					orderBy: {
 						created_at: "asc",
 					},
 				},
 			},
 		});
+
+		if (!conv) return null;
+
+		return {
+			...conv,
+			messages: conv.messages.map((m: any) => {
+				const jobStatus = m.assistant_message_jobs?.[0]?.status;
+				const isCancelled =
+					jobStatus === "CANCELLED" ||
+					m.content === "<cancelled>" ||
+					m.content === "[cancelled]" ||
+					(typeof m.content === "string" && m.content.startsWith("<cancelled>"));
+				return {
+					id: m.id,
+					conversation_id: m.conversation_id,
+					role: m.role,
+					content: m.content,
+					status: jobStatus,
+					cancelled: isCancelled,
+					created_at: m.created_at,
+					updated_at: m.updated_at,
+				};
+			}),
+		};
 	}
 
 	// ============================================================================

@@ -11,6 +11,9 @@ function createMockContext() {
       sendToken: async (chunk: string) => {
         tokens.push(chunk);
       },
+      sendSource: async (source: any) => {
+        tokens.push(`[[source:${JSON.stringify(source)}]]`);
+      },
       deferJob: async () => {},
       checkCancellation: async () => false,
     },
@@ -116,7 +119,8 @@ describe("createLogisticsHandler", () => {
     const fullContent = tokens.join("");
     assert.match(fullContent, /Le produit est disponible\./);
     assert.match(fullContent, /```chart/);
-    assert.match(fullContent, /"data":\[120,30,90\]/);
+    assert.match(fullContent, /"data":\[120,30,90,0\]/);
+    assert.match(fullContent, /\[\[source:\{"title":"Disponibilité des Articles","type":"doc"\}\]\]/);
   });
 
   it("devrait lire l'email et le prompt depuis payload.data (enveloppe réelle d'apps/api)", async () => {

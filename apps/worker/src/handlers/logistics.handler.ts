@@ -2,7 +2,7 @@ import { createLogisticsAgent } from "@egobot/logistics-agent/agent";
 import type { LogisticsPrismaClient } from "@egobot/logistics-agent/database";
 import { CustomerQueryService } from "@egobot/logistics-agent/services";
 import type { TaskHandler } from "@egobot/sdk/worker";
-import { buildRichContentBlock } from "../rich-content/build-rich-content-block.js";
+import { buildRichContentBlock, getToolSource } from "../rich-content/build-rich-content-block.js";
 
 export interface LogisticsHandlerDeps {
   /**
@@ -58,6 +58,9 @@ export function createLogisticsHandler({
         { version: "v3" },
       );
 
+      const detectedSources: Array<NonNullable<ReturnType<typeof getToolSource>>> = [];
+      const seenTitles = new Set<string>();
+
       await Promise.all([
         (async () => {
           for await (const msg of run.messages) {
@@ -74,9 +77,23 @@ export function createLogisticsHandler({
             if (block) {
               await ctx.sendToken(block);
             }
+            const source = getToolSource(call.name, output);
+            if (source && !seenTitles.has(source.title)) {
+              seenTitles.add(source.title);
+              detectedSources.push(source);
+            }
           }
         })(),
       ]);
+
+      // À la fin du message, afficher les sources utilisées avec mise en page soignée
+      if (detectedSources.length > 0 && !(await ctx.checkCancellation())) {
+        await ctx.sendToken("\n\n---\n**Sources consultées :** ");
+        for (const source of detectedSources) {
+          await ctx.sendSource(source);
+          await ctx.sendToken(" ");
+        }
+      }
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       console.error(`[Worker LOGISTICS] Échec du job ${ctx.jobId} :`, error);

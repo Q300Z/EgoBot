@@ -26,19 +26,30 @@ describe("createLogisticsTools", () => {
       "get_order_status",
       "get_order_details",
       "get_last_order",
+      "list_customer_orders",
+      "search_orders",
+      "get_order_summary",
+      "get_product_order_history",
+      "get_upcoming_deliveries",
       "get_delivery_tracking",
+      "list_deliveries_for_order",
+      "get_delivery_stats",
       "get_product_availability",
+      "get_stock_by_location",
+      "get_movement_history",
+      "get_stock_alerts",
+      "get_estimated_restock",
     ]);
 
-    const customerProfileTool = tools[0];
+    const customerProfileTool = tools[0] as any;
     expect(Object.keys(customerProfileTool.schema.shape)).toEqual([]);
 
-    const orderStatusTool = tools[3];
+    const orderStatusTool = tools[3] as any;
     expect(Object.keys(orderStatusTool.schema.shape)).toEqual([
       "orderNumber",
     ]);
 
-    const lastOrderTool = tools[5];
+    const lastOrderTool = tools[5] as any;
     expect(Object.keys(lastOrderTool.schema.shape)).toEqual([]);
   });
 

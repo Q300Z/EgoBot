@@ -84,9 +84,22 @@
             {{ chatStore.currentConversation?.title || 'Nouvelle Discussion' }}
           </span>
         </div>
-        <v-chip v-if="chatStore.isStreaming" color="warning" size="small" prepend-icon="mdi-loading mdi-spin">
-          Génération...
-        </v-chip>
+        <div v-if="chatStore.isStreaming" class="d-flex align-center ga-2">
+          <v-chip color="warning" size="small" prepend-icon="mdi-loading mdi-spin">
+            Génération...
+          </v-chip>
+          <v-btn
+            size="small"
+            variant="tonal"
+            color="error"
+            prepend-icon="mdi-stop-circle-outline"
+            aria-label="Arrêter la génération"
+            title="Arrêter la génération"
+            @click="chatStore.cancelCurrentMessage"
+          >
+            Arrêter
+          </v-btn>
+        </div>
       </div>
 
       <!-- Flux de Messages (Animation Fondu & Squelettes de Chargement) -->
@@ -121,7 +134,7 @@
           <!-- Affichage fluide des messages de la conversation -->
           <div v-else key="messages-list">
             <ChatMessage
-              v-for="(msg, idx) in chatStore.currentConversation?.messages || []"
+              v-for="(msg, idx) in visibleMessages"
               :key="msg.id || idx"
               :message="msg"
             />
@@ -141,8 +154,16 @@
           class="mb-2"
           aria-label="Mode de réponse du prochain message"
         >
-          <v-btn value="CHATBOT" size="small">Assistant général</v-btn>
-          <v-btn value="LOGISTICS" size="small">Suivi commandes</v-btn>
+          <v-tooltip location="top" text="Mode démonstration : réponses simulées avec graphiques, tableaux et diagrammes pour tester le rendu visuel.">
+            <template #activator="{ props }">
+              <v-btn v-bind="props" value="CHATBOT" size="small">Assistant général</v-btn>
+            </template>
+          </v-tooltip>
+          <v-tooltip location="top" text="Mode IA connecté : agent logistique intelligent qui interroge vos données réelles (commandes, stocks, livraisons).">
+            <template #activator="{ props }">
+              <v-btn v-bind="props" value="LOGISTICS" size="small">Suivi commandes</v-btn>
+            </template>
+          </v-tooltip>
         </v-btn-toggle>
         <div class="d-flex align-center">
           <v-textarea
@@ -162,13 +183,23 @@
           ></v-textarea>
 
           <v-btn
+            v-if="chatStore.isStreaming"
+            icon="mdi-stop"
+            color="error"
+            variant="flat"
+            size="default"
+            aria-label="Arrêter la génération"
+            title="Arrêter la génération"
+            @click="chatStore.cancelCurrentMessage"
+          ></v-btn>
+          <v-btn
+            v-else
             icon="mdi-send"
             color="secondary"
             variant="flat"
             size="default"
             aria-label="Envoyer le message"
             title="Envoyer le message"
-            :loading="chatStore.isStreaming"
             :disabled="!promptInput.trim() || chatStore.isLoadingConversation"
             @click="handleSend"
           ></v-btn>
@@ -179,7 +210,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted, nextTick } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useChatStore } from "../stores/chat";
 import { useAuthStore } from "../stores/auth";
@@ -195,6 +226,29 @@ const uiStore = useUiStore();
 const promptInput = ref("");
 const selectedModel = ref<"CHATBOT" | "LOGISTICS">("CHATBOT");
 const chatBoxRef = ref<HTMLElement | null>(null);
+
+function isMessageCancelled(msg: any): boolean {
+  if (!msg) return false;
+  if (msg.role !== "ASSISTANT") return false;
+  // 1. Marque booléenne explicite
+  if (msg.cancelled === true) return true;
+  // 2. Marque de statut
+  if (msg.status === "CANCELLED") return true;
+  // 3. Marque textuelle de repli pour différencier des messages vides en attente normale
+  if (typeof msg.content === "string") {
+    const trimmed = msg.content.trim();
+    if (trimmed === "<cancelled>" || trimmed === "[cancelled]" || trimmed.startsWith("<cancelled>")) {
+      return true;
+    }
+  }
+  return false;
+}
+
+const visibleMessages = computed(() => {
+  return (chatStore.currentConversation?.messages || []).filter(
+    (msg: any) => !isMessageCancelled(msg)
+  );
+});
 
 async function selectConversation(id: string) {
   if (chatStore.currentConversation?.id !== id) {

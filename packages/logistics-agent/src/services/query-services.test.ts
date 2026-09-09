@@ -200,6 +200,7 @@ describe("services de requête logistique", () => {
         onHandQuantity: 10,
         reservedQuantity: 5,
         availableQuantity: 5,
+        safetyStockQuantity: 0,
       },
     });
     expect(result).not.toHaveProperty("product.stockItems");

@@ -117,6 +117,17 @@ describe("EgobotClientSDK", () => {
       expect(res).toEqual({ job_id: "j1", conversation_id: "c1" });
     });
 
+    it("should cancel a message by job id", async () => {
+      const sdk = new EgobotClientSDK({ baseUrl: "http://localhost:3000" });
+      mockAxiosInstance.post.mockResolvedValueOnce({
+        data: { data: { jobId: "j1", status: "CANCELLED" } },
+      });
+
+      const res = await sdk.cancelMessage("j1");
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith("/api/v1/messages/j1/cancel");
+      expect(res).toEqual({ jobId: "j1", status: "CANCELLED" });
+    });
+
     it("should get all conversations", async () => {
       const sdk = new EgobotClientSDK({ baseUrl: "http://localhost:3000" });
       mockAxiosInstance.get.mockResolvedValueOnce({

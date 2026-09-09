@@ -282,4 +282,28 @@ describe("Chat Store", () => {
     expect(chatStore.isStreaming).toBe(false);
     expect(authStore.sdk.getConversation).toHaveBeenCalledWith("c-cancel");
   });
+
+  it("should call authStore.sdk.cancelMessage and stop streaming on cancelCurrentMessage", async () => {
+    const authStore = useAuthStore();
+    const chatStore = useChatStore();
+
+    const cleanupMock = vi.fn();
+    vi.spyOn(authStore.sdk, "createMessage").mockResolvedValue({ job_id: "j-manual-cancel", conversation_id: "c-manual" } as any);
+    vi.spyOn(authStore.sdk, "getConversation").mockResolvedValue({ id: "c-manual", messages: [] } as any);
+    vi.spyOn(authStore.sdk, "getConversations").mockResolvedValue([] as any);
+    vi.spyOn(authStore.sdk, "connectJobStream").mockReturnValue(cleanupMock as any);
+    vi.spyOn(authStore.sdk, "cancelMessage").mockResolvedValue({ jobId: "j-manual-cancel", status: "CANCELLED" } as any);
+
+    await chatStore.sendMessage("Message to cancel");
+    expect(chatStore.isStreaming).toBe(true);
+    expect(chatStore.currentJobId).toBe("j-manual-cancel");
+
+    await chatStore.cancelCurrentMessage();
+
+    expect(authStore.sdk.cancelMessage).toHaveBeenCalledWith("j-manual-cancel");
+    expect(cleanupMock).toHaveBeenCalled();
+    expect(chatStore.isStreaming).toBe(false);
+    expect(chatStore.currentJobId).toBeNull();
+    expect(authStore.sdk.getConversation).toHaveBeenCalledWith("c-manual");
+  });
 });

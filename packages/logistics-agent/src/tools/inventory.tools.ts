@@ -1,6 +1,10 @@
 import { tool } from "langchain";
 import type { InventoryQueryService } from "../services/index.js";
-import { productAvailabilityInputSchema } from "./schemas.js";
+import { productAvailabilityInputSchema, stockByLocationInputSchema,
+  movementHistoryInputSchema,
+  stockAlertsInputSchema,
+  estimatedRestockInputSchema
+} from "./schemas.js";
 
 export function createInventoryTools(
   inventoryQueryService: InventoryQueryService,
@@ -16,5 +20,43 @@ export function createInventoryTools(
     },
   );
 
-  return [getProductAvailability] as const;
+  const getStockByLocation = tool(
+    ({ sku }) => inventoryQueryService.getStockByLocation(sku),
+    {
+      name: "get_stock_by_location",
+      description:
+        "Retourne le détail du stock d'un article par entrepôt (emplacement), avec les quantités en stock, réservées, disponibles et le seuil de sécurité pour chaque site.",
+      schema: stockByLocationInputSchema,
+    },
+  );
+
+  
+  const getMovementHistory = tool(
+    ({ sku, limitDays }) => inventoryQueryService.getMovementHistory(sku, limitDays),
+    {
+      name: "get_movement_history",
+      description: "Retourne l'historique des mouvements de stock d'un produit.",
+      schema: movementHistoryInputSchema,
+    },
+  );
+
+  const getStockAlerts = tool(
+    () => inventoryQueryService.getStockAlerts(),
+    {
+      name: "get_stock_alerts",
+      description: "Retourne les alertes de stock (disponible <= 0 ou sous seuil de sécurité).",
+      schema: stockAlertsInputSchema,
+    },
+  );
+
+  const getEstimatedRestock = tool(
+    ({ sku }) => inventoryQueryService.getEstimatedRestock(sku),
+    {
+      name: "get_estimated_restock",
+      description: "Estime la date de réapprovisionnement d'un produit selon le délai fournisseur.",
+      schema: estimatedRestockInputSchema,
+    },
+  );
+
+  return [getProductAvailability, getStockByLocation, getMovementHistory, getStockAlerts, getEstimatedRestock] as const;
 }

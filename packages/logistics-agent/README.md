@@ -19,26 +19,66 @@ prisma/
 └── seed.ts      # Générateur du jeu de données de test
 ```
 
-Les outils disponibles sont :
+## 🛠️ Outils disponibles
 
-- `get_customer_profile`
-- `get_customer_identity`
-- `get_customer_current_address`
-- `get_order_status`
-- `get_order_details`
-- `get_last_order`
-- `get_delivery_tracking`
-- `get_product_availability`
+Les 19 outils exposés à l'agent sont répartis en 4 groupes fonctionnels. L'identifiant client (`customerId`) ne fait **jamais** partie des paramètres visibles par le LLM : il est validé puis injecté depuis la session serveur lors de la création des outils pour garantir une isolation stricte entre clients.
 
-L'identifiant client ne fait jamais partie des paramètres visibles par le
-LLM. Il est validé puis capturé depuis la session serveur lors de la création
-des outils. Les requêtes de commande et de livraison appliquent ce filtre
-directement dans Prisma.
+---
 
-`CustomerService` reste limité aux lectures de l'entité `Customer` et de son
-adresse courante. `OrderService` regroupe les lectures de l'entité `Order`.
-`CustomerQueryService` a un rôle distinct : il résout l'identité fournie par
-l'application avant de construire les outils liés au client.
+### 1. Groupe Client (`Customer`)
+
+Outils liés à l'identité, au profil et aux coordonnées du client connecté.
+
+| Outil | Entrées (Paramètres) | Sorties (Données retournées) | Description / Usage |
+| :--- | :--- | :--- | :--- |
+| `get_customer_profile` | *Aucun* | `customer`: { `customerNumber`, `firstName`, `lastName`, `email`, `phone`, `isActive`, `currentAddress`: { `line1`, `postalCode`, `city`, ... } } | Retourne le profil allégé et l'adresse courante du client authentifié. |
+| `get_customer_identity` | *Aucun* | `identity`: { `id`, `customerNumber`, `firstName`, `lastName` } | Récupère uniquement le numéro et le nom du client authentifié (vue ultra-compacte). |
+| `get_customer_current_address` | *Aucun* | `address`: { `id`, `status`, `label`, `line1`, `line2`, `postalCode`, `city`, `countryCode`, ... } | Consulte l'adresse active complète du client pour vérification de domiciliation ou livraison. |
+
+---
+
+### 2. Groupe Commandes (`Order`)
+
+Outils de consultation, recherche, synthèse et suivi des commandes du client connecté.
+
+| Outil | Entrées (Paramètres) | Sorties (Données retournées) | Description / Usage |
+| :--- | :--- | :--- | :--- |
+| `get_order_status` | `orderNumber` *(string, ex: CMD-2026-000042)* | `order`: { `orderNumber`, `status`, `orderedAt`, `requestedDeliveryDate`, `totalIncludingTax`, `currencyCode`, `deliveries`: [...] } | Statut général, montants et livraisons associées à une commande. Déclenche un diagramme Mermaid. |
+| `get_order_details` | `orderNumber` *(string)* | `order`: { `orderNumber`, `status`, `amounts`: { `subtotal`, `tax`, `totalIncludingTax`, `due`, ... }, `lines`: [{ `sku`, `name`, `orderedQuantity`, `shippedQuantity`, `remainingQuantity`, `unitPriceExcludingTax`, ... }], `deliveries`: [...] } | Vue détaillée avec décomposition financière, lignes d'articles et solde restant à expédier. |
+| `get_last_order` | *Aucun* | `order`: { `id`, `orderNumber`, `status`, `amounts`, `createdAt`, ... } | Retourne la commande la plus récente du client (pratique quand l'utilisateur ne donne pas de numéro). |
+| `list_customer_orders` | `status` *(string, optionnel)*, `limit` *(int, 1-25, défaut 10)* | `orders`: Array<{ `orderNumber`, `status`, `totalIncludingTax`, `createdAt`, ... }>, `nextCursor` | Liste les commandes récentes triées de la plus récente à la plus ancienne, avec filtre de statut optionnel. |
+| `search_orders` | `query` *(string)*, `status` *(string, optionnel)*, `limit` *(int, défaut 10)* | `orders`: Array<{ `orderNumber`, `status`, `amounts`, ... }> | Recherche textuelle libre dans les commandes du client. |
+| `get_order_summary` | *Aucun* | `totalOrders`: number, `ordersByStatus`: Record<string, number>, `totalSpent`: string, `totalDue`: string, `averageCart`: string | Synthèse globale pour le client : total dépensé, total restant dû, panier moyen et répartition des statuts. |
+| `get_product_order_history` | `sku` *(string, ex: SKU-00042)* | `found`: boolean, `orders`: Array<{ `orderNumber`, `orderedAt`, `status`, `orderedQuantity` }> | Retrouve toutes les commandes dans lesquelles le client a déjà acheté un produit donné. |
+| `get_upcoming_deliveries` | `daysAhead` *(int, défaut 14)* | `deliveries`: Array<{ `orderNumber`, `requestedDeliveryDate`, `status` }> | Liste les commandes avec date de livraison souhaitée dans les prochains jours (non encore livrées). |
+
+---
+
+### 3. Groupe Livraisons (`Delivery`)
+
+Outils d'acheminement, colisage et statistiques de livraison rattachés aux commandes du client.
+
+| Outil | Entrées (Paramètres) | Sorties (Données retournées) | Description / Usage |
+| :--- | :--- | :--- | :--- |
+| `get_delivery_tracking` | Au moins un parmi : `deliveryNumber`, `trackingNumber`, ou `orderNumber` *(string)* | `delivery`: { `deliveryNumber`, `status`, `carrierName`, `trackingNumber`, `trackingUrl`, `shippedAt`, `estimatedDeliveryAt`, `deliveredAt`, `contents`: [{ `sku`, `name`, `shippedQuantity` }] } | Suivi étape par étape d'une livraison et détail des colis. Déclenche un diagramme d'état Mermaid. |
+| `list_deliveries_for_order` | `orderNumber` *(string)* | `deliveries`: Array<{ `deliveryNumber`, `status`, `carrierName`, `trackingNumber`, `contents`: [...] }> | Récupère **toutes** les livraisons d'une commande (essentiel pour commandes en envois partiels / multiples). |
+| `get_delivery_stats` | *Aucun* | `totalDeliveries`: number, `deliveriesByStatus`: Record<string, number>, `carriers`: Array<string> | Synthèse des livraisons du client : répartition des statuts et liste des transporteurs utilisés. |
+
+---
+
+### 4. Groupe Stocks & Approvisionnements (`Inventory`)
+
+Outils globaux catalogue (non scopés à un client particulier).
+
+| Outil | Entrées (Paramètres) | Sorties (Données retournées) | Description / Usage |
+| :--- | :--- | :--- | :--- |
+| `get_product_availability` | `sku` *(string, ex: SKU-00042)* | `product`: { `sku`, `name`, `isAvailable`: boolean, `onHandQuantity`, `reservedQuantity`, `availableQuantity`, `safetyStockQuantity` } | Disponibilité globale consolidée tous entrepôts confondus. Déclenche un graphique en barres Chart.js. |
+| `get_stock_by_location` | `sku` *(string)* | `product`: { `sku`, `name`, `locations`: [{ `locationCode`, `onHandQuantity`, `reservedQuantity`, `availableQuantity`, `safetyStockQuantity` }] } | Décomposition détaillée des stocks par entrepôt physique (Paris, Lyon, Lille, etc.). |
+| `get_movement_history` | `sku` *(string)*, `limitDays` *(int, défaut 30)* | `sku`, `name`, `movements`: Array<{ `id`, `locationCode`, `type`, `quantity`, `occurredAt`, `referenceId` }> | Historique des entrées (`RECEIPT`), expéditions (`SHIPMENT`), retours (`RETURN`) et régularisations. |
+| `get_stock_alerts` | *Aucun* | `alerts`: Array<{ `sku`, `name`, `locationCode`, `availableQuantity`, `safetyStockQuantity` }> | Identifie les articles en rupture critique (`<= 0`) ou sous le seuil de sécurité dans chaque entrepôt. |
+| `get_estimated_restock` | `sku` *(string)* | `found`: boolean, `leadTimeDays`: number, `estimatedDate`: ISO string | Calcule la date prévisionnelle de retour en stock basée sur le délai fournisseur (sans exposer son identité). |
+
+---
 
 ---
 

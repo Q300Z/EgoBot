@@ -118,4 +118,42 @@ describe("ChatMessage.vue", () => {
     expect(wrapper.text()).toContain("Bonjour ! Je suis un worker d'inférence");
     expect(wrapper.text()).toContain("pour répondre précisément à votre demande.");
   });
+
+  it("should hide assistant message bubble completely when message is cancelled", () => {
+    // 1. Avec la marque textuelle <cancelled>
+    const wrapper1 = mount(ChatMessage, {
+      props: {
+        message: { role: "ASSISTANT", content: "<cancelled>" },
+      },
+    });
+    expect(wrapper1.html()).toBe("<!--v-if-->");
+
+    // 2. Avec la marque explicite cancelled: true
+    const wrapper2 = mount(ChatMessage, {
+      props: {
+        message: { role: "ASSISTANT", content: "", cancelled: true },
+      },
+    });
+    expect(wrapper2.html()).toBe("<!--v-if-->");
+
+    // 3. Avec status: 'CANCELLED'
+    const wrapper3 = mount(ChatMessage, {
+      props: {
+        message: { role: "ASSISTANT", content: "", status: "CANCELLED" },
+      },
+    });
+    expect(wrapper3.html()).toBe("<!--v-if-->");
+  });
+
+  it("should show '...' bubble for normal empty assistant message during streaming (not cancelled)", () => {
+    const wrapper = mount(ChatMessage, {
+      props: {
+        message: { role: "ASSISTANT", content: "", cancelled: false },
+      },
+    });
+
+    expect(wrapper.html()).not.toBe("<!--v-if-->");
+    expect(wrapper.text()).toContain("EgoBot (Duhamel Logistique)");
+    expect(wrapper.text()).toContain("...");
+  });
 });

@@ -8,10 +8,36 @@
  * les utilisateurs s'exécutent en parallèle. Les cas sont construits depuis
  * les commandes et livraisons réellement présentes dans la base de mock.
  */
-import "dotenv/config";
+import dotenv from "dotenv";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { performance } from "node:perf_hooks";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+function findUp(fileName: string, startDir: string): string | null {
+  let currentDir = startDir;
+  while (true) {
+    const candidate = path.join(currentDir, fileName);
+    if (fs.existsSync(candidate)) return candidate;
+    const parent = path.dirname(currentDir);
+    if (parent === currentDir) return null;
+    currentDir = parent;
+  }
+}
+
+// 1. Charger l'environnement local
+dotenv.config();
+
+// 2. Charger le .env racine pour les variables globales (clés Azure/OpenAI, etc.)
+const rootEnv = findUp(".env", __dirname) ?? findUp(".env", process.cwd());
+if (rootEnv && fs.existsSync(rootEnv)) {
+  dotenv.config({ path: rootEnv });
+}
 import {
   calculateCostUsd,
   evaluateGrounding,

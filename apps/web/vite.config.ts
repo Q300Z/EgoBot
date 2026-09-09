@@ -2,14 +2,29 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
+import vuetify, { transformAssetUrls } from "vite-plugin-vuetify";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const backendTarget = process.env.VITE_API_PROXY_TARGET || process.env.BACKEND_URL || "http://localhost:8000";
 
-export default defineConfig({
-  envDir: path.resolve(__dirname, "../../"),
-  plugins: [vue()],
+export default defineConfig(({ mode }) => {
+  // S'assurer que le mode de production n'est jamais écrasé par NODE_ENV=development du .env racine
+  if (mode === "production") {
+    process.env.NODE_ENV = "production";
+  }
+
+  return {
+    envDir: path.resolve(__dirname, "../../"),
+    envPrefix: ["VITE_"],
+    plugins: [
+      vue({
+        template: { transformAssetUrls },
+      }),
+      vuetify({
+        autoImport: true,
+      }),
+    ],
   server: {
     port: 3000,
     watch: {
@@ -34,6 +49,28 @@ export default defineConfig({
       "/sse": { target: backendTarget, changeOrigin: true, ws: false },
     },
   },
+  build: {
+    target: "esnext",
+    chunkSizeWarningLimit: 1500,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules/mermaid") || id.includes("node_modules/d3") || id.includes("node_modules/dagre")) {
+            return "mermaid";
+          }
+          if (id.includes("node_modules/chart.js") || id.includes("node_modules/vue-chartjs")) {
+            return "chartjs";
+          }
+          if (id.includes("node_modules/vuetify")) {
+            return "vuetify";
+          }
+          if (id.includes("node_modules/vue/") || id.includes("node_modules/vue-router/") || id.includes("node_modules/pinia/")) {
+            return "vue-core";
+          }
+        },
+      },
+    },
+  },
   test: {
     globals: true,
     environment: "jsdom",
@@ -56,4 +93,5 @@ export default defineConfig({
       ],
     },
   },
+  };
 });

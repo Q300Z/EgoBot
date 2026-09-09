@@ -51,3 +51,21 @@ export type DeliverySummaryDto = z.infer<typeof deliverySummarySchema>;
 export type DeliveryTrackingResultDto = z.infer<
   typeof deliveryTrackingResultSchema
 >;
+
+export const orderDeliveriesResultSchema = z.union([
+  z.object({
+    found: z.literal(true),
+    deliveries: z.array(deliveryTrackingSchema),
+  }),
+  notFoundResultSchema,
+]);
+
+export type OrderDeliveriesResultDto = z.infer<typeof orderDeliveriesResultSchema>;
+
+export const deliveryStatsResultSchema = z.object({
+  totalDeliveries: z.number().int(),
+  deliveriesByStatus: z.record(z.string(), z.number().int()),
+  carriers: z.array(z.string()),
+});
+
+export type DeliveryStatsResultDto = z.infer<typeof deliveryStatsResultSchema>;
