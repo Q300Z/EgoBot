@@ -1,8 +1,8 @@
 # Stack de production EgoBot.
 #
-# Les secrets ne sont plus ecrits en dur : la syntaxe ${VAR:?message} fait
-# echouer `docker compose up` immediatement si la variable est absente, plutot
-# que de demarrer avec une valeur par defaut publique. Voir .env.example.
+# Les secrets ne sont plus écrits en dur : la syntaxe ${VAR:?message} fait
+# échouer `docker compose up` immédiatement si la variable est absente, plutôt
+# que de démarrer avec une valeur par défaut publique. Voir .env.example.
 #
 #   docker compose -f docker-compose.prod.yml up -d --build
 
@@ -17,24 +17,6 @@ services:
       test: ["CMD", "valkey-cli", "ping"]
       interval: 10s
       timeout: 3s
-      retries: 5
-    restart: always
-
-  # Base de l'agent logistique. Absente jusqu'ici de la production alors que le
-  # worker en depend depuis l'ajout de la tache LOGISTICS.
-  postgres:
-    image: postgres:16-alpine
-    container_name: egobot_postgres_prod
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER:-egobot}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD est requis}
-      - POSTGRES_DB=${POSTGRES_DB:-egobot}
-    volumes:
-      - postgres_prod_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-egobot} -d ${POSTGRES_DB:-egobot}"]
-      interval: 10s
-      timeout: 5s
       retries: 5
     restart: always
 
@@ -67,9 +49,8 @@ services:
         condition: service_healthy
     restart: always
 
-  # Conteneur ephemere : applique les migrations PostgreSQL puis s'arrete.
-  # Le worker attend sa sortie en succes avant de demarrer, ce qui garantit que
-  # le schema existe avant le premier job LOGISTICS.
+  # Conteneur éphémère : applique les migrations SQLite logistiques puis s'arrête.
+  # Le worker attend sa sortie avec succès avant de démarrer.
   migrate:
     build:
       context: .
@@ -77,10 +58,9 @@ services:
       target: migrator
     container_name: egobot_migrate_prod
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-egobot}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD est requis}@postgres:5432/${POSTGRES_DB:-egobot}
-    depends_on:
-      postgres:
-        condition: service_healthy
+      - LOGISTICS_DATABASE_URL=file:/app/packages/logistics-agent/data/logistics.db
+    volumes:
+      - logistics_prod_data:/app/packages/logistics-agent/data
     restart: "no"
 
   worker:
@@ -92,17 +72,13 @@ services:
       - NODE_ENV=production
       - VALKEY_URL=redis://valkey:6379
       - REDIS_URL=redis://valkey:6379
-      # Ici DATABASE_URL est bien une chaine de connexion PostgreSQL, consommee
-      # par createPrismaClient de @egobot/logistics-agent.
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-egobot}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD est requis}@postgres:5432/${POSTGRES_DB:-egobot}
-      # Requise par createLogisticsAgent (ChatOpenAI). Sans elle, tout job
-      # LOGISTICS echoue a l'instanciation du modele.
+      - LOGISTICS_DATABASE_URL=file:/app/packages/logistics-agent/data/logistics.db
       - OPENAI_API_KEY=${OPENAI_API_KEY:?OPENAI_API_KEY est requis}
       - LOGISTICS_MODEL=${LOGISTICS_MODEL:-gpt-5}
+    volumes:
+      - logistics_prod_data:/app/packages/logistics-agent/data
     depends_on:
       valkey:
-        condition: service_healthy
-      postgres:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
@@ -121,5 +97,5 @@ services:
 
 volumes:
   valkey_prod_data:
-  postgres_prod_data:
   api_prod_data:
+  logistics_prod_data:

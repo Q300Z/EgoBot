@@ -245,7 +245,7 @@ Chaque application dispose de trois Dockerfiles (`dev`, `test`, `prod`), et le m
 
 - **`apps/worker/`** :
   - `Dockerfile.dev` : `tsx watch`, build préalable des dépendances workspace (`@egobot/logistics-agent`, `@egobot/sdk`, `@egobot/shared-types`) via `turbo build --filter=@egobot/worker^...`.
-  - `Dockerfile.prod` : Image multi-stage + cible optionnelle `migrator` (applique les migrations PostgreSQL de `logistics-agent` avant démarrage).
+  - `Dockerfile.prod` : Image multi-stage + cible optionnelle `migrator` (applique les migrations SQLite de `logistics-agent` avant démarrage).
 - **`apps/web/`** :
   - `Dockerfile.dev` : Serveur de dev Vite (build préalable de `@egobot/sdk`).
   - `Dockerfile.test` : Exécution des tests unitaires Frontend.
@@ -261,11 +261,11 @@ docker compose -f docker-compose.dev.yml up -d --build
 docker compose -f docker-compose.test.yml up --build --exit-code-from api-test
 
 # 🚀 3. Stack complète de Production
-cp .env.example .env   # renseigner JWT_SECRET, POSTGRES_PASSWORD, OPENAI_API_KEY
+cp .env.example .env   # renseigner JWT_SECRET, OPENAI_API_KEY
 docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-*(`docker-compose.prod.yml` refuse de démarrer si `JWT_SECRET`, `POSTGRES_PASSWORD` ou `OPENAI_API_KEY` sont absents — voir `.env.example` à la racine. Un conteneur éphémère `migrate` applique les migrations PostgreSQL avant que le `worker` ne démarre.)*
+*(`docker-compose.prod.yml` vérifie la présence de `JWT_SECRET` et `OPENAI_API_KEY`. Un conteneur éphémère `migrate` applique automatiquement les migrations SQLite logistiques sur le volume nommé avant que le `worker` ne démarre.)*
 
 ### C. Rebuilder un seul service après une modification de Dockerfile ou de dépendance
 
