@@ -10,8 +10,24 @@
  * juger si la réponse de l'agent est correcte ou inventée), pose une question
  * à l'agent et diffuse sa réponse au fil de l'eau.
  */
-import "dotenv/config";
+import dotenv from "dotenv";
+import * as path from "node:path";
+import * as fs from "node:fs";
 import { createPrismaClient, runLogisticsQuery } from "../src/index.js";
+
+// Charger le .env local puis remonter au .env racine
+dotenv.config();
+const candidates = [
+  path.resolve(process.cwd(), ".env"),
+  path.resolve(process.cwd(), "../../.env"),
+  path.resolve(path.dirname(__dirname), ".env"),
+  path.resolve(path.dirname(__dirname), "../../.env"),
+];
+for (const envPath of candidates) {
+  if (fs.existsSync(envPath)) {
+    dotenv.config({ path: envPath });
+  }
+}
 
 function fail(message: string): never {
   console.error(message);
@@ -19,12 +35,8 @@ function fail(message: string): never {
 }
 
 // 2. Vérifier la configuration AVANT de laisser LangChain planter.
-if (!process.env.DATABASE_URL) {
-  fail(
-    "DATABASE_URL est absent. Renseignez-le dans packages/logistics-agent/.env " +
-      "(ex. postgresql://postgres:motdepasse@localhost:5432/egobot).",
-  );
-}
+const dbUrl = process.env.LOGISTICS_DATABASE_URL || process.env.DATABASE_URL || "file:./logistics.db";
+
 // Le fournisseur peut être OpenAI ou Azure depuis l'ajout du support Azure :
 // vérifier la clé correspondante, et non OPENAI_API_KEY dans tous les cas.
 const provider = process.env.LOGISTICS_MODEL_PROVIDER ?? "openai";
@@ -34,12 +46,12 @@ if (provider === "azure") {
     fail(
       "AZURE_OPENAI_API_KEY est absent alors que LOGISTICS_MODEL_PROVIDER=azure. " +
         "Renseignez également AZURE_OPENAI_ENDPOINT, " +
-        "AZURE_OPENAI_API_DEPLOYMENT_NAME et AZURE_OPENAI_API_VERSION.",
+        "AZURE_OPENAI_API_DEPLOYMENT_NAME et AZURE_OPENAI_API_VERSION dans .env.",
     );
   }
 } else if (!process.env.OPENAI_API_KEY) {
   fail(
-    "OPENAI_API_KEY est absent. Renseignez-le dans packages/logistics-agent/.env " +
+    "OPENAI_API_KEY est absent. Renseignez-le dans le fichier .env à la racine " +
       "(clé API OpenAI, ex. sk-...).",
   );
 }
@@ -48,7 +60,7 @@ if (provider === "azure") {
 const [customerNumberArg, ...questionParts] = process.argv.slice(2);
 const questionArg = questionParts.join(" ").trim();
 
-const prisma = createPrismaClient();
+const prisma = createPrismaClient(dbUrl);
 
 try {
   // 4. Le client demandé, ou à défaut le premier client actif ayant au moins

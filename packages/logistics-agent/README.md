@@ -88,29 +88,42 @@ Base **SQLite locale** (fichier), aucune installation de serveur requise.
 
 ### 1. Configurer la connexion
 
-Copier `.env.example` en `.env` (la valeur par défaut, `file:./logistics.db`,
-convient déjà pour le développement local — rien à modifier).
+La configuration est centralisée dans le fichier `/.env` à la racine du monorepo (initialisé via `pnpm env:init`).
+La variable `LOGISTICS_DATABASE_URL` (par défaut `file:./packages/logistics-agent/logistics.db` depuis la racine, ou `file:./logistics.db` en local) est chargée automatiquement par Prisma.
 
-### 2. Créer les tables
+### 2. Créer les tables et peupler la base
 
-Les commandes suivantes se lancent **depuis ce dossier** (`packages/logistics-agent`),
-faute de quoi le `.env` ne serait pas trouvé :
+Vous pouvez migrer et peupler la base directement depuis la racine du monorepo :
 
 ```bash
-pnpm exec prisma migrate dev
+# Depuis la racine du monorepo :
+pnpm db:migrate
+pnpm db:seed
 ```
-*(Génère aussi le client Prisma automatiquement.)*
 
-### 3. Remplir la base
+Ou directement depuis ce dossier (`packages/logistics-agent`) :
 
 ```bash
+pnpm exec prisma migrate deploy
 pnpm exec prisma db seed
 ```
 
-### 4. Visualiser (optionnel)
+### 3. Tester l'Agent en Ligne de Commande (`try:agent`)
+
+Pour interroger interactivement l'agent logistique avec un vrai LLM sans avoir besoin de lancer l'interface Web ni Valkey :
 
 ```bash
-pnpm exec prisma studio
+# Sélectionne automatiquement le premier client avec des commandes
+pnpm try:agent
+
+# Tester un client précis avec une question métier :
+pnpm try:agent CLI-000001 "Où en est ma dernière commande ?"
+```
+
+### 4. Visualiser les données avec Prisma Studio
+
+```bash
+pnpm exec prisma studio   # Ou 'pnpm db:studio:logistics' depuis la racine
 ```
 
 ---

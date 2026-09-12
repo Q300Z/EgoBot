@@ -6,6 +6,14 @@ import { createLogisticsHandler } from "./handlers/logistics.handler.js";
 import * as path from "node:path";
 import * as fs from "node:fs";
 
+/**
+ * Remonte récursivement l'arborescence des dossiers à partir de `startDir`
+ * à la recherche d'un fichier donné (tel que `.env`).
+ *
+ * @param fileName - Nom du fichier recherché.
+ * @param startDir - Dossier de départ de la recherche.
+ * @returns Le chemin absolu du fichier trouvé ou `null` s'il n'existe pas.
+ */
 function findUp(fileName: string, startDir: string): string | null {
   let currentDir = startDir;
   while (true) {
@@ -26,17 +34,30 @@ if (rootEnv && fs.existsSync(rootEnv)) {
   dotenv.config({ path: rootEnv });
 }
 
-// Doit produire exactement les mêmes valeurs ("dev" | "prod") que
-// normalizeNodeEnv dans apps/api/src/config/env.ts : les clés de file Redis
-// (jobs:queue:<env>:<model>) sont construites des deux côtés à partir de
-// cette valeur, un écart silencieux fait que les jobs ne sont plus jamais
-// consommés par aucun worker.
+/**
+ * Normalise la valeur de l'environnement en `"dev"` ou `"prod"`.
+ *
+ * Doit produire exactement les mêmes valeurs ("dev" | "prod") que
+ * `normalizeNodeEnv` dans `apps/api/src/config/env.ts` : les clés de file Redis
+ * (`jobs:queue:<env>:<model>`) sont construites des deux côtés à partir de
+ * cette valeur, un écart silencieux ferait que les jobs ne seraient plus jamais
+ * consommés par aucun worker.
+ *
+ * @param val - Chaîne représentant l'environnement (ex: process.env.NODE_ENV).
+ * @returns `"dev"` ou `"prod"`.
+ */
 function normalizeNodeEnv(val: string | undefined): "dev" | "prod" {
   const lower = val?.trim().toLowerCase();
   if (lower === "development" || lower === "dev" || lower === "test") return "dev";
   return "prod";
 }
 
+/**
+ * Résout l'environnement d'exécution du worker en tenant compte du mode dev explicite (`DEV_MODE=true`)
+ * ou de la variable `NODE_ENV`.
+ *
+ * @returns `"dev"` ou `"prod"`.
+ */
 function resolveWorkerEnv(): "dev" | "prod" {
   const isDevMode = process.env.DEV_MODE === "true";
   return isDevMode || normalizeNodeEnv(process.env.NODE_ENV) === "dev" ? "dev" : "prod";
@@ -132,10 +153,10 @@ worker.registerTask("CHATBOT", async (payload, ctx) => {
   // 4. Démo Puces de sources interactives
   if (lower.includes("source")) {
     await streamWords("Cette réponse illustre les différents types de puces de sources gérées par le composant :\n\n");
-    await ctx.sendSource({ title: "Documentation officielle", url: "https://claude.ai/code/artifact/0eb15ca9-c209-4c6b-8b1b-f561469bc62c", type: "doc" });
+    await ctx.sendSource({ title: "Documentation officielle", url: "https://egobot.local/docs/overview", type: "doc" });
     await ctx.sendSource({ title: "Base de données SQLite", type: "database" });
-    await ctx.sendSource({ title: "API Externe Transport", url: "https://claude.ai/code/artifact/7d874922-d28e-46d2-b05e-dd8c5f35c52a", type: "api" });
-    await ctx.sendSource({ title: "Site web logistique", url: "https://claude.ai/code/artifact/d27c9998-2e1b-4f57-8039-1cc99f229d82", type: "web" });
+    await ctx.sendSource({ title: "API Externe Transport", url: "https://egobot.local/api/carriers", type: "api" });
+    await ctx.sendSource({ title: "Site web logistique", url: "https://egobot.local", type: "web" });
     await ctx.sendSource({ title: "Fichier contrat_client.pdf", type: "file" });
     return;
   }
@@ -160,7 +181,7 @@ worker.registerTask("CHATBOT", async (payload, ctx) => {
     await ctx.sendToken("\n```mermaid\nstateDiagram-v2\n    COMMANDE --> EXPEDITION\n    EXPEDITION --> LIVRAISON\n```\n\n");
     
     // Sources
-    await ctx.sendSource({ title: "Manuel Duhamel Logistique", url: "https://claude.ai/code/artifact/0eb15ca9-c209-4c6b-8b1b-f561469bc62c", type: "doc" });
+    await ctx.sendSource({ title: "Manuel Duhamel Logistique", url: "https://egobot.local/docs/logistics", type: "doc" });
     await ctx.sendSource({ title: "Inventaire WMS", type: "database" });
     return;
   }
@@ -185,13 +206,21 @@ worker.registerTask("CHATBOT", async (payload, ctx) => {
 
   await ctx.sendSource({
     title: "Guide de démonstration EgoBot",
-    url: "https://claude.ai/code/artifact/746fc5ea-83dc-484a-a4f2-6eb525d2684d",
+    url: "https://egobot.local/docs/guide",
     type: "doc",
   });
 });
 
 let logisticsPrisma: LogisticsPrismaClient | undefined;
 
+/**
+ * Fournit l'instance singleton du client Prisma connecté à la BDD logistique SQLite.
+ *
+ * La connexion n'est établie de façon paresseuse (lazy) qu'à la première invocation,
+ * évitant d'exiger les variables de BDD si le worker ne traite que des tâches CHATBOT.
+ *
+ * @returns Instance singleton de `LogisticsPrismaClient`.
+ */
 function getLogisticsPrisma(): LogisticsPrismaClient {
   if (!logisticsPrisma) {
     logisticsPrisma = createPrismaClient(process.env.LOGISTICS_DATABASE_URL || process.env.DATABASE_URL);
@@ -203,6 +232,12 @@ worker.registerTask("LOGISTICS", createLogisticsHandler({ getPrisma: getLogistic
 
 worker.start();
 
+/**
+ * Gère l'arrêt propre (graceful shutdown) du worker :
+ * arrêt du polling, désenregistrement des timers et déconnexion de Valkey/Redis.
+ *
+ * @param signal - Nom du signal système reçu (ex: SIGTERM, SIGINT).
+ */
 const gracefulShutdownWorker = (signal: string) => {
   console.info(`[Worker TS] Signal ${signal} reçu. Fermeture du worker...`);
   worker.stop();

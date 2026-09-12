@@ -4,6 +4,9 @@ import { CustomerQueryService } from "@egobot/logistics-agent/services";
 import type { TaskHandler } from "@egobot/sdk/worker";
 import { buildRichContentBlock, getToolSource } from "../rich-content/build-rich-content-block.js";
 
+/**
+ * Dépendances injectables nécessaires à l'instanciation du handler logistique.
+ */
 export interface LogisticsHandlerDeps {
   /**
    * Factory appelée à chaque job (pas à l'enregistrement de la tâche), pour
@@ -13,10 +16,26 @@ export interface LogisticsHandlerDeps {
    * encore été reçu.
    */
   getPrisma: () => LogisticsPrismaClient;
-  /** Injectable pour les tests : évite d'appeler un vrai LLM. */
+  /** Injectable pour les tests : permet de substituer l'agent réel par un mock sans appeler de vrai LLM. */
   createAgent?: typeof createLogisticsAgent;
 }
 
+/**
+ * Crée le `TaskHandler` dédié au traitement des requêtes sur le modèle `"LOGISTICS"`.
+ *
+ * Ce handler orchestre l'ensemble du cycle de vie du job logistique :
+ * 1. Extraction et validation des identifiants (email du client authentifié, prompt).
+ * 2. Résolution d'identité via `CustomerQueryService.resolve({ email })` pour scoper les accès.
+ * 3. Instanciation de l'agent LangChain (`createLogisticsAgent`).
+ * 4. Streaming en direct des tokens textuels via `ctx.sendToken(token)`.
+ * 5. Interception synchrone des sorties d'outils (`run.toolCalls`) pour enrichir la réponse
+ *    avec des blocs interactifs Chart.js/Mermaid (`buildRichContentBlock`) et collecter les sources.
+ * 6. Émission des puces de sources consultées (`ctx.sendSource(...)`).
+ * 7. Gestion des erreurs et messages d'explication en cas d'absence de clé API ou problème réseau.
+ *
+ * @param deps - Dépendances injectées (accès BDD Prisma et factory d'agent).
+ * @returns Une fonction `TaskHandler` compatible avec `WorkerApplication.registerTask`.
+ */
 export function createLogisticsHandler({
   getPrisma,
   createAgent = createLogisticsAgent,

@@ -1,16 +1,41 @@
 import Redis from "ioredis";
 import { createWorkerContext, WorkerTaskContext } from "./context.js";
 
+/**
+ * Options de configuration du worker d'inférence Valkey/Redis Streams.
+ */
 export interface WorkerAppOptions {
+  /** Identifiant unique de cette instance de worker (ex: "ts-worker-1"). Utilisé pour le consumer group et la présence. */
   workerId: string;
+  /** Liste des noms de modèles/tâches que ce worker est habilité à traiter (ex: `["CHATBOT", "LOGISTICS"]`). */
   models: string[];
+  /** Environnement d'exécution (`"dev"` ou `"prod"`). Conditionne les préfixes de clés de files. Défaut: `"dev"`. */
   env?: string;
+  /** URL de connexion Valkey / Redis (ex: `"redis://localhost:6379"`). */
   redisUrl?: string;
+  /** Alias pour `redisUrl`. */
   valkeyUrl?: string;
 }
 
+/**
+ * Signature d'une fonction de traitement d'un job d'inférence.
+ *
+ * @param payload - Données du job (prompt, customer, métadonnées, paramètres du modèle).
+ * @param ctx - Contexte d'exécution fournissant les fonctions de streaming (`sendToken`), d'envoi de sources (`sendSource`), etc.
+ */
 export type TaskHandler = (payload: any, ctx: WorkerTaskContext) => Promise<void>;
 
+/**
+ * Application Worker autonome gérant la consommation de jobs d'inférence asynchrones
+ * via Valkey / Redis Streams et Consumer Groups.
+ *
+ * Fonctionnalités incluses :
+ * - Inscription automatique dans les Consumer Groups (`jobs:queue:<env>:<model>`).
+ * - Boucle de récupération PEL (Pending Entries List) avec `XAUTOCLAIM` pour les jobs orphelins.
+ * - Routage automatique vers Dead Letter Queue (DLQ) après 3 échecs consécutifs.
+ * - Publication de présence / heartbeat périodique (`workers:presence:<workerId>:<model>`).
+ * - Streaming en temps réel des tokens et sources vers le flux SSE du client (`jobs:sse:<env>:<jobId>`).
+ */
 export class WorkerApplication {
   private workerId: string;
   private models: string[];
@@ -21,6 +46,11 @@ export class WorkerApplication {
   private isRunning: boolean = false;
   private timerRefs: Set<NodeJS.Timeout> = new Set();
 
+  /**
+   * Initialise une nouvelle instance du WorkerApplication.
+   *
+   * @param options - Configuration du worker (workerId, models, env, redisUrl).
+   */
   constructor(options: WorkerAppOptions) {
     this.workerId = options.workerId;
     this.models = options.models;
@@ -31,10 +61,19 @@ export class WorkerApplication {
     this.redisWriter = new Redis(url);
   }
 
+  /**
+   * Associe un modèle à une fonction de traitement (handler).
+   *
+   * @param model - Nom du modèle ou type de tâche (ex: `"CHATBOT"`, `"LOGISTICS"`).
+   * @param handler - Fonction asynchrone exécutant la logique métier pour ce modèle.
+   */
   registerTask(model: string, handler: TaskHandler) {
     this.handlers.set(model, handler);
   }
 
+  /**
+   * Démarre l'écoute des files Redis Streams et lance les boucles de heartbeat et de PEL recovery.
+   */
   async start() {
     this.isRunning = true;
     // Le préfixe de file est affiché explicitement : c'est la seule valeur qui

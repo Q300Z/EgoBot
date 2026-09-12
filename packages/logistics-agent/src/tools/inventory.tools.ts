@@ -6,6 +6,15 @@ import { productAvailabilityInputSchema, stockByLocationInputSchema,
   estimatedRestockInputSchema
 } from "./schemas.js";
 
+/**
+ * Crée les 5 outils LangChain dédiés à l'inventaire, aux stocks et aux approvisionnements.
+ *
+ * Contrairement aux outils client ou commande, ces outils sont globaux (catalogue et entrepôts)
+ * et ne dépendent pas d'un identifiant client spécifique.
+ *
+ * @param inventoryQueryService - Service de consultation des stocks et mouvements.
+ * @returns Tuple contenant `getProductAvailability`, `getStockByLocation`, `getMovementHistory`, `getStockAlerts` et `getEstimatedRestock`.
+ */
 export function createInventoryTools(
   inventoryQueryService: InventoryQueryService,
 ) {

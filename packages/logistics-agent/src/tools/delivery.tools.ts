@@ -6,6 +6,15 @@ import { deliveryTrackingInputSchema,
   deliveryStatsInputSchema,
  } from "./schemas.js";
 
+/**
+ * Crée les 3 outils LangChain spécialisés dans le suivi d'acheminement et les statistiques de livraison.
+ *
+ * Le suivi est scopé au client authentifié pour empêcher toute consultation de colis tiers.
+ *
+ * @param customer - Informations du client authentifié.
+ * @param deliveryQueryService - Service de consultation des livraisons.
+ * @returns Tuple contenant `get_delivery_tracking`, `list_deliveries_for_order` et `get_delivery_stats`.
+ */
 export function createDeliveryTools(
   customer: AuthenticatedCustomer,
   deliveryQueryService: DeliveryQueryService,

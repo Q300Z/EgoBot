@@ -6,8 +6,12 @@ import type {
 } from "@egobot/logistics-agent/dtos";
 
 /**
- * Associe chaque outil logistique à une puce de source claire et conviviale
- * pour le client final (sans jargon technique : ni SQL, ni base de données, ni table).
+ * Associe chaque outil logistique exécuté par l'agent à une puce de source conviviale
+ * et contextualisée pour l'utilisateur final (sans jargon technique ni détails internes d'implémentation).
+ *
+ * @param toolName - Nom de l'outil LangChain exécuté (ex: `"get_delivery_tracking"`).
+ * @param output - Données DTO retournées par l'outil.
+ * @returns L'objet `SourceData` avec son titre et son type (`doc`, `api`, `database`, `file`, etc.), ou `null` si introuvable / non applicable.
  */
 export function getToolSource(toolName: string, output: unknown): SourceData | null {
   const data = output as any;
@@ -111,8 +115,9 @@ export function getToolSource(toolName: string, output: unknown): SourceData | n
  * Ces blocs ne sont jamais générés par le LLM lui-même, afin de ne jamais
  * inventer de chiffres ou d'étapes non confirmées.
  *
- * Retourne null si le tool n'a pas de représentation riche associée ou si le
- * DTO ne contient pas de données exploitables (found: false).
+ * @param toolName - Nom de l'outil LangChain exécuté.
+ * @param output - Sortie brute / DTO retourné par l'outil.
+ * @returns Le bloc markdown formaté (ex: ````chart ... ```` ou ````mermaid ... ````), ou `null` si le tool n'a pas de représentation riche associée ou si le DTO ne contient pas de données exploitables (found: false).
  */
 export function buildRichContentBlock(toolName: string, output: unknown): string | null {
   switch (toolName) {

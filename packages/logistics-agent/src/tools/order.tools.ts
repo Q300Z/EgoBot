@@ -12,6 +12,16 @@ import {
 
 } from "./schemas.js";
 
+/**
+ * Crée les 8 outils LangChain dédiés à la consultation et la recherche des commandes.
+ *
+ * Tous les outils vérifient implicitement que les commandes consultées appartiennent
+ * au client authentifié (`customer.customerId`).
+ *
+ * @param customer - Informations du client authentifié.
+ * @param orderService - Service métier de gestion des commandes.
+ * @returns Liste des outils de commande LangChain.
+ */
 const emptyOrderInputSchema = z.object({});
 
 export function createOrderTools(

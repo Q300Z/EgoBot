@@ -45,23 +45,38 @@ graph TD
 
 ## 📂 Navigation & Documentation des Projets
 
+> 🎯 **Sujet Central du Projet : Le Worker d'Inférence & Tool Calling**
+> Le composant principal d'EgoBot est son **Worker TypeScript** (`apps/worker`) et son **Agent Logistique** (`packages/logistics-agent`).
+> Pour tout comprendre sur le traitement des jobs Valkey Streams, le fonctionnement du Tool Calling, l'interception de graphiques Chart.js / Mermaid, ou pour ajouter de nouveaux outils et de nouvelles sources de données, consultez directement le guide complet :
+> 
+> 👉 **[Documentation Complète du Worker & Tool Calling](apps/worker/README.md)**
+
 | Projet / Package | Rôle & Composants | Lien vers la Documentation |
 | :--- | :--- | :--- |
-| 📦 **`packages/shared-types`** | Contrats Zod & DTOs universels (`User`, `Conversation`, `Job`, `SSE`). | 📄 [packages/shared-types/README.md](packages/shared-types/README.md) |
+| ⚙️ **`apps/worker`** | **Cœur d'inférence** (`WorkerApplication`), exécution des modèles `CHATBOT` & `LOGISTICS`, Tool Calling & streaming SSE. | 📄 [apps/worker/README.md](apps/worker/README.md) |
+| 📦 **`packages/logistics-agent`** | **Agent LangChain** de suivi logistique (19 outils, Prisma SQLite, isolation client). | 📄 [packages/logistics-agent/README.md](packages/logistics-agent/README.md) |
 | 📦 **`packages/sdk`** | SDK universel (`/client` pour Web REST/SSE & `/worker` pour Worker TS). | 📄 [packages/sdk/README.md](packages/sdk/README.md) |
-| 📦 **`packages/logistics-agent`** | Agent LangChain de suivi logistique (commandes, livraisons, stock) + Prisma SQLite. | 📄 [packages/logistics-agent/README.md](packages/logistics-agent/README.md) |
-| ⚡ **`apps/api`** | Backend Express, BDD Prisma SQLite WAL, EventBus & Valkey Streams. | 📄 [apps/api/README.md](apps/api/README.md) |
-| ⚙️ **`apps/worker`** | Worker d'inférence en Pure TypeScript (`WorkerApplication`), modèles `CHATBOT` et `LOGISTICS`. | 📄 [apps/worker/README.md](apps/worker/README.md) |
-| 💻 **`apps/web`** | Interface Web Vue 3 + Chat Store Pinia + Backoffice. | 📄 [apps/web/README.md](apps/web/README.md) |
+| 📦 **`packages/shared-types`** | Contrats Zod & DTOs universels (`User`, `Conversation`, `Job`, `SSE`). | 📄 [packages/shared-types/README.md](packages/shared-types/README.md) |
+| 💻 **`apps/web`** | Interface Web Vue 3 + Chat Store Pinia + Rendu Mermaid/Chart.js. | 📄 [apps/web/README.md](apps/web/README.md) |
+| ⚡ **`apps/api`** | Backend d'ingestion Express & passerelle Valkey Streams. | 📄 [apps/api/README.md](apps/api/README.md) |
+
+---
+
+## 📋 Prérequis
+
+Avant de lancer le projet sur votre machine, assurez-vous de disposer de :
+- **Node.js** `>= 20.x` (recommandé : `22.x LTS`)
+- **pnpm** `>= 9.x` (activable en une commande via `corepack enable pnpm`)
+- **Docker & Docker Compose** (pour le mode conteneurisé standard)
+- *(Optionnel pour le mode natif)* : Linux ou macOS (requis par le binaire `@valkey/valkey-glide` de l'API)
 
 ---
 
 ## ⚡ Guide de Démarrage Rapide (Recommandé — Fonctionne sur Windows, macOS et Linux)
 
-Le mode de développement conteneurisé est la solution recommandée car `apps/api` repose sur **`@valkey/valkey-glide`**, dont les binaires natifs ne sont disponibles que sous Linux/macOS. Docker assure une compatibilité 100% universelle sans aucune compilation C++ locale.
+Le mode de développement conteneurisé est la solution recommandée car il garantit un environnement 100% reproductible sans aucune compilation C++ locale.
 
 ### 1. Installer les dépendances
-
 ```bash
 pnpm install
 ```

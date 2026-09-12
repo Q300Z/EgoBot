@@ -6,7 +6,14 @@ import type { CustomerService } from "../services/index.js";
 const emptyCustomerInputSchema = z.object({});
 
 /**
- * Lectures Customer accessibles au LLM.
+ * Crée les outils LangChain relatifs à l'identité et au profil du client connecté.
+ *
+ * Ces outils n'exposent aucun paramètre d'identité au LLM : le `customerId` est automatiquement
+ * injecté depuis la session serveur pour garantir un cloisonnement strict entre utilisateurs.
+ *
+ * @param customer - Informations du client authentifié.
+ * @param customerService - Service métier de gestion des clients.
+ * @returns Tuple contenant les outils `get_customer_profile`, `get_customer_identity` et `get_customer_current_address`.
  */
 export function createCustomerTools(
   customer: AuthenticatedCustomer,

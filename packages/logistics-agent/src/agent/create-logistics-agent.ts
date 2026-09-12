@@ -1,4 +1,5 @@
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
+import type { StructuredToolInterface } from "@langchain/core/tools";
 import { AzureChatOpenAI, ChatOpenAI } from "@langchain/openai";
 import {
   createAgent,
@@ -13,9 +14,19 @@ import { LOGISTICS_SYSTEM_PROMPT } from "./system-prompt.js";
 
 export type LogisticsModelProvider = "openai" | "azure";
 
+/**
+ * Paramètres de configuration pour la création d'une instance de ReactAgent logistique.
+ */
 export interface CreateLogisticsAgentOptions {
+  /** Informations sur le client connecté pour scoper ses données. */
   customer: AuthenticatedCustomer;
+  /** Instance du client Prisma connecté à la BDD SQLite logistique. */
   prisma: LogisticsPrismaClient;
+  /**
+   * Outils complémentaires personnalisés à injecter dans l'agent en plus des 19 outils logistiques de base.
+   * Permet d'étendre facilement l'agent avec des sources de données externes (APIs tierces, ERP, etc.).
+   */
+  extraTools?: StructuredToolInterface[];
   /**
    * Modèle de chat LangChain à utiliser (ChatOpenAI, AzureChatOpenAI, etc.).
    * Si omis, le modèle par défaut est construit selon `modelProvider`.
@@ -31,9 +42,13 @@ export interface CreateLogisticsAgentOptions {
    * `AZURE_OPENAI_API_VERSION`).
    */
   modelProvider?: LogisticsModelProvider;
+  /** Nom du modèle LLM à invoquer (par exemple "gpt-5", "gpt-4o", etc.). */
   modelName?: string;
+  /** Prompt système régissant le comportement, la langue et les contraintes anti-hallucination. */
   systemPrompt?: string;
+  /** Limite maximale d'appels au modèle par interaction (middleware LangChain). */
   maxModelCalls?: number;
+  /** Limite maximale d'appels d'outils par interaction (middleware LangChain). */
   maxToolCalls?: number;
 }
 
@@ -53,6 +68,29 @@ function createDefaultModel(
   return new ChatOpenAI({ model: modelName });
 }
 
+/**
+ * Crée et configure un ReactAgent LangChain autonome spécialisé dans la gestion logistique.
+ *
+ * L'agent est équipé des 19 outils logistiques sécurisés, d'un prompt système strict
+ * (anti-hallucination, français professionnel, politesse), et de middlewares de limitation
+ * des appels (`modelCallLimitMiddleware` et `toolCallLimitMiddleware`).
+ *
+ * @param options - Options de configuration de l'agent et dépendances (client, base Prisma, LLM).
+ * @returns Une instance prête à l'emploi de `ReactAgent` exécutable en streaming via `.streamEvents()`.
+ *
+ * @example
+ * ```typescript
+ * const agent = createLogisticsAgent({
+ *   customer: { customerId: "c-123", email: "client@example.com" },
+ *   prisma: logisticsPrismaClient,
+ * });
+ *
+ * const stream = await agent.streamEvents(
+ *   { messages: [{ role: "user", content: "Où est mon colis ?" }] },
+ *   { version: "v3" }
+ * );
+ * ```
+ */
 export function createLogisticsAgent({
   customer,
   prisma,
@@ -62,8 +100,9 @@ export function createLogisticsAgent({
     | undefined) ?? "openai",
   modelName = process.env.LOGISTICS_MODEL ?? "gpt-5",
   systemPrompt = LOGISTICS_SYSTEM_PROMPT,
-  maxModelCalls = 6,
-  maxToolCalls = 8,
+  maxModelCalls = 10,
+  maxToolCalls = 25,
+  extraTools,
 }: CreateLogisticsAgentOptions): ReactAgent {
   if (modelProvider !== "openai" && modelProvider !== "azure") {
     throw new Error(
@@ -71,7 +110,8 @@ export function createLogisticsAgent({
     );
   }
 
-  const tools = createLogisticsTools({ customer, prisma });
+  const defaultTools = createLogisticsTools({ customer, prisma });
+  const tools = extraTools && extraTools.length > 0 ? [...defaultTools, ...extraTools] : defaultTools;
 
   return createAgent({
     model: model ?? createDefaultModel(modelProvider, modelName),
