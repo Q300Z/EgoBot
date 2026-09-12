@@ -125,7 +125,7 @@ export function createLogisticsHandler({
       await ctx.sendToken(
         missingKey
           ? "Le service de génération n'est pas configuré : la clé API du modèle est absente ou invalide. " +
-              "Renseignez la configuration du modèle dans apps/worker/.env."
+              "Renseignez la configuration du modèle dans le fichier .env à la racine."
           : `Le traitement de votre demande a échoué : ${detail}`,
       );
     }

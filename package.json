@@ -19,7 +19,8 @@
     "db:seed": "pnpm --filter api run seed && pnpm --filter @egobot/logistics-agent exec prisma db seed && pnpm --filter @egobot/logistics-agent exec tsx scripts/link-customer.ts admin@egobot.local",
     "db:reset": "pnpm --filter api exec prisma migrate reset --force && pnpm --filter @egobot/logistics-agent exec prisma migrate reset --force && pnpm run db:seed",
     "db:studio:api": "pnpm --filter api exec prisma studio --port 5555",
-    "db:studio:logistics": "pnpm --filter @egobot/logistics-agent exec prisma studio --port 5556"
+    "db:studio:logistics": "pnpm --filter @egobot/logistics-agent exec prisma studio --port 5556",
+    "try:agent": "pnpm --filter @egobot/logistics-agent run try:agent"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^3.2.7",

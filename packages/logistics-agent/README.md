@@ -302,13 +302,9 @@ avec `--filter` présentée plus bas.
 
 ### 2. Configurer la base et le modèle
 
-Créer le fichier local de configuration s'il n'existe pas encore :
+Le script charge automatiquement le fichier `.env` situé à la racine du monorepo (initialisé via `pnpm env:init` ou copié depuis `.env.example` à la racine).
 
-```bash
-cp .env.example .env
-```
-
-Configuration minimale avec l'API OpenAI :
+Vérifiez que votre fichier `.env` racine contient les variables nécessaires :
 
 ```env
 DATABASE_URL="file:./logistics.db"

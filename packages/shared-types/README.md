@@ -1,4 +1,4 @@
-# 📦 `@my-llm/shared-types`
+# 📦 `@egobot/shared-types`
 
 Ce package contient l'ensemble des **contrats de données, schémas Zod et typages TypeScript universels** partagés entre l'API Express, le SDK, le Worker TS et le Client Web Vue 3.
 

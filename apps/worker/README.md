@@ -284,7 +284,7 @@ Le worker ne se limite pas à SQLite ! Vous pouvez facilement connecter une API 
 ### Cas d'Usage : Connecter une API REST de Suivi Transporteur (ex: Chronopost / Colissimo)
 
 #### 1. Déclarer la Configuration d'Environnement
-Dans votre fichier `.env` racine (ou `apps/worker/.env`) :
+Dans votre fichier `/.env` unique à la racine du monorepo :
 
 ```dotenv
 CARRIER_API_BASE_URL="https://api.carrier.example.com/v1"
@@ -369,15 +369,19 @@ export function createCarrierTools(carrierService: CarrierApiService) {
 La fonction `createLogisticsAgent` accepte une option `extraTools` conçue pour recevoir vos outils personnalisés sans modifier le cœur de l'agent :
 
 ```typescript
+// (Pensez à exporter votre service dans packages/logistics-agent/src/services/index.ts
+//  et vos outils dans packages/logistics-agent/src/tools/index.ts)
+
 // Dans apps/worker/src/handlers/logistics.handler.ts (ou votre propre factory) :
+import { createLogisticsAgent } from "@egobot/logistics-agent/agent";
 import { CarrierApiService } from "@egobot/logistics-agent/services";
 import { createCarrierTools } from "@egobot/logistics-agent/tools";
 
 const carrierService = new CarrierApiService();
 const carrierTools = createCarrierTools(carrierService);
 
-// Passer les outils personnalisés à l'agent :
-const agent = createAgent({
+// Passer les outils personnalisés à l'agent logistique :
+const agent = createLogisticsAgent({
   customer: resolution.customer,
   prisma,
   extraTools: carrierTools,
