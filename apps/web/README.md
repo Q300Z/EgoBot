@@ -1,4 +1,4 @@
-# 💻 `@my-llm/web` (Client Web Vue 3 + Backoffice)
+# 💻 `@egobot/web` (Client Web Vue 3 + Backoffice)
 
 Application Single Page moderne construite avec **Vue 3**, **Vite** et **Pinia**, incluant une interface de Chat dynamique, un Backoffice d'Administration et un mécanisme d'**Auto-Fallback SSE ➔ HTTP Batch Polling (6s)**.
 
@@ -26,7 +26,7 @@ apps/web/
 ## 🔄 Mécanisme d'Auto-Fallback SSE ➔ HTTP Batch Polling
 
 Dans `src/stores/chat.ts` :
-1. Lors de l'envoi d'un message, le store ouvre un flux SSE via `@my-llm/sdk/client`.
+1. Lors de l'envoi d'un message, le store ouvre un flux SSE via `@egobot/sdk/client`.
 2. Un timer d'inactivité de **6 secondes** est armé.
 3. Si aucun jeton SSE n'est reçu dans les 6s (par exemple à cause d'un proxy/firewall entreprise bloquant l'EventSource), le store ferme l'EventSource et active automatiquement un **polling HTTP Batch (`loadConversation`) toutes les 2 secondes** jusqu'à réception du message complet.
 

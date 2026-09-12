@@ -1,8 +1,6 @@
 import "vuetify/styles";
 import "@mdi/font/css/materialdesignicons.css";
 import { createVuetify } from "vuetify";
-import * as components from "vuetify/components";
-import * as directives from "vuetify/directives";
 
 // Détection défensive : window.matchMedia peut ne pas exister (ex: jsdom en test)
 const prefersDark =
@@ -11,26 +9,27 @@ const prefersDark =
   window.matchMedia("(prefers-color-scheme: dark)").matches;
 
 export default createVuetify({
-  components,
-  directives,
   theme: {
     defaultTheme: prefersDark ? "dark" : "light",
     themes: {
       dark: {
         dark: true,
         colors: {
-          primary: "#F97316", // Duhamel Orange High Contrast Dark
-          secondary: "#47637A", // Duhamel Slate Navy Light
-          accent: "#FDF0E8",
-          background: "#101920", // Deep Duhamel Navy Dark
-          surface: "#182630", // Duhamel Dark Navy
-          "surface-variant": "#243644", // Duhamel Surface Variant
-          error: "#EF4444",
+          primary: "#F97316", // Duhamel Orange
+          secondary: "#5B82A0", // Slate bleu éclairci — lisible en texte/icône sur fond sombre
+          accent: "#FDBA8C",
+          background: "#0E151C", // Fond navy profond
+          surface: "#1B2733", // Cartes, barre d'app — nettement détaché du fond
+          "surface-variant": "#2A3844", // Bulles de message, encarts
+          error: "#F87171", // Rouge éclairci pour fond sombre
           info: "#38BDF8",
-          success: "#10B981",
-          warning: "#F59E0B",
+          success: "#34D399",
+          warning: "#FBBF24",
           "on-primary": "#FFFFFF",
-          "on-surface": "#F8FAFC",
+          "on-secondary": "#FFFFFF",
+          "on-background": "#E6ECF1",
+          "on-surface": "#E6ECF1", // Blanc cassé — moins éblouissant que le blanc pur
+          "on-surface-variant": "#CBD5E0",
         },
       },
       light: {

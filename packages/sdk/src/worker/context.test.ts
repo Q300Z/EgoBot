@@ -51,6 +51,61 @@ describe("createWorkerContext", () => {
     expect(mockRedisWriter.expire).toHaveBeenCalledWith("jobs:sse:production:job-123", 3600);
   });
 
+  it("should send source object to redis sse stream with marker chunk", async () => {
+    const ctx = createWorkerContext("job-123", "conv-456", "production", mockRedisWriter);
+
+    await ctx.sendSource({
+      title: "Manuel Logistique v2",
+      url: "https://example.com/doc",
+      type: "doc",
+    });
+
+    expect(mockRedisWriter.xadd).toHaveBeenCalledWith(
+      "jobs:sse:production:job-123",
+      "MAXLEN",
+      "~",
+      1000,
+      "*",
+      "event",
+      "source",
+      "data",
+      expect.any(String)
+    );
+
+    const dataString = mockRedisWriter.xadd.mock.calls[0][8];
+    const parsed = JSON.parse(dataString);
+    expect(parsed).toEqual({
+      event: "source",
+      data: {
+        kind: "source",
+        status: "IN_PROGRESS",
+        job_id: "job-123",
+        conversation_id: "conv-456",
+        chunk: '[[source:{"title":"Manuel Logistique v2","type":"doc","url":"https://example.com/doc"}]]',
+        source: {
+          title: "Manuel Logistique v2",
+          type: "doc",
+          url: "https://example.com/doc",
+        },
+      },
+    });
+
+    expect(mockRedisWriter.expire).toHaveBeenCalledWith("jobs:sse:production:job-123", 3600);
+  });
+
+  it("should reject source when title or type is missing", async () => {
+    const ctx = createWorkerContext("job-123", "conv-456", "dev", mockRedisWriter);
+
+    // @ts-expect-error: missing type
+    await expect(ctx.sendSource({ title: "Guide" })).rejects.toThrow();
+
+    // @ts-expect-error: missing title
+    await expect(ctx.sendSource({ type: "doc" })).rejects.toThrow();
+
+    // empty title
+    await expect(ctx.sendSource({ title: "", type: "doc" })).rejects.toThrow();
+  });
+
   it("should handle deferJob by publishing defer token pattern", async () => {
     const ctx = createWorkerContext("job-789", "conv-000", "staging", mockRedisWriter);
 
@@ -79,7 +134,7 @@ describe("createWorkerContext", () => {
 
     mockRedisWriter.exists.mockResolvedValueOnce(1);
     const isCancelled = await ctx.checkCancellation();
-    expect(mockRedisWriter.exists).toHaveBeenCalledWith("jobs:cancel:job-cancel-me");
+    expect(mockRedisWriter.exists).toHaveBeenCalledWith("job:cancel:job-cancel-me", "jobs:cancel:job-cancel-me");
     expect(isCancelled).toBe(true);
 
     mockRedisWriter.exists.mockResolvedValueOnce(0);

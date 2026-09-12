@@ -1,4 +1,4 @@
-# 🛠️ `@my-llm/sdk`
+# 🛠️ `@egobot/sdk`
 
 Le SDK universel TypeScript fournit l'ensemble des abstractions clientes REST / SSE pour le Web et le runtime d'exécution pour les Workers.
 
@@ -8,8 +8,8 @@ Le SDK universel TypeScript fournit l'ensemble des abstractions clientes REST / 
 
 Afin d'éviter l'inclusion de dépendances natifs Node.js (`ioredis` / Valkey) dans le navigateur client Web, le SDK est scindé en deux points d'entrée stricts dans `package.json` :
 
-* **`@my-llm/sdk/client`** : Destiné au Frontend Vue 3 (Axios Client REST + Client EventSource SSE Auto-healing & Fallback).
-* **`@my-llm/sdk/worker`** : Destiné au Worker Node.js (Moteur `WorkerApplication`, Valkey Streams Consumer Group, Context).
+* **`@egobot/sdk/client`** : Destiné au Frontend Vue 3 (Axios Client REST + Client EventSource SSE Auto-healing & Fallback).
+* **`@egobot/sdk/worker`** : Destiné au Worker Node.js (Moteur `WorkerApplication`, Valkey Streams Consumer Group, Context).
 
 ---
 
@@ -20,7 +20,7 @@ packages/sdk/
 ├── src/
 │   ├── client/
 │   │   ├── event-client.ts   # Helper EventSource avec support Last-Event-ID
-│   │   └── index.ts          # Classe LogibotClientSDK (Auth, Conversations, Admin)
+│   │   └── index.ts          # Classe EgobotClientSDK (Auth, Conversations, Admin)
 │   └── worker/
 │       ├── context.ts        # WorkerTaskContext (sendToken, checkCancellation, deferJob)
 │       ├── application.ts    # Moteur WorkerApplication (Valkey Streams XREADGROUP/XACK)
@@ -38,7 +38,7 @@ packages/sdk/
 Pour exposer un nouvel endpoint API au client Web (ex: `deleteUser` ou `getArticles`) :
 
 ```typescript
-export class LogibotClientSDK {
+export class EgobotClientSDK {
   // ...
   async getArticles(): Promise<Article[]> {
     const res = await this.api.get("/api/v1/articles");

@@ -1,53 +1,75 @@
-import { app } from "./app.js";
-import { env } from "./config/env.js";
-import { SseService } from "./services/sse.service.js";
-import { JobService } from "./services/job.service.js";
-import { TacheService } from "./services/tache.service.js";
-import { DbService } from "./services/db.service.js";
-import { LoggerFactory } from "./config/logger.js";
-import { valkeyStream, valkeyReader, valkeyWriter } from "./config/valkey.js";
-import { prisma } from "./config/db.js";
+import app from "./app";
+import { env, getAppEnv } from "./config/env";
+import { LoggerFactory } from "./config/logger";
+import { prisma } from "./config/db";
+import { connectRedisClients } from "./config/redis";
+import { SseService } from "./core/sse";
+import { redisStreamBus } from "./core/stream";
+import { startJobScheduler, stopJobModule } from "./modules/job";
+import type { Server } from "http";
 
-const logger = LoggerFactory.getLogger("Server");
+const logger = LoggerFactory.getLogger("App");
+let server: Server;
 
 async function bootstrap() {
-  await DbService.init();
+	try {
+		// 1. Connexions Redis (Pools multiples)
+		await connectRedisClients();
 
-  SseService.init();
-  JobService.init();
-  TacheService.init();
+		// 2. Initialisation du service SSE
+		SseService.init();
 
-  const server = app.listen(env.PORT, () => {
-    logger.info(`Serveur API démarré sur http://localhost:${env.PORT}`);
-  });
+		// 3. Démarrage des planificateurs d'arrière-plan et du bus Redis Streams
+		redisStreamBus.start();
+		startJobScheduler();
 
-  const gracefulShutdown = async (signal: string) => {
-    logger.info(`Signal ${signal} reçu. Arrêt propre du serveur API...`);
+		// 4. Lancement de l'écoute HTTP
+		server = app.listen(env.PORT, "0.0.0.0", () => {
+			// Le préfixe de file est affiché explicitement : il doit être identique
+			// côté worker, qui l'affiche lui aussi à son démarrage. En cas
+			// d'écart, l'API publie dans une file que personne ne consomme — sans
+			// erreur ni trace, les messages restent simplement sans réponse.
+			logger.info(
+				`Serveur démarré en mode [${env.NODE_ENV}] sur http://0.0.0.0:${env.PORT} ` +
+					`(files jobs:queue:${getAppEnv()}:*)`,
+			);
+		});
 
-    server.close(() => {
-      logger.info("Serveur HTTP fermé.");
-    });
+		/**
+		 * Procédure de fermeture propre (Graceful Shutdown).
+		 */
+		const shutdown = async (signal: string) => {
+			logger.info(`Signal ${signal} reçu. Fermeture de l'application...`);
+			try {
+				redisStreamBus.stop();
+				stopJobModule();
+				await prisma.$disconnect();
+				logger.info("Connexions DB, planificateurs et polling arrêtés avec succès.");
+			} catch (err) {
+				logger.error("Erreur lors de l'arrêt des services de fond", err);
+			}
 
-    try {
-      await Promise.all([
-        valkeyStream.quit(),
-        valkeyReader.quit(),
-        valkeyWriter.quit(),
-        prisma.$disconnect(),
-      ]);
-      logger.info("Connexions Valkey et Prisma fermées avec succès.");
-      process.exit(0);
-    } catch (err) {
-      logger.error("Erreur lors de la fermeture des ressources", err);
-      process.exit(1);
-    }
-  };
+			if (server) {
+				server.close(() => {
+					logger.info("Serveur HTTP arrêté. Sortie du processus.");
+					process.exit(0);
+				});
+			} else {
+				process.exit(0);
+			}
+		};
 
-  process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
-  process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+		// Capture des signaux d'arrêt système
+		process.on("SIGINT", () => void shutdown("SIGINT"));
+		process.on("SIGTERM", () => void shutdown("SIGTERM"));
+	} catch (error) {
+		logger.error("Échec critique du démarrage de l'application :", error);
+		try {
+			await prisma.$disconnect();
+		} catch {}
+		process.exit(1);
+	}
 }
 
-bootstrap().catch((err) => {
-  logger.error("Erreur fatale lors du démarrage de l'API", err);
-  process.exit(1);
-});
+// Lancement du bootstrap
+void bootstrap();

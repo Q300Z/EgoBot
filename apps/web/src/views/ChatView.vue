@@ -84,9 +84,22 @@
             {{ chatStore.currentConversation?.title || 'Nouvelle Discussion' }}
           </span>
         </div>
-        <v-chip v-if="chatStore.isStreaming" color="warning" size="small" prepend-icon="mdi-loading mdi-spin">
-          Génération...
-        </v-chip>
+        <div v-if="chatStore.isStreaming" class="d-flex align-center ga-2">
+          <v-chip color="warning" size="small" prepend-icon="mdi-loading mdi-spin">
+            Génération...
+          </v-chip>
+          <v-btn
+            size="small"
+            variant="tonal"
+            color="error"
+            prepend-icon="mdi-stop-circle-outline"
+            aria-label="Arrêter la génération"
+            title="Arrêter la génération"
+            @click="chatStore.cancelCurrentMessage"
+          >
+            Arrêter
+          </v-btn>
+        </div>
       </div>
 
       <!-- Flux de Messages (Animation Fondu & Squelettes de Chargement) -->
@@ -121,8 +134,8 @@
           <!-- Affichage fluide des messages de la conversation -->
           <div v-else key="messages-list">
             <ChatMessage
-              v-for="(msg, idx) in chatStore.currentConversation?.messages || []"
-              :key="idx"
+              v-for="(msg, idx) in visibleMessages"
+              :key="msg.id || idx"
               :message="msg"
             />
           </div>
@@ -131,6 +144,27 @@
 
       <!-- Zone de Saisie avec v-textarea multi-lignes auto-extensible -->
       <div class="border-t pa-3 bg-surface">
+        <!-- Toujours visible : le mode s'applique au prochain message, y compris
+             dans une conversation déjà commencée. -->
+        <v-btn-toggle
+          v-model="selectedModel"
+          color="primary"
+          density="compact"
+          mandatory
+          class="mb-2"
+          aria-label="Mode de réponse du prochain message"
+        >
+          <v-tooltip location="top" text="Mode démonstration : réponses simulées avec graphiques, tableaux et diagrammes pour tester le rendu visuel.">
+            <template #activator="{ props }">
+              <v-btn v-bind="props" value="CHATBOT" size="small">Assistant général</v-btn>
+            </template>
+          </v-tooltip>
+          <v-tooltip location="top" text="Mode IA connecté : agent logistique intelligent qui interroge vos données réelles (commandes, stocks, livraisons).">
+            <template #activator="{ props }">
+              <v-btn v-bind="props" value="LOGISTICS" size="small">Suivi commandes</v-btn>
+            </template>
+          </v-tooltip>
+        </v-btn-toggle>
         <div class="d-flex align-center">
           <v-textarea
             v-model="promptInput"
@@ -149,13 +183,23 @@
           ></v-textarea>
 
           <v-btn
+            v-if="chatStore.isStreaming"
+            icon="mdi-stop"
+            color="error"
+            variant="flat"
+            size="default"
+            aria-label="Arrêter la génération"
+            title="Arrêter la génération"
+            @click="chatStore.cancelCurrentMessage"
+          ></v-btn>
+          <v-btn
+            v-else
             icon="mdi-send"
             color="secondary"
             variant="flat"
             size="default"
             aria-label="Envoyer le message"
             title="Envoyer le message"
-            :loading="chatStore.isStreaming"
             :disabled="!promptInput.trim() || chatStore.isLoadingConversation"
             @click="handleSend"
           ></v-btn>
@@ -166,7 +210,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, nextTick } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useChatStore } from "../stores/chat";
 import { useAuthStore } from "../stores/auth";
@@ -180,17 +224,51 @@ const authStore = useAuthStore();
 const uiStore = useUiStore();
 
 const promptInput = ref("");
+const selectedModel = ref<"CHATBOT" | "LOGISTICS">("CHATBOT");
 const chatBoxRef = ref<HTMLElement | null>(null);
 
+function isMessageCancelled(msg: any): boolean {
+  if (!msg) return false;
+  if (msg.role !== "ASSISTANT") return false;
+  // 1. Marque booléenne explicite
+  if (msg.cancelled === true) return true;
+  // 2. Marque de statut
+  if (msg.status === "CANCELLED") return true;
+  // 3. Marque textuelle de repli pour différencier des messages vides en attente normale
+  if (typeof msg.content === "string") {
+    const trimmed = msg.content.trim();
+    if (trimmed === "<cancelled>" || trimmed === "[cancelled]" || trimmed.startsWith("<cancelled>")) {
+      return true;
+    }
+  }
+  return false;
+}
+
+const visibleMessages = computed(() => {
+  return (chatStore.currentConversation?.messages || []).filter(
+    (msg: any) => !isMessageCancelled(msg)
+  );
+});
+
 async function selectConversation(id: string) {
+  if (chatStore.currentConversation?.id !== id) {
+    chatStore.stopStreaming();
+  }
   if (router && route.path !== `/chat/${id}`) {
     router.push(`/chat/${id}`);
   }
   await chatStore.loadConversation(id);
+  // Le sélecteur reflète le mode de la conversation ouverte, pour indiquer où
+  // l'on se trouve — libre à l'utilisateur d'en changer ensuite.
+  const conversationModel = chatStore.currentConversation?.model;
+  if (conversationModel === "CHATBOT" || conversationModel === "LOGISTICS") {
+    selectedModel.value = conversationModel;
+  }
   await scrollToBottom();
 }
 
 function handleNewConversation() {
+  chatStore.stopStreaming();
   chatStore.currentConversation = null;
   if (router && route.path !== "/chat") {
     router.push("/chat");
@@ -201,15 +279,39 @@ async function handleSend() {
   if (!promptInput.value.trim() || chatStore.isStreaming) return;
   const text = promptInput.value;
   promptInput.value = "";
-  await chatStore.sendMessage(text);
-  await scrollToBottom();
+  try {
+    // Le sélecteur pilote chaque message. Auparavant le modèle de la
+    // conversation l'emportait, ce qui figeait le mode à sa création.
+    await chatStore.sendMessage(text, selectedModel.value);
+    if (router && chatStore.currentConversation?.id && route.path !== `/chat/${chatStore.currentConversation.id}`) {
+      router.replace(`/chat/${chatStore.currentConversation.id}`);
+    }
+    await scrollToBottom();
+  } catch (err: any) {
+    if (err.response?.status === 401) {
+      authStore.logout();
+      router.push("/auth");
+    } else {
+      console.error("Erreur lors de l'envoi du message:", err);
+    }
+  }
 }
 
 async function handleDeleteConversation(id: string) {
-  await authStore.sdk.deleteConversation(id);
-  await chatStore.loadConversations();
-  if (chatStore.currentConversation?.id === id) {
-    chatStore.currentConversation = null;
+  try {
+    if (chatStore.currentConversation?.id === id) {
+      chatStore.stopStreaming();
+      chatStore.currentConversation = null;
+    }
+    await authStore.sdk.deleteConversation(id);
+    await chatStore.loadConversations();
+  } catch (err: any) {
+    if (err.response?.status === 401) {
+      authStore.logout();
+      router.push("/auth");
+    } else {
+      console.error("Erreur lors de la suppression de la conversation:", err);
+    }
   }
 }
 
@@ -224,9 +326,11 @@ watch(
   () => route?.params?.id,
   async (newId) => {
     if (newId && typeof newId === "string" && chatStore.currentConversation?.id !== newId) {
+      chatStore.stopStreaming();
       await chatStore.loadConversation(newId);
       await scrollToBottom();
     } else if (!newId) {
+      chatStore.stopStreaming();
       chatStore.currentConversation = null;
     }
   },
@@ -239,6 +343,10 @@ onMounted(async () => {
       await chatStore.loadConversations();
     } catch {}
   }
+});
+
+onUnmounted(() => {
+  chatStore.stopStreaming();
 });
 </script>
 

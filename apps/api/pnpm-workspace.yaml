@@ -1,0 +1,7 @@
+allowBuilds:
+  "@prisma/engines": true
+  argon2: true
+  better-sqlite3: true
+  esbuild: true
+  prisma: true
+  protobufjs: true

@@ -1,50 +1,101 @@
-version: '3.8'
+# Stack de production EgoBot.
+#
+# Les secrets ne sont plus écrits en dur : la syntaxe ${VAR:?message} fait
+# échouer `docker compose up` immédiatement si la variable est absente, plutôt
+# que de démarrer avec une valeur par défaut publique. Voir .env.example.
+#
+#   docker compose -f docker-compose.prod.yml up -d --build
 
 services:
   valkey:
     image: valkey/valkey:8-alpine
-    container_name: scaffold_valkey_prod
-    ports:
-      - "6379:6379"
+    container_name: egobot_valkey_prod
     command: valkey-server --appendonly yes
+    volumes:
+      - valkey_prod_data:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
     restart: always
 
   api:
     build:
       context: .
       dockerfile: apps/api/Dockerfile.prod
-    container_name: scaffold_api_prod
+    container_name: egobot_api_prod
     ports:
       - "8000:8000"
     environment:
       - PORT=8000
       - NODE_ENV=production
       - VALKEY_URL=redis://valkey:6379
-      - JWT_SECRET=change_me_in_production_jwt_secret_98765
+      - REDIS_URL=redis://valkey:6379
+      - SECRET_KEY=${SECRET_KEY:-${JWT_SECRET}}
+      - JWT_SECRET=${JWT_SECRET:-${SECRET_KEY}}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+      - DATABASE_URL=/app/prisma/prod.db
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    volumes:
+      - api_prod_data:/app/prisma
     depends_on:
-      - valkey
+      valkey:
+        condition: service_healthy
     restart: always
+
+  # Conteneur éphémère : applique les migrations SQLite logistiques puis s'arrête.
+  # Le worker attend sa sortie avec succès avant de démarrer.
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile.prod
+      target: migrator
+    container_name: egobot_migrate_prod
+    environment:
+      - LOGISTICS_DATABASE_URL=file:/app/packages/logistics-agent/data/logistics.db
+    volumes:
+      - logistics_prod_data:/app/packages/logistics-agent/data
+    restart: "no"
 
   worker:
     build:
       context: .
       dockerfile: apps/worker/Dockerfile.prod
-    container_name: scaffold_worker_prod
+    container_name: egobot_worker_prod
     environment:
       - NODE_ENV=production
       - VALKEY_URL=redis://valkey:6379
       - REDIS_URL=redis://valkey:6379
+      - LOGISTICS_DATABASE_URL=file:/app/packages/logistics-agent/data/logistics.db
+      - OPENAI_API_KEY=${OPENAI_API_KEY:?OPENAI_API_KEY est requis}
+      - LOGISTICS_MODEL=${LOGISTICS_MODEL:-gpt-5}
+    volumes:
+      - logistics_prod_data:/app/packages/logistics-agent/data
     depends_on:
-      - valkey
+      valkey:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     restart: always
 
   web:
     build:
       context: .
       dockerfile: apps/web/Dockerfile.prod
-    container_name: scaffold_web_prod
+    container_name: egobot_web_prod
     ports:
       - "80:80"
     depends_on:
       - api
     restart: always
+
+volumes:
+  valkey_prod_data:
+  api_prod_data:
+  logistics_prod_data:

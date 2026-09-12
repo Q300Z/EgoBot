@@ -9,13 +9,14 @@
     "test": "node --import tsx --test --experimental-test-coverage src/__tests__/run-all-tests.ts"
   },
   "dependencies": {
+    "@egobot/logistics-agent": "workspace:*",
     "@egobot/sdk": "workspace:*",
     "@egobot/shared-types": "workspace:*",
     "dotenv": "^17.4.2"
   },
   "devDependencies": {
-    "@types/node": "^26.1.1",
-    "tsx": "^4.23.1",
-    "typescript": "^7.0.2"
+    "@types/node": "^26.5.0",
+    "tsx": "^4.23.13",
+    "typescript": "^5.8.2"
   }
 }

@@ -21,6 +21,7 @@ out/
 # Testing & Coverage
 coverage/
 .nyc_output/
+packages/logistics-agent/reports/
 
 # Logs
 *.log
@@ -45,7 +46,9 @@ Thumbs.db
 
 # SQLite Databases
 *.db
+prod.db
 *.db-journal
+*.db-shm
 *.db-wal
 prisma/*.db
-
+**/prod.db

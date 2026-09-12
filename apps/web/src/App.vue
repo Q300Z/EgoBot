@@ -1,6 +1,7 @@
 <template>
   <v-app>
     <AppBar />
+    <GlobalNotification />
     <v-main>
       <v-container fluid class="fill-height pa-0">
         <AuthView v-if="!authStore.token" />
@@ -18,6 +19,7 @@
 import { onMounted } from "vue";
 import { useAuthStore } from "./stores/auth";
 import AppBar from "./components/AppBar.vue";
+import GlobalNotification from "./components/GlobalNotification.vue";
 import AuthView from "./views/AuthView.vue";
 
 const authStore = useAuthStore();

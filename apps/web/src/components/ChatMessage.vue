@@ -1,5 +1,6 @@
 <template>
   <div
+    v-if="!isCancelled"
     :class="['d-flex mb-4', message.role === 'USER' ? 'justify-end' : 'justify-start']"
     :aria-label="message.role === 'USER' ? 'Votre message' : 'Message de l\'assistant EgoBot'"
   >
@@ -13,11 +14,16 @@
         class="pa-3 rounded-lg"
         elevation="1"
       >
-        <div :class="['text-caption mb-1 font-weight-bold', message.role === 'USER' ? 'text-grey-lighten-3' : 'text-grey-darken-4']">
+        <div :class="['text-caption mb-1 font-weight-bold', message.role === 'USER' ? 'text-grey-lighten-3' : 'text-medium-emphasis']">
           {{ message.role === 'USER' ? (userName || 'Vous') : 'EgoBot (Duhamel Logistique)' }}
         </div>
         <div v-if="message.role === 'USER'" class="text-body-2 white-space-pre-wrap text-white">{{ message.content }}</div>
-        <div v-else class="text-body-2 markdown-body text-grey-darken-4" v-html="renderedMarkdown"></div>
+        <MessageContent
+          v-else-if="message.content"
+          :content="message.content"
+          class="markdown-body"
+        />
+        <div v-else class="text-body-2 markdown-body">...</div>
       </v-card>
     </div>
   </div>
@@ -25,20 +31,35 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { marked } from "marked";
+import MessageContent from "./MessageContent.vue";
 
 const props = defineProps<{
-  message: { role: "USER" | "ASSISTANT"; content: string };
+  message: {
+    role: "USER" | "ASSISTANT";
+    content: string;
+    cancelled?: boolean;
+    status?: string;
+  };
   userName?: string;
 }>();
 
-const renderedMarkdown = computed(() => {
-  if (!props.message?.content) return "...";
-  try {
-    return marked.parse(props.message.content, { gfm: true, breaks: true }) as string;
-  } catch {
-    return props.message.content;
+const isCancelled = computed(() => {
+  const msg = props.message as any;
+  if (!msg) return false;
+  // Ne s'applique qu'au chatbot / assistant
+  if (msg.role !== "ASSISTANT") return false;
+  // 1. Marque booléenne explicite
+  if (msg.cancelled === true) return true;
+  // 2. Marque de statut
+  if (msg.status === "CANCELLED") return true;
+  // 3. Marque textuelle de repli pour distinguer un message annulé d'un message en cours de génération
+  if (typeof msg.content === "string") {
+    const trimmed = msg.content.trim();
+    if (trimmed === "<cancelled>" || trimmed === "[cancelled]" || trimmed.startsWith("<cancelled>")) {
+      return true;
+    }
   }
+  return false;
 });
 </script>
 
@@ -49,8 +70,11 @@ const renderedMarkdown = computed(() => {
 .max-w-75 {
   max-width: 75%;
 }
+/* Couleurs pilotées par le thème Vuetify actif (clair ou sombre) via ses
+   variables CSS : plus aucune teinte figée qui rendrait le texte illisible
+   sur la bulle sombre en dark mode. */
 .markdown-body {
-  color: #182630 !important;
+  color: rgb(var(--v-theme-on-surface)) !important;
 }
 .markdown-body :deep(table) {
   border-collapse: collapse;
@@ -59,13 +83,13 @@ const renderedMarkdown = computed(() => {
 }
 .markdown-body :deep(th),
 .markdown-body :deep(td) {
-  border: 1px solid rgba(24, 38, 48, 0.3);
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.25);
   padding: 6px 12px;
   text-align: left;
-  color: #182630 !important;
+  color: rgb(var(--v-theme-on-surface)) !important;
 }
 .markdown-body :deep(th) {
-  background-color: rgba(24, 38, 48, 0.1);
+  background-color: rgba(var(--v-theme-on-surface), 0.08);
   font-weight: bold;
 }
 .markdown-body :deep(img) {
@@ -75,8 +99,9 @@ const renderedMarkdown = computed(() => {
   margin: 0.5rem 0;
 }
 .markdown-body :deep(pre) {
-  background-color: #182630;
-  color: #FFFFFF;
+  background-color: #0e151c;
+  color: #e6ecf1;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   padding: 8px 12px;
   border-radius: 6px;
   overflow-x: auto;
@@ -85,9 +110,17 @@ const renderedMarkdown = computed(() => {
   font-family: monospace;
   font-size: 0.9em;
 }
+.markdown-body :deep(:not(pre) > code) {
+  background-color: rgba(var(--v-theme-on-surface), 0.1);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.markdown-body :deep(a) {
+  color: rgb(var(--v-theme-primary));
+}
 .markdown-body :deep(p) {
   margin-bottom: 0.5rem;
-  color: #182630 !important;
+  color: rgb(var(--v-theme-on-surface)) !important;
 }
 .markdown-body :deep(p:last-child) {
   margin-bottom: 0;

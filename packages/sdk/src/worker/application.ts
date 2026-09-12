@@ -1,16 +1,41 @@
 import Redis from "ioredis";
 import { createWorkerContext, WorkerTaskContext } from "./context.js";
 
+/**
+ * Options de configuration du worker d'inférence Valkey/Redis Streams.
+ */
 export interface WorkerAppOptions {
+  /** Identifiant unique de cette instance de worker (ex: "ts-worker-1"). Utilisé pour le consumer group et la présence. */
   workerId: string;
+  /** Liste des noms de modèles/tâches que ce worker est habilité à traiter (ex: `["CHATBOT", "LOGISTICS"]`). */
   models: string[];
+  /** Environnement d'exécution (`"dev"` ou `"prod"`). Conditionne les préfixes de clés de files. Défaut: `"dev"`. */
   env?: string;
+  /** URL de connexion Valkey / Redis (ex: `"redis://localhost:6379"`). */
   redisUrl?: string;
+  /** Alias pour `redisUrl`. */
   valkeyUrl?: string;
 }
 
+/**
+ * Signature d'une fonction de traitement d'un job d'inférence.
+ *
+ * @param payload - Données du job (prompt, customer, métadonnées, paramètres du modèle).
+ * @param ctx - Contexte d'exécution fournissant les fonctions de streaming (`sendToken`), d'envoi de sources (`sendSource`), etc.
+ */
 export type TaskHandler = (payload: any, ctx: WorkerTaskContext) => Promise<void>;
 
+/**
+ * Application Worker autonome gérant la consommation de jobs d'inférence asynchrones
+ * via Valkey / Redis Streams et Consumer Groups.
+ *
+ * Fonctionnalités incluses :
+ * - Inscription automatique dans les Consumer Groups (`jobs:queue:<env>:<model>`).
+ * - Boucle de récupération PEL (Pending Entries List) avec `XAUTOCLAIM` pour les jobs orphelins.
+ * - Routage automatique vers Dead Letter Queue (DLQ) après 3 échecs consécutifs.
+ * - Publication de présence / heartbeat périodique (`workers:presence:<workerId>:<model>`).
+ * - Streaming en temps réel des tokens et sources vers le flux SSE du client (`jobs:sse:<env>:<jobId>`).
+ */
 export class WorkerApplication {
   private workerId: string;
   private models: string[];
@@ -21,23 +46,45 @@ export class WorkerApplication {
   private isRunning: boolean = false;
   private timerRefs: Set<NodeJS.Timeout> = new Set();
 
+  /**
+   * Initialise une nouvelle instance du WorkerApplication.
+   *
+   * @param options - Configuration du worker (workerId, models, env, redisUrl).
+   */
   constructor(options: WorkerAppOptions) {
     this.workerId = options.workerId;
     this.models = options.models;
     this.env = options.env || "dev";
-    const url = options.redisUrl || "redis://localhost:6379";
+    const url = options.valkeyUrl || options.redisUrl || "redis://localhost:6379";
 
     this.redisReader = new Redis(url);
     this.redisWriter = new Redis(url);
   }
 
+  /**
+   * Associe un modèle à une fonction de traitement (handler).
+   *
+   * @param model - Nom du modèle ou type de tâche (ex: `"CHATBOT"`, `"LOGISTICS"`).
+   * @param handler - Fonction asynchrone exécutant la logique métier pour ce modèle.
+   */
   registerTask(model: string, handler: TaskHandler) {
     this.handlers.set(model, handler);
   }
 
+  /**
+   * Démarre l'écoute des files Redis Streams et lance les boucles de heartbeat et de PEL recovery.
+   */
   async start() {
     this.isRunning = true;
-    console.info(`[Worker SDK] Worker ${this.workerId} démarré sur les modèles : ${this.models.join(", ")}`);
+    // Le préfixe de file est affiché explicitement : c'est la seule valeur qui
+    // doit impérativement correspondre à celle de l'API. En cas de divergence,
+    // les jobs sont publiés dans une file que personne ne consomme, sans
+    // erreur ni trace — comparer cette ligne à celle du démarrage de l'API est
+    // le moyen le plus rapide de le constater.
+    console.info(
+      `[Worker SDK] Worker ${this.workerId} démarré sur les modèles : ${this.models.join(", ")} ` +
+        `(files jobs:queue:${this.env}:*)`,
+    );
 
     this.pollQueues();
     this.startHeartbeat();
@@ -64,17 +111,36 @@ export class WorkerApplication {
     }
   }
 
-  private async pollQueues() {
-    const commonGroupName = `group:llm-workers:${this.env}`;
-
+  /**
+   * Crée le groupe de consommateurs sur la file de chaque modèle.
+   *
+   * MKSTREAM crée aussi le stream s'il n'existe pas encore : le worker peut
+   * donc démarrer avant que le moindre job ait été publié. Une erreur
+   * BUSYGROUP signifie simplement que le groupe est déjà là — c'est le cas
+   * nominal à chaque redémarrage.
+   *
+   * `startId` distingue deux situations :
+   *  - "$" au démarrage : ne consommer que les jobs à venir, sans rejouer tout
+   *    l'historique du stream à chaque redémarrage du worker ;
+   *  - "0" après une perte de groupe : l'état du groupe ayant disparu, aucun
+   *    message présent dans le stream n'a été acquitté. Repartir de "$"
+   *    perdrait définitivement les jobs déjà en file.
+   */
+  private async ensureConsumerGroups(groupName: string, startId: "$" | "0" = "$") {
     for (const model of this.models) {
       const streamQueueKey = `jobs:queue:${this.env}:${model}`;
       try {
-        await this.redisReader.xgroup("CREATE", streamQueueKey, commonGroupName, "$", "MKSTREAM");
+        await this.redisReader.xgroup("CREATE", streamQueueKey, groupName, startId, "MKSTREAM");
       } catch (e) {
         // Ignorer si le groupe existe déjà
       }
     }
+  }
+
+  private async pollQueues() {
+    const commonGroupName = `group:llm-workers:${this.env}`;
+
+    await this.ensureConsumerGroups(commonGroupName);
 
     this.startPelRecoveryLoop(commonGroupName);
 
@@ -110,6 +176,21 @@ export class WorkerApplication {
           await this.sleep(10);
         }
       } catch (err) {
+        // NOGROUP : le stream ou son groupe de consommateurs a disparu — clé
+        // supprimée, expirée, ou instance Valkey réinitialisée. Le groupe
+        // n'était créé qu'au démarrage : sans recréation, le worker bouclait
+        // sur cette erreur indéfiniment et ne traitait plus aucun job jusqu'à
+        // un redémarrage manuel. Les jobs publiés entre-temps étaient perdus.
+        if (err instanceof Error && err.message.includes("NOGROUP")) {
+          console.warn("[Worker SDK] Groupe de consommateurs absent, recréation en cours...");
+          // "0" et non "$" : les jobs deja publies dans le stream n'ont ete
+          // acquittes par personne, puisque le groupe qui aurait pu le faire
+          // n'existe plus. Repartir de la fin les perdrait silencieusement.
+          await this.ensureConsumerGroups(commonGroupName, "0");
+          await this.sleep(100);
+          continue;
+        }
+
         console.error("[Worker SDK] Erreur lors du polling Redis Streams", err);
         await this.sleep(1000);
       }
@@ -207,10 +288,15 @@ export class WorkerApplication {
         return;
       }
 
+      const handlerPayload = {
+        ...payloadData,
+        ...(payloadData.data && typeof payloadData.data === "object" ? payloadData.data : {}),
+      };
+
       const ctx = createWorkerContext(jobId, conversationId, this.env, this.redisWriter);
       const startTime = Date.now();
 
-      await handler(payloadData, ctx);
+      await handler(handlerPayload, ctx);
 
       const durationSec = (Date.now() - startTime) / 1000;
       const sseStreamKey = `jobs:sse:${this.env}:${jobId}`;

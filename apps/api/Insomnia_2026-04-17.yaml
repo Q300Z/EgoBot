@@ -1,0 +1,304 @@
+type: collection.insomnia.rest/5.0
+schema_version: "5.1"
+name: Scratch Pad
+meta:
+  id: wrk_scratchpad
+  created: 1776095366873
+  modified: 1776095366873
+  description: ""
+collection:
+  - name: API
+    meta:
+      id: fld_cb0d9f7ab75c4278995cfee1cd40e61a
+      created: 1776095527202
+      modified: 1776095527202
+      sortKey: -1776095527202
+      description: ""
+    children:
+      - url: "{{ _.API }}/auth/login"
+        name: Login
+        meta:
+          id: req_9f9e3d0a3bb24cd4908915fe9a6a5632
+          created: 1776095531078
+          modified: 1776423951238
+          isPrivate: false
+          description: ""
+          sortKey: -1776095534482
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+            	"url":"https://logipolweb-tbn.agelid.com/",
+            	"model":"CHATBOT",
+            	"email":"tbn@agelid.com",
+            	"user":"id_user_tbn",
+            	"client":"id_client_tbn",
+            	"db_key":"l_1",
+            	"dev":"true"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/12.5.0
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - name: Conversation
+        meta:
+          id: fld_471ff8dc9d134f01b3f91819601c93cc
+          created: 1776160227314
+          modified: 1776160227314
+          sortKey: -1776160227314
+          description: ""
+        children:
+          - url: "{{ _.API }}/conversations"
+            name: getConversations
+            meta:
+              id: req_5308ecc26571492cb6d966c15a8af18e
+              created: 1776160234492
+              modified: 1776259064968
+              isPrivate: false
+              description: ""
+              sortKey: -1776160234492
+            method: GET
+            headers:
+              - name: User-Agent
+                value: insomnia/12.5.0
+                description: ""
+                disabled: false
+            authentication:
+              type: bearer
+              token: "{{ _.TOKEN }}"
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{ _.API }}/conversations/:id"
+            name: getConversation
+            meta:
+              id: req_8a6caea39722415290b63c198362dc6f
+              created: 1776165196729
+              modified: 1776267044545
+              isPrivate: false
+              description: ""
+              sortKey: -1776127884487
+            method: GET
+            headers:
+              - name: User-Agent
+                value: insomnia/12.5.0
+                description: ""
+                disabled: false
+            authentication:
+              type: bearer
+              token: "{{ _.TOKEN }}"
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+            pathParameters:
+              - name: id
+                value: e4d8ed35-a41a-4ea8-88c7-7fa9ea60d826
+          - url: "{{ _.API }}/conversations/:id"
+            name: deleteConversation
+            meta:
+              id: req_be36f7b5d973454cacd48e8351c39639
+              created: 1776165226129
+              modified: 1776241011508
+              isPrivate: false
+              description: ""
+              sortKey: -1776111709484.5
+            method: DELETE
+            headers:
+              - name: User-Agent
+                value: insomnia/12.5.0
+                description: ""
+                disabled: false
+            authentication:
+              type: bearer
+              token: "{{ _.TOKEN }}"
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+            pathParameters:
+              - name: id
+                value: 48249ed5-aea2-40bc-926c-5a5d700671dd
+      - name: Message
+        meta:
+          id: fld_05f63f979ba646aaa9bb7293a6d0c3f1
+          created: 1776165245693
+          modified: 1776165245693
+          sortKey: -1776165245693
+          description: ""
+        children:
+          - url: "{{ _.API }}/messages"
+            name: postMessage
+            meta:
+              id: req_290b12fd44494fc8ab74e361f8cebc84
+              created: 1776165255807
+              modified: 1776275263245
+              isPrivate: false
+              description: ""
+              sortKey: -1776165255807
+            method: POST
+            body:
+              mimeType: application/json
+              text: |-
+                {
+                	"idConversation":"e4d8ed35-a41a-4ea8-88c7-7fa9ea60d826",
+                	"prompt":"Bonjour"
+                }
+            headers:
+              - name: Content-Type
+                value: application/json
+              - name: User-Agent
+                value: insomnia/12.5.0
+                description: ""
+                disabled: false
+            authentication:
+              type: bearer
+              token: "{{ _.TOKEN }}"
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{ _.API }}/messages/:id/cancel"
+            name: postCancelMessage
+            meta:
+              id: req_6ec6155b3ea14df781100d061d9c438a
+              created: 1776165343063
+              modified: 1776275347096
+              isPrivate: false
+              description: ""
+              sortKey: -1776162745149.5
+            method: POST
+            headers:
+              - name: User-Agent
+                value: insomnia/12.5.0
+                description: ""
+                disabled: false
+            authentication:
+              type: bearer
+              token: "{{ _.TOKEN }}"
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+            pathParameters:
+              - name: id
+                value: 8e769cb5-2700-429c-b8c7-bdc5b2fac429
+  - name: SSE
+    meta:
+      id: fld_819609e834df41c6a781582f83363f69
+      created: 1776165405142
+      modified: 1776165405142
+      sortKey: -1776165405142
+      description: ""
+    children:
+      - url: "{{ _.SSE }}/job/:id"
+        name: sseJob
+        meta:
+          id: req_61dde650b0ae49e9a02cc454253a69aa
+          created: 1776165417964
+          modified: 1776275302621
+          isPrivate: false
+          description: ""
+          sortKey: -1776165420107
+        method: GET
+        headers:
+          - name: User-Agent
+            value: insomnia/12.5.0
+            description: ""
+            disabled: false
+          - name: Accept
+            value: text/event-stream
+        authentication:
+          type: bearer
+          token: "{{ _.TOKEN }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+        pathParameters:
+          - name: id
+            value: 8e769cb5-2700-429c-b8c7-bdc5b2fac429
+      - url: "{{ _.SSE }}/status"
+        name: sseStatus
+        meta:
+          id: req_f389117c41d4438ca74000aeb51d9b88
+          created: 1776165542012
+          modified: 1776165548461
+          isPrivate: false
+          description: ""
+          sortKey: -1776165337957
+        method: GET
+        headers:
+          - name: User-Agent
+            value: insomnia/12.5.0
+            description: ""
+            disabled: false
+          - name: Accept
+            value: text/event-stream
+        authentication:
+          type: bearer
+          token: "{{ _.TOKEN }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_99d30891da4bdcebc63947a8fc17f076de878684
+    created: 1776095378224
+    modified: 1776095378224
+environments:
+  name: Base Environment
+  meta:
+    id: env_99d30891da4bdcebc63947a8fc17f076de878684
+    created: 1776095378219
+    modified: 1776432966348
+    isPrivate: false
+  data:
+    URL: http://10.10.1.5:8000
+    VERSION: v1
+    API: "{{ _.URL }}/api/{{ _.VERSION }}"
+    SSE: "{{ _.URL }}/sse/{{ _.VERSION }}"
+    TOKEN: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImlkX3VzZXJfdGJuIiwiZW1haWwiOiJ0Ym5AYWdlbGlkLmNvbSIsImNsaWVudF9pZCI6ImlkX2NsaWVudF90Ym4iLCJyb2xlIjoiVVNFUiIsImRldiI6InRydWUiLCJpYXQiOjE3NzY0MzI5NTAsImV4cCI6MTc3NjQzNjU1MH0.UkGPqi_oB38bcxG-ajNZ8MQbX4CmR-LCbr9n1pRIk70

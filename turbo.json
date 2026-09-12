@@ -1,7 +1,16 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": ["tsconfig.json"],
-  "globalEnv": ["NODE_ENV", "PORT", "VALKEY_URL", "REDIS_URL", "JWT_SECRET"],
+  "globalEnv": [
+    "NODE_ENV",
+    "PORT",
+    "VALKEY_URL",
+    "REDIS_URL",
+    "JWT_SECRET",
+    "DATABASE_URL",
+    "LOGISTICS_MODEL",
+    "OPENAI_API_KEY"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -12,6 +21,7 @@
       "dependsOn": ["^build"]
     },
     "dev": {
+      "dependsOn": ["^build"],
       "cache": false,
       "persistent": true
     },

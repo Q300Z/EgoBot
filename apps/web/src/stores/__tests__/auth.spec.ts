@@ -48,7 +48,8 @@ describe("Auth Store", () => {
       user: mockUser,
     });
 
-    await authStore.register("admin@test.com", "password123", "ADMIN");
+    // Pas de role : l'inscription publique cree toujours un compte USER.
+    await authStore.register("admin@test.com", "password123");
 
     expect(authStore.token).toBe(mockToken);
     expect(authStore.user).toEqual(mockUser);

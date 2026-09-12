@@ -1,0 +1,6 @@
+SELECT count(*) FROM "Conversation" WHERE createdAt < datetime('now', '-1 month') ORDER BY createdAt LIMIT 10000;
+SELECT * FROM "Message"  WHERE createdAt < datetime('now', '-1 month') ORDER BY createdAt LIMIT 100
+DELETE FROM "Conversation" WHERE createdAt < datetime('now', '-1 month');
+DELETE FROM "Job" WHERE createdAt < datetime('now', '-1 month');
+DELETE FROM "Message" WHERE createdAt < datetime('now', '-1 month');
+VACCUM;

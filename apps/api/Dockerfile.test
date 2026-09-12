@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM node:22-alpine
 
 RUN corepack enable && corepack prepare pnpm@11.9.0 --activate
 
@@ -7,6 +7,6 @@ WORKDIR /app
 COPY . .
 
 RUN pnpm install
-RUN pnpm --filter @my-llm/api exec prisma generate
+RUN pnpm --filter api exec prisma generate
 
-CMD ["pnpm", "--filter", "@my-llm/api", "test"]
+CMD ["pnpm", "--filter", "api", "test"]
