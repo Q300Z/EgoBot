@@ -134,7 +134,7 @@ describe("createWorkerContext", () => {
 
     mockRedisWriter.exists.mockResolvedValueOnce(1);
     const isCancelled = await ctx.checkCancellation();
-    expect(mockRedisWriter.exists).toHaveBeenCalledWith("jobs:cancel:job-cancel-me");
+    expect(mockRedisWriter.exists).toHaveBeenCalledWith("job:cancel:job-cancel-me", "jobs:cancel:job-cancel-me");
     expect(isCancelled).toBe(true);
 
     mockRedisWriter.exists.mockResolvedValueOnce(0);
